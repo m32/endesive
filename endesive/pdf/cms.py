@@ -43,7 +43,7 @@ class SignedData(object):
                     'serial_number': cert.asn1.serial_number,
                 }),
             }),
-            'digest_algorithm': algos.DigestAlgorithm({'algorithm': algomd}),
+            'digest_algorithm': algos.DigestAlgorithm({'algorithm': algosig}),
             'signed_attrs': signedattrs,
             'signature_algorithm': algos.SignedDigestAlgorithm({'algorithm': u'rsassa_pkcs1v15'}),
             'signature': signed_value_signature,
@@ -99,47 +99,49 @@ class SignedData(object):
     def makeobj(self, no, data):
         return (b'%d 0 obj\n<<' % no)+data+b'>>\nendobj\n'
 
-    def makepdf(self, pdfdata1, zeros):
+    def makepdf(self, pdfdata1, udct, zeros):
         parser = PDFParser(BytesIO(pdfdata1))
         document = PDFDocument(parser, fallback=False)
 
         prev = document.find_xref(parser)
         info = document.xrefs[0].trailer['Info'].objid
         root = document.xrefs[0].trailer['Root'].objid
+        size = document.xrefs[0].trailer['Size']
         page = None
         for i in document.catalog['OpenAction']:
             if isinstance(i, PDFObjRef):
                 page = i.objid
+                break
         infodata = self.getdata(pdfdata1, info, prev, document).strip()
         rootdata = self.getdata(pdfdata1, root, prev, document).strip()
         pagedata = self.getdata(pdfdata1, page, prev, document).strip()
 
-        no = info
+        no = size
         objs = [
             self.makeobj(page, (b'/Annots[%d 0 R]' % (no+3))+pagedata),
             self.makeobj(no+0, infodata),
             self.makeobj(no+1, (b'/AcroForm %d 0 R' % (no+2))+rootdata),
-            self.makeobj(no+2, b'/Fields[%d 0 R]/SigFlags 3' % (no+3)),
+            self.makeobj(no+2, b'/Fields[%d 0 R]/SigFlags %d' % (no+3, udct[b'sigflags'])),
             self.makeobj(no+3, b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature1)/V %d 0 R' % ( no+4, page, no+5 )),
             self.makeobj(no+4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject'),
             b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n',
-            self.makeobj(no+5, b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo()\
-/Filter/Adobe.PPKLite/Location(TestCity)/M(D:20180802230553+02\'00\')/Prop_Build<</App<</Name/>>>>/Reason(Test 1)/SubFilter/adbe.pkcs7.detached/Type/Sig\
-/Contents <'+zeros+b'>'),
+            self.makeobj(no+5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
+/Filter/Adobe.PPKLite/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
+/Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason']))+zeros+b'>'),
         ]
 
         pdfdata2 = b''.join(objs)
         xref = b'''\
 xref\n\
 %(page)d 1\n\
-%(o03)010d 00000 n \n\
+%(p0)010d 00000 n \n\
 %(no)d 6\n\
-%(o08)010d 00000 n \n\
-%(o09)010d 00000 n \n\
-%(o10)010d 00000 n \n\
-%(o11)010d 00000 n \n\
-%(o12)010d 00000 n \n\
-%(o13)010d 00000 n \n\
+%(n0)010d 00000 n \n\
+%(n1)010d 00000 n \n\
+%(n2)010d 00000 n \n\
+%(n3)010d 00000 n \n\
+%(n4)010d 00000 n \n\
+%(n5)010d 00000 n \n\
 '''
         startxref = len(pdfdata1)
         dct = {
@@ -149,13 +151,19 @@ xref\n\
             b'prev': prev,
             b'info': no+0,
             b'root': no+1,
+            b'size': 6,
+            b'p0': startxref+pdfdata2.find(b'\n%d 0 obj\n'%page)+1,
+            b'n0': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+0))+1,
+            b'n1': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+1))+1,
+            b'n2': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+2))+1,
+            b'n3': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+3))+1,
+            b'n4': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+4))+1,
+            b'n5': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+5))+1,
         }
-        for i in range(14):
-            dct[b'o%02d'%i] = startxref+pdfdata2.find(b'\n%d 0 obj\n'%i)+1
 
         trailer = b'''\
 trailer
-<</ID [<1><2>]/Info %(info)d 0 R/Prev %(prev)d/Root %(root)d 0 R/Size 14>>\n\
+<</ID [<1><2>]/Info %(info)d 0 R/Prev %(prev)d/Root %(root)d 0 R/Size %(size)d>>\n\
 startxref\n\
 %(startxref)d\n\
 %%%%EOF\n\
@@ -168,10 +176,10 @@ startxref\n\
 
         return pdfdata2
 
-    def sign(self, datau, key, cert, othercerts, algomd, algosig):
+    def sign(self, datau, dct, key, cert, othercerts, algomd, algosig):
         zeros = self.aligned(b'\0')
 
-        pdfdata2 = self.makepdf(datau, zeros)
+        pdfdata2 = self.makepdf(datau, dct, zeros)
 
 
         startxref = len(datau)
@@ -199,6 +207,6 @@ startxref\n\
         return pdfdata2
 
 
-def sign(datau, key, cert, othercerts, algomd, algosig):
+def sign(datau, udct, key, cert, othercerts, algomd, algosig):
     cls = SignedData()
-    return cls.sign(datau, key, cert, othercerts, algomd, algosig)
+    return cls.sign(datau, udct, key, cert, othercerts, algomd, algosig)

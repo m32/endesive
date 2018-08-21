@@ -71,8 +71,7 @@ class Main:
         #signedInfo.debug()
         algomd = signedInfo['digest_algorithms'].native[0]['algorithm']
         signature = signedInfo['signer_infos'][0].native['signature']
-        algosig = signedInfo['signer_infos'][0].native['signature_algorithm']['algorithm']
-        algosig = 'sha256'
+        algosig = signedInfo['signer_infos'][0].native['digest_algorithm']['algorithm']
         print('algomd:', algomd, 'algosig:', algosig)
 
         if 0:
@@ -127,8 +126,6 @@ def main():
     cls = Main('demo2_user1.crt.pem')
     for fname in (
         'pdf-signed-cms.pdf',
-        'pdf-signed-cades.pdf',
-        'pdf-signed-ppklite.pdf',
     ):
         print('*'*20, fname)
         cls.verify(fname)
