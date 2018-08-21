@@ -31,7 +31,7 @@ def show(fname):
 
 
 def main():
-    show('pdf-signed-cades.pdf')
+    show('pdf-signed-cms.pdf')
 
 
 main()
