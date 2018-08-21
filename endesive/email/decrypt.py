@@ -1,0 +1,40 @@
+# *-* coding: utf-8 *-*
+from email import message_from_string
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from asn1crypto import cms
+from oscrypto import asymmetric
+
+class DecryptedData(object):
+
+    def decrypt(self, data, key):
+        msg = message_from_string(data)
+        data = None
+        for part in msg.walk():
+            # multipart/* are just containers
+            if part.get_content_maintype() == 'multipart':
+                continue
+            if part.get_content_type() != 'application/x-pkcs7-mime':
+                continue
+            data = part.get_payload(decode=True)
+            break
+        if data is None:
+            return
+
+        signed_data = cms.ContentInfo.load(data)['content']
+
+        algo = signed_data['encrypted_content_info']['content_encryption_algorithm']['algorithm'].native
+        param = signed_data['encrypted_content_info']['content_encryption_algorithm']['parameters'].native
+        edata = signed_data['encrypted_content_info']['encrypted_content'].native
+        pkey = signed_data['recipient_infos'].native[0]['encrypted_key']
+
+        udata = asymmetric.rsa_pkcs1v15_decrypt(key, pkey)
+        cipher = Cipher(algorithms.AES(udata), modes.CBC(param), default_backend())
+        decryptor = cipher.decryptor()
+        udata = decryptor.update(edata) + decryptor.finalize()
+        udata = udata[:-udata[-1]]
+        return udata
+
+def decrypt(data, key):
+    cls = DecryptedData()
+    return cls.decrypt(data, key)
