@@ -104,6 +104,7 @@ class XADES:
             signedobj = Object(
                 data,
                 Encoding="http://www.w3.org/2000/09/xmldsig#base64",
+                MimeType=smime,
                 Id="Object1_" + self.guid,
             )
         elif 0:
@@ -242,7 +243,7 @@ Content-Disposition: filename="%s"\
             Id="SignedInfo_" + self.guid + "_1f",
         )
         canonicalizedxml = self._c14n(signedinfo, '')
-        signature = signproc(canonicalizedxml)
+        signature = signproc(canonicalizedxml, 'sha1')
         actualdigestencoded = ensure_str(base64.b64encode(signature))
         digestvalue3 = []
         for i in range(0, len(actualdigestencoded), 64):
