@@ -277,4 +277,4 @@ Content-Disposition: filename="%s"\
             signedobj,
             Id="Signature_" + self.guid + "_47",
         )
-        self.root = DOC
+        return DOC

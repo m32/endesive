@@ -17,8 +17,8 @@ def main():
     certcontent = cert.dump()
 
     cls = xades.BES()
-    cls.build('dokument.xml', data, 'text/xml', cert, certcontent, signproc, True, True)
-    data = etree.tostring(cls.root, encoding='UTF-8', xml_declaration=True, standalone=False)
+    doc = cls.build('dokument.xml', data, 'text/xml', cert, certcontent, signproc, True, True)
+    data = etree.tostring(doc, encoding='UTF-8', xml_declaration=True, standalone=False)
 
     open('xml-xades-bes-b64.xml', 'wb').write(data)
 
