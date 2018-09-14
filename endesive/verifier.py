@@ -15,11 +15,6 @@ class VerifyData(object):
                 cert = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
                 self.add_cert(cert)
 
-    #                if pem.detect(cert):
-    #                    _, _, cert = pem.unarmor(cert)
-    #                cert = x509.Certificate.load(cert)
-    #                self.add_cert(cert)
-
     def add_cert(self, trusted_cert):
         self.store.add_cert(trusted_cert)
 
