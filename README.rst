@@ -7,7 +7,7 @@ Cryptographic routines depend on `oscrypto`_ and `cryptography`_ libraries, so e
 'pure python'.
 
 For certificate verification OpenSSL is used but I would not trust it,
-next version should switch to `certvalidator`_ or `pycrypto`_ .
+next version should switch to `certvalidator`_ or `cryptography`_.
 
 This library implements S/MIME handler which can encrypt and decrypt S/MIME messages
 using a public RSA key, in AES-128/192/256 CBC/OFB modes.
