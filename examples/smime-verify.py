@@ -13,7 +13,11 @@ def main():
             'smime-signed-noattr.txt',
     ):
         print('*' * 20, fname)
-        datae = open(fname, 'rt', encoding='utf-8').read()
+        try:
+            datae = open(fname, 'rt', encoding='utf-8').read()
+        except FileNotFoundError:
+            print('no such file')
+            continue
         (hashok, signatureok, certok) = email.verify(datae, trusted_cert_pems)
         print('signature ok?', signatureok)
         print('hash ok?', hashok)

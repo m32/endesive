@@ -19,24 +19,6 @@ class EncryptedData(object):
         data = msg.as_string()
         return data
 
-    @property
-    def parameters(self):
-        return self._iv
-
-    @property
-    def session_key(self):
-        return self._session_key
-
-    @staticmethod
-    def _pad(s, block_size):
-        n = block_size - len(s) % block_size
-        return s + n * chr(n)
-
-    def encrypt(self, data):
-        encryptor = self.cipher.encryptor()
-        data = self.pad(data, self.block_size)
-        data = encryptor.update(data) + encryptor.finalize()
-
     def pad(self, s, block_size):
         n = block_size - len(s) % block_size
         n = bytes([n] * n)
@@ -65,12 +47,16 @@ class EncryptedData(object):
             }
         )
 
-    def build(self, data, certs):
-        key_size = 32
+    def build(self, data, certs, algo):
+        key_size = {
+            'aes128': 16,
+            'aes192': 24,
+            'aes256': 32,
+        }[algo.split('_', 1)[0]]
         block_size = 16
         session_key = os.urandom(key_size)
         iv = os.urandom(block_size)
-        cipher = Cipher(algorithms.AES(session_key), modes.CBC(iv), default_backend())
+        cipher = Cipher(algorithms.AES(session_key), getattr(modes, algo.split('_', 1)[1].upper())(iv), default_backend())
 
         data = self.pad(data, block_size)
 
@@ -80,7 +66,7 @@ class EncryptedData(object):
         recipient_infos = []
         for cert in certs:
             recipient_info = self.recipient_info(cert, session_key)
-        recipient_infos.append(recipient_info)
+            recipient_infos.append(recipient_info)
 
         enveloped_data = cms.ContentInfo({
             'content_type': u'enveloped_data',
@@ -90,7 +76,7 @@ class EncryptedData(object):
                 'encrypted_content_info': {
                     'content_type': u'data',
                     'content_encryption_algorithm': {
-                        'algorithm': u'aes256_cbc',
+                        'algorithm': algo,
                         'parameters': iv
                     },
                     'encrypted_content': data
@@ -101,6 +87,7 @@ class EncryptedData(object):
         return data
 
 
-def encrypt(data, certs):
+def encrypt(data, certs, algo=u'aes256_cbc'):
+    assert algo[:3] == 'aes' and algo.split('_', 1)[1] in ('cbc', 'ofb')
     cls = EncryptedData()
-    return cls.build(data, certs)
+    return cls.build(data, certs, algo)

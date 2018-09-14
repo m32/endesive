@@ -31,7 +31,7 @@ class DecryptedData(object):
         pkey = signed_data['recipient_infos'].native[0]['encrypted_key']
 
         udata = asymmetric.rsa_pkcs1v15_decrypt(key, pkey)
-        cipher = Cipher(algorithms.AES(udata), modes.CBC(param), default_backend())
+        cipher = Cipher(algorithms.AES(udata), getattr(modes, algo.split('_', 1)[1].upper())(param), default_backend())
         decryptor = cipher.decryptor()
         udata = decryptor.update(edata) + decryptor.finalize()
         udata = udata[:-udata[-1]]
