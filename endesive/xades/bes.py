@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import io
-import uuid
+import base64
 import datetime
 import hashlib
-import base64
-from lxml import etree, builder
+import io
+import uuid
 
+from lxml import etree, builder
 
 DS = builder.ElementMaker(
     namespace="http://www.w3.org/2000/09/xmldsig#",
@@ -64,7 +64,7 @@ def ensure_str(x, encoding="utf-8", none_ok=False):
     return x
 
 
-class XADES:
+class BES:
     def __init__(self):
         self.guid = str(uuid.uuid1())
         self.time = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -130,10 +130,10 @@ class XADES:
         certserialnumber = '%d' % cert.serial_number
         certissuer = []
         for k, v in (
-            ('CN', 'common_name'),
-            ('O', 'organization_name'), 
-            ('C', 'country_name'),
-            ('serialNumber', 'serial_number'),
+                ('CN', 'common_name'),
+                ('O', 'organization_name'),
+                ('C', 'country_name'),
+                ('serialNumber', 'serial_number'),
         ):
             try:
                 v = cert.issuer.native[v]

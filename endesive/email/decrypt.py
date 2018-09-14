@@ -1,9 +1,11 @@
 # *-* coding: utf-8 *-*
 from email import message_from_string
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
+
 from asn1crypto import cms
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from oscrypto import asymmetric
+
 
 class DecryptedData(object):
 
@@ -34,6 +36,7 @@ class DecryptedData(object):
         udata = decryptor.update(edata) + decryptor.finalize()
         udata = udata[:-udata[-1]]
         return udata
+
 
 def decrypt(data, key):
     cls = DecryptedData()

@@ -2,7 +2,48 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="28a5070a-5973-4be9-bf77-30e0d93dba09" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/email/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/email/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/email/decrypt.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/email/decrypt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/email/encrypt.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/email/encrypt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/email/sign.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/email/sign.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/email/verify.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/email/verify.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/cms.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/cms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/fonts.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/fonts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/fpdf.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/fpdf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/html.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/html.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/php.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/php.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/py3k.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/py3k.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/template.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/template.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/fpdf/ttfonts.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/fpdf/ttfonts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/pdf/pdf.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/pdf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/plain/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/plain/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/plain/sign.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/plain/sign.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/plain/verify.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/plain/verify.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/xades/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/xades/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/xades/bes.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/xades/bes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/cert-make.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/cert-make.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/pdf-dump.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/pdf-dump.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/pdf-sign-cms.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/pdf-sign-cms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/pdf-sign-fpdf.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/pdf-sign-fpdf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/pdf-verify.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/pdf-verify.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/pkcs12.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/pkcs12.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/plain-make.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plain-make.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/plain-sign-attr.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plain-sign-attr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/plain-sign-noattr.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plain-sign-noattr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/plain-verify.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plain-verify.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/smime-decrypt.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/smime-decrypt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/smime-encrypt.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/smime-encrypt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/smime-make.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/smime-make.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/smime-sign-attr.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/smime-sign-attr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/smime-sign-noattr.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/smime-sign-noattr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/smime-verify.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/smime-verify.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/xml-xades-bes-read.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/xml-xades-bes-read.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/xml-xades-bes-sign-b64.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/xml-xades-bes-sign-b64.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/xml-xades-bes-sign-xml.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/xml-xades-bes-sign-xml.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/xml.xml" beforeDir="false" afterPath="$PROJECT_DIR$/examples/xml.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -19,75 +60,85 @@
     <SUITE FILE_PATH="coverage/endesive$pdf_cades.coverage" NAME="pdf-cades Coverage Results" MODIFIED="1534804021123" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/endesive$data_verify.coverage" NAME="data-verify Coverage Results" MODIFIED="1534802322130" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/endesive$smime_verify.coverage" NAME="smime-verify Coverage Results" MODIFIED="1534798218246" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/endesive$make_plain.coverage" NAME="make-plain Coverage Results" MODIFIED="1536952323476" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/endesive$pdf_ppklite.coverage" NAME="pdf-ppklite Coverage Results" MODIFIED="1534811395941" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/endesive$data_sign_attr.coverage" NAME="data-sign-attr Coverage Results" MODIFIED="1534802173411" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/endesive$pdf_cms.coverage" NAME="pdf-cms Coverage Results" MODIFIED="1534806163435" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/endesive$pdf_fpdf.coverage" NAME="pdf-fpdf Coverage Results" MODIFIED="1534808319697" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/endesive$smime_sign_noattr.coverage" NAME="smime-sign-noattr Coverage Results" MODIFIED="1534793503595" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
     <SUITE FILE_PATH="coverage/endesive$pdf_sign.coverage" NAME="pdf-sign Coverage Results" MODIFIED="1533692028413" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/endesive$plain_verify.coverage" NAME="plain-verify Coverage Results" MODIFIED="1536952568552" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/endesive$plain_sign_attr.coverage" NAME="plain-sign-attr Coverage Results" MODIFIED="1536952332646" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/endesive$plain_sign_noattr.coverage" NAME="plain-sign-noattr Coverage Results" MODIFIED="1536952339571" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
   </component>
   <component name="FUSProjectUsageTrigger">
     <session id="1936893333">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="10" />
+          <entry key="project.closed" value="14" />
           <entry key="project.open.time.10" value="1" />
           <entry key="project.open.time.11" value="1" />
           <entry key="project.open.time.17" value="1" />
           <entry key="project.open.time.24" value="1" />
           <entry key="project.open.time.41" value="1" />
           <entry key="project.open.time.47" value="1" />
-          <entry key="project.open.time.6" value="1" />
-          <entry key="project.open.time.65" value="1" />
-          <entry key="project.open.time.7" value="1" />
+          <entry key="project.open.time.6" value="2" />
+          <entry key="project.open.time.64" value="1" />
+          <entry key="project.open.time.65" value="2" />
+          <entry key="project.open.time.7" value="2" />
+          <entry key="project.open.time.70" value="1" />
           <entry key="project.open.time.93" value="1" />
-          <entry key="project.opened" value="10" />
+          <entry key="project.opened" value="15" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="py" value="164" />
+          <entry key="py" value="167" />
           <entry key="xx" value="3" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="PLAIN_TEXT" value="2" />
-          <entry key="Python" value="165" />
+          <entry key="Python" value="168" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="py" value="5598" />
+          <entry key="py" value="5674" />
           <entry key="xx" value="2" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="PLAIN_TEXT" value="2" />
-          <entry key="Python" value="5598" />
+          <entry key="Python" value="5674" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="225">
       <file pinned="false" current-in-tab="true">
-        <entry file="file:///usr/lib/python3/dist-packages/asn1crypto/core.py">
+        <entry file="file://$PROJECT_DIR$/examples/plain-verify.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="171">
-              <caret line="2393" selection-start-line="2393" selection-end-line="2393" />
+            <state relative-caret-position="249">
+              <caret line="17" column="32" selection-start-line="17" selection-start-column="32" selection-end-line="17" selection-end-column="32" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tests/pdf-sign-ppklite.py">
+        <entry file="file://$PROJECT_DIR$/endesive/verifier.py">
+          <provider selected="true" editor-type-id="text-editor" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/endesive/signer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="24">
-              <caret line="2" selection-start-line="2" selection-end-line="2" />
+            <state>
               <folding>
-                <element signature="e#48#80#0" expanded="true" />
+                <element signature="e#24#38#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -155,6 +206,8 @@
         <option value="$PROJECT_DIR$/tests/pdf-dump.py" />
         <option value="$PROJECT_DIR$/tests/pdf-sign-ppklite.py" />
         <option value="$PROJECT_DIR$/tests/endesive/pdf/ppklite.py" />
+        <option value="$PROJECT_DIR$/examples/plain-verify.py" />
+        <option value="$PROJECT_DIR$/endesive/signer.py" />
       </list>
     </option>
   </component>
@@ -174,6 +227,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -184,29 +238,17 @@
             <path>
               <item name="endesive" type="b2602c69:ProjectViewProjectNode" />
               <item name="endesive" type="462c0819:PsiDirectoryNode" />
-              <item name="endesive" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="endesive" type="b2602c69:ProjectViewProjectNode" />
-              <item name="endesive" type="462c0819:PsiDirectoryNode" />
-              <item name="endesive" type="462c0819:PsiDirectoryNode" />
-              <item name="pdf" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="endesive" type="b2602c69:ProjectViewProjectNode" />
-              <item name="endesive" type="462c0819:PsiDirectoryNode" />
-              <item name="tests" type="462c0819:PsiDirectoryNode" />
+              <item name="examples" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/tests/smime-verify.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/examples" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
@@ -226,73 +268,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.pdf-ppklite">
-    <configuration name="data-sign-attr" type="PythonConfigurationType" factoryName="Python">
-      <module name="endesive" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/data-sign-attr.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="data-sign-noattr" type="PythonConfigurationType" factoryName="Python">
-      <module name="endesive" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/data-sign-noattr.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="data-verify" type="PythonConfigurationType" factoryName="Python">
-      <module name="endesive" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/data-verify.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="Python.plain-verify">
     <configuration name="make-cert" type="PythonConfigurationType" factoryName="Python">
       <module name="endesive" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -301,12 +277,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/cert-make.py" />
+      <option name="SCRIPT_NAME" value="cert-make.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -315,7 +291,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="pdf-cades" type="PythonConfigurationType" factoryName="Python">
+    <configuration name="make-pdf" type="PythonConfigurationType" factoryName="Python">
       <module name="endesive" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -323,12 +299,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/pdf-sign-cades.py" />
+      <option name="SCRIPT_NAME" value="pdf-make.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -337,7 +313,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="pdf-cms" type="PythonConfigurationType" factoryName="Python">
+    <configuration name="make-plain" type="PythonConfigurationType" factoryName="Python">
       <module name="endesive" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -345,12 +321,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/pdf-sign-cms.py" />
+      <option name="SCRIPT_NAME" value="plain-make.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -359,7 +335,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="pdf-fpdf" type="PythonConfigurationType" factoryName="Python">
+    <configuration name="make-smime" type="PythonConfigurationType" factoryName="Python">
       <module name="endesive" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -367,12 +343,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/pdf-sign-fpdf.py" />
+      <option name="SCRIPT_NAME" value="smime-make.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -381,7 +357,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="pdf-ppklite" type="PythonConfigurationType" factoryName="Python">
+    <configuration name="pdf-sign-cms" type="PythonConfigurationType" factoryName="Python">
       <module name="endesive" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -389,12 +365,122 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/pdf-sign-ppklite.py" />
+      <option name="SCRIPT_NAME" value="pdf-sign-cms.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pdf-sign-fpdf" type="PythonConfigurationType" factoryName="Python">
+      <module name="endesive" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="pdf-sign-fpdf.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pdf-verify" type="PythonConfigurationType" factoryName="Python">
+      <module name="endesive" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="pdf-verify.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plain-sign-attr" type="PythonConfigurationType" factoryName="Python">
+      <module name="endesive" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="plain-sign-attr.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plain-sign-noattr" type="PythonConfigurationType" factoryName="Python">
+      <module name="endesive" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="plain-sign-noattr.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="plain-verify" type="PythonConfigurationType" factoryName="Python">
+      <module name="endesive" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="plain-verify.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -411,12 +497,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/smime-decrypt.py" />
+      <option name="SCRIPT_NAME" value="smime-decrypt.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -433,12 +519,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/smime-encrypt.py" />
+      <option name="SCRIPT_NAME" value="smime-encrypt.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -455,12 +541,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/smime-sign-attr.py" />
+      <option name="SCRIPT_NAME" value="smime-sign-attr.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -477,12 +563,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/smime-sign-noattr.py" />
+      <option name="SCRIPT_NAME" value="smime-sign-noattr.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -499,34 +585,12 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/smime-verify.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="smime" type="PythonConfigurationType" factoryName="Python">
-      <module name="endesive" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="$USER_HOME$/.virtualenvs/python3/bin/python" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/smime.py" />
+      <option name="SCRIPT_NAME" value="smime-verify.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -537,19 +601,20 @@
     </configuration>
     <list>
       <item itemvalue="Python.make-cert" />
+      <item itemvalue="Python.make-smime" />
+      <item itemvalue="Python.make-pdf" />
+      <item itemvalue="Python.make-plain" />
+      <item itemvalue="Python.plain-sign-attr" />
+      <item itemvalue="Python.plain-sign-noattr" />
+      <item itemvalue="Python.plain-verify" />
       <item itemvalue="Python.smime-encrypt" />
       <item itemvalue="Python.smime-decrypt" />
       <item itemvalue="Python.smime-sign-attr" />
-      <item itemvalue="Python.data-sign-attr" />
-      <item itemvalue="Python.data-sign-noattr" />
       <item itemvalue="Python.smime-sign-noattr" />
       <item itemvalue="Python.smime-verify" />
-      <item itemvalue="Python.data-verify" />
-      <item itemvalue="Python.smime" />
-      <item itemvalue="Python.pdf-cades" />
-      <item itemvalue="Python.pdf-ppklite" />
-      <item itemvalue="Python.pdf-cms" />
-      <item itemvalue="Python.pdf-fpdf" />
+      <item itemvalue="Python.pdf-sign-cms" />
+      <item itemvalue="Python.pdf-sign-fpdf" />
+      <item itemvalue="Python.pdf-verify" />
     </list>
   </component>
   <component name="SvnConfiguration">
@@ -569,13 +634,13 @@
     <frame x="0" y="0" width="1920" height="1056" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.26939425" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.28311965" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.399137" />
+      <window_info anchor="bottom" id="Debug" order="3" visible="true" weight="0.3988889" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -648,23 +713,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/endesive/pdf/cms.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="420">
-          <caret line="42" column="41" selection-start-line="42" selection-start-column="41" selection-end-line="42" selection-end-column="41" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/cert-make.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/smime-encrypt.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="18" column="10" selection-start-line="18" selection-start-column="10" selection-end-line="18" selection-end-column="10" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/lib/python3/dist-packages/cryptography/hazmat/backends/openssl/ciphers.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="178">
@@ -696,13 +744,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/smime-decrypt.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="11" lean-forward="true" selection-end-line="13" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/smime-decrypt.py" />
     <entry file="file://$USER_HOME$/.virtualenvs/python3/lib/python3.6/site-packages/oscrypto/_openssl/asymmetric.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="8040">
@@ -780,27 +822,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/smime-sign-attr.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="84">
-          <caret line="8" column="47" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/smime-sign-noattr.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="84">
-          <caret line="8" column="40" selection-start-line="8" selection-start-column="40" selection-end-line="8" selection-end-column="40" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/smime-verify.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="15" column="40" selection-start-line="15" selection-start-column="40" selection-end-line="15" selection-end-column="40" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/smime-sign-attr.py" />
+    <entry file="file://$PROJECT_DIR$/tests/smime-sign-noattr.py" />
+    <entry file="file://$PROJECT_DIR$/tests/smime-verify.py" />
     <entry file="file://$PROJECT_DIR$/endesive/email/verify.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="381">
@@ -812,9 +836,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="187">
           <caret line="69" column="25" selection-start-line="69" selection-start-column="22" selection-end-line="69" selection-end-column="25" />
-          <folding>
-            <element signature="e#24#33#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -822,9 +843,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="420">
           <caret line="35" column="20" lean-forward="true" selection-start-line="35" selection-start-column="20" selection-end-line="35" selection-end-column="20" />
-          <folding>
-            <element signature="e#24#61#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -842,16 +860,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/data-sign-attr.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="24">
-          <caret line="2" selection-start-line="2" selection-end-line="2" />
-          <folding>
-            <element signature="e#48#79#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/data-sign-attr.py" />
     <entry file="file://$USER_HOME$/.virtualenvs/python3/lib/python3.6/codecs.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="178">
@@ -866,20 +875,8 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/data-verify.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="16" column="58" selection-start-line="16" selection-start-column="58" selection-end-line="16" selection-end-column="58" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/endesive/pdf/fpdf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="441">
-          <caret line="148" lean-forward="true" selection-start-line="148" selection-end-line="148" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/data-verify.py" />
+    <entry file="file://$PROJECT_DIR$/endesive/pdf/fpdf.py" />
     <entry file="file://$USER_HOME$/.virtualenvs/python3/lib/python3.6/tokenize.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="178">
@@ -894,33 +891,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/cades.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="13" lean-forward="true" selection-start-line="13" selection-end-line="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/cms.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="19" column="30" lean-forward="true" selection-start-line="19" selection-start-column="30" selection-end-line="19" selection-end-column="30" />
-          <folding>
-            <element signature="e#24#53#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-cms.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="96">
-          <caret line="8" selection-start-line="8" selection-end-line="8" />
-          <folding>
-            <element signature="e#48#76#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/cades.py" />
+    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/cms.py" />
+    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-cms.py" />
     <entry file="file://$PROJECT_DIR$/endesive/pdf/fpdf/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="96">
@@ -928,109 +901,52 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/fpdf/fpdf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="171">
-          <caret line="1932" column="23" selection-start-line="1932" selection-start-column="12" selection-end-line="1932" selection-end-column="23" />
-          <folding>
-            <element signature="e#997#1028#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/pdf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="26" selection-start-line="26" selection-end-line="26" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/fpdf/fpdf.py" />
+    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/pdf.py" />
     <entry file="file://$PROJECT_DIR$/endesive/pdf/pdf.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="96">
           <caret line="8" column="17" selection-start-line="8" selection-start-column="17" selection-end-line="8" selection-end-column="17" />
-          <folding>
-            <element signature="e#24#53#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-fpdf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="156">
-          <caret line="13" column="27" selection-start-line="13" selection-start-column="27" selection-end-line="13" selection-end-column="27" />
-          <folding>
-            <element signature="e#48#76#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-fpdf.py" />
     <entry file="file://$PROJECT_DIR$/endesive/pdf/fpdf/fpdf.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="468">
           <caret line="1675" selection-start-line="1674" selection-end-line="1675" />
-          <folding>
-            <marker date="1534808888769" expanded="true" signature="63237:63256" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tests/pdf-dump.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="336">
-          <caret line="28" column="63" selection-start-line="28" selection-start-column="63" selection-end-line="28" selection-end-column="63" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/endesive/pdf/cades.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1260">
-          <caret line="129" selection-start-line="129" selection-end-line="129" />
-          <folding>
-            <element signature="e#24#39#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-cades.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="24">
-          <caret line="2" selection-end-line="2" />
-          <folding>
-            <element signature="e#48#78#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/pdf-verify.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-576" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-ppklite.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="24">
-          <caret line="2" selection-start-line="2" selection-end-line="2" />
-          <folding>
-            <element signature="e#48#80#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/ppklite.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="249">
-          <caret line="185" selection-start-line="185" selection-end-line="185" />
-          <folding>
-            <element signature="e#48#58#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tests/pdf-dump.py" />
+    <entry file="file://$PROJECT_DIR$/endesive/pdf/cades.py" />
+    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-cades.py" />
+    <entry file="file://$PROJECT_DIR$/tests/pdf-verify.py" />
+    <entry file="file://$PROJECT_DIR$/tests/endesive/pdf/ppklite.py" />
+    <entry file="file://$PROJECT_DIR$/tests/pdf-sign-ppklite.py" />
     <entry file="file:///usr/lib/python3/dist-packages/asn1crypto/core.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="171">
           <caret line="2393" selection-start-line="2393" selection-end-line="2393" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/endesive/verifier.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/endesive/signer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#24#38#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/examples/plain-verify.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="249">
+          <caret line="17" column="32" selection-start-line="17" selection-start-column="32" selection-end-line="17" selection-end-column="32" />
         </state>
       </provider>
     </entry>

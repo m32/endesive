@@ -1,79 +1,20 @@
 # *-* coding: utf-8 *-*
-from datetime import datetime
 import hashlib
 from io import BytesIO
-from asn1crypto import cms, algos, core
-from oscrypto import asymmetric
-from pdfminer.pdfparser import PDFParser
+
 from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfparser import PDFParser
 from pdfminer.pdftypes import PDFObjRef
 
+from endesive import signer
+
+
 class SignedData(object):
-
-    def pkcs11(self, key, cert, othercerts, signed_md, signed_time, algomd, algosig):
-
-        certificates = [cert.asn1]
-        for i in range(len(othercerts)):
-            certificates.append(cert.asn1)
-
-        signedattrs = cms.CMSAttributes([
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType(u'content_type'),
-                'values': (u'data',),
-            }),
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType(u'message_digest'),
-                'values': (signed_md,),
-            }),
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType(u'signing_time'),
-                'values': (cms.Time({'utc_time': core.UTCTime(signed_time)}),)
-            }),
-        ])
-
-        tosign = signedattrs.dump()
-        tosign = b'\x31' + tosign[1:]
-        signed_value_signature = asymmetric.rsa_pkcs1v15_sign(key, tosign, algosig)
-
-        signer = {
-            'version': u'v1',
-            'sid': cms.SignerIdentifier({
-                'issuer_and_serial_number': cms.IssuerAndSerialNumber({
-                    'issuer': cert.asn1.issuer,
-                    'serial_number': cert.asn1.serial_number,
-                }),
-            }),
-            'digest_algorithm': algos.DigestAlgorithm({'algorithm': algosig}),
-            'signed_attrs': signedattrs,
-            'signature_algorithm': algos.SignedDigestAlgorithm({'algorithm': u'rsassa_pkcs1v15'}),
-            'signature': signed_value_signature,
-        }
-        config = {
-            'version': u'v1',
-            'digest_algorithms': cms.DigestAlgorithms((
-                algos.DigestAlgorithm({'algorithm': algomd}),
-            )),
-            'encap_content_info': {
-                'content_type': u'data',
-            },
-            'certificates': certificates,
-            #'crls': [],
-            'signer_infos': [
-                signer,
-            ],
-        }
-        sdata = cms.ContentInfo({
-            'content_type': cms.ContentType(u'signed_data'),
-            'content': cms.SignedData(config),
-        })
-
-        sdata = sdata.dump()
-        return sdata
 
     def aligned(self, data):
         data = b''.join([b'%02x' % i for i in data])
         nb = 0x4000 - len(data)
-        data = data + b'0'*(0x4000 - len(data))
+        data = data + b'0' * (0x4000 - len(data))
         return data
 
     def getdata(self, pdfdata1, objid, startxref, document):
@@ -91,13 +32,13 @@ class SignedData(object):
                 if offset > i0:
                     i1 = min(i1, offset)
         data = pdfdata1[i0:i1]
-        i0 = data.find(b'<<')+2
+        i0 = data.find(b'<<') + 2
         i1 = data.rfind(b'>>')
         data = data[i0:i1]
         return data
 
     def makeobj(self, no, data):
-        return (b'%d 0 obj\n<<' % no)+data+b'>>\nendobj\n'
+        return (b'%d 0 obj\n<<' % no) + data + b'>>\nendobj\n'
 
     def makepdf(self, pdfdata1, udct, zeros):
         parser = PDFParser(BytesIO(pdfdata1))
@@ -118,16 +59,18 @@ class SignedData(object):
 
         no = size
         objs = [
-            self.makeobj(page, (b'/Annots[%d 0 R]' % (no+3))+pagedata),
-            self.makeobj(no+0, infodata),
-            self.makeobj(no+1, (b'/AcroForm %d 0 R' % (no+2))+rootdata),
-            self.makeobj(no+2, b'/Fields[%d 0 R]/SigFlags %d' % (no+3, udct[b'sigflags'])),
-            self.makeobj(no+3, b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature1)/V %d 0 R' % ( no+4, page, no+5 )),
-            self.makeobj(no+4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject'),
+            self.makeobj(page, (b'/Annots[%d 0 R]' % (no + 3)) + pagedata),
+            self.makeobj(no + 0, infodata),
+            self.makeobj(no + 1, (b'/AcroForm %d 0 R' % (no + 2)) + rootdata),
+            self.makeobj(no + 2, b'/Fields[%d 0 R]/SigFlags %d' % (no + 3, udct[b'sigflags'])),
+            self.makeobj(no + 3,
+                         b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature1)/V %d 0 R' % (
+                         no + 4, page, no + 5)),
+            self.makeobj(no + 4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject'),
             b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n',
-            self.makeobj(no+5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
+            self.makeobj(no + 5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
 /Filter/Adobe.PPKLite/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
-/Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason']))+zeros+b'>'),
+/Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason'])) + zeros + b'>'),
         ]
 
         pdfdata2 = b''.join(objs)
@@ -147,18 +90,18 @@ xref\n\
         dct = {
             b'page': page,
             b'no': no,
-            b'startxref': startxref+len(pdfdata2),
+            b'startxref': startxref + len(pdfdata2),
             b'prev': prev,
-            b'info': no+0,
-            b'root': no+1,
+            b'info': no + 0,
+            b'root': no + 1,
             b'size': 6,
-            b'p0': startxref+pdfdata2.find(b'\n%d 0 obj\n'%page)+1,
-            b'n0': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+0))+1,
-            b'n1': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+1))+1,
-            b'n2': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+2))+1,
-            b'n3': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+3))+1,
-            b'n4': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+4))+1,
-            b'n5': startxref+pdfdata2.find(b'\n%d 0 obj\n'%(no+5))+1,
+            b'p0': startxref + pdfdata2.find(b'\n%d 0 obj\n' % page) + 1,
+            b'n0': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 0)) + 1,
+            b'n1': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 1)) + 1,
+            b'n2': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 2)) + 1,
+            b'n3': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 3)) + 1,
+            b'n4': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 4)) + 1,
+            b'n5': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 5)) + 1,
         }
 
         trailer = b'''\
@@ -176,37 +119,34 @@ startxref\n\
 
         return pdfdata2
 
-    def sign(self, datau, dct, key, cert, othercerts, algomd, algosig):
+    def sign(self, datau, dct, key, cert, othercerts, algomd):
         zeros = self.aligned(b'\0')
 
         pdfdata2 = self.makepdf(datau, dct, zeros)
 
-
         startxref = len(datau)
         pdfbr1 = pdfdata2.find(zeros)
-        pdfbr2 = pdfbr1+len(zeros)
-        br = [0, startxref+pdfbr1-1, startxref+pdfbr2+1, len(pdfdata2)-pdfbr2-1]
+        pdfbr2 = pdfbr1 + len(zeros)
+        br = [0, startxref + pdfbr1 - 1, startxref + pdfbr2 + 1, len(pdfdata2) - pdfbr2 - 1]
         brfrom = b'[0000000000 0000000000 0000000000 0000000000]'
-        brto = b'[%010d %010d %010d %010d]'%tuple(br)
+        brto = b'[%010d %010d %010d %010d]' % tuple(br)
         pdfdata2 = pdfdata2.replace(brfrom, brto, 1)
 
         md = getattr(hashlib, algomd)()
         md.update(datau)
-        b1 = pdfdata2[:br[1]-startxref]
-        b2 = pdfdata2[br[2]-startxref:]
+        b1 = pdfdata2[:br[1] - startxref]
+        b2 = pdfdata2[br[2] - startxref:]
         md.update(b1)
         md.update(b2)
         md = md.digest()
 
-        signed_md = md
-        signed_time = datetime.now()
-        contents = self.pkcs11(key, cert, othercerts, signed_md, signed_time, algomd, algosig)
+        contents = signer.sign(None, key, cert, othercerts, algomd, True, md)
         contents = self.aligned(contents)
         pdfdata2 = pdfdata2.replace(zeros, contents, 1)
 
         return pdfdata2
 
 
-def sign(datau, udct, key, cert, othercerts, algomd, algosig):
+def sign(datau, udct, key, cert, othercerts, algomd):
     cls = SignedData()
-    return cls.sign(datau, udct, key, cert, othercerts, algomd, algosig)
+    return cls.sign(datau, udct, key, cert, othercerts, algomd)

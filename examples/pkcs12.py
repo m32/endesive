@@ -1,6 +1,7 @@
 from cryptography.hazmat.backends.openssl.rsa import _RSAPrivateKey
 from cryptography.hazmat.backends.openssl.x509 import _Certificate
 
+
 class PKCS12(object):
     """
     A PKCS #12 archive.
@@ -171,6 +172,7 @@ class PKCS12(object):
         bio = backend._create_mem_bio_gc()
         backend._lib.i2d_PKCS12_bio(bio, pkcs12)
         return backend._read_mem_bio(bio)
+
 
 def load_pkcs12(buffer, passphrase=None, backend=None):
     """

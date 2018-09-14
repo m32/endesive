@@ -1,10 +1,12 @@
 # *-* coding: utf-8 *-*
 import os
 from email.mime.application import MIMEApplication
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
+
 from asn1crypto import cms, core
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from oscrypto import asymmetric
+
 
 class EncryptedData(object):
 
@@ -16,7 +18,6 @@ class EncryptedData(object):
 
         data = msg.as_string()
         return data
-
 
     @property
     def parameters(self):
@@ -38,7 +39,7 @@ class EncryptedData(object):
 
     def pad(self, s, block_size):
         n = block_size - len(s) % block_size
-        n = bytes([n]*n)
+        n = bytes([n] * n)
         return s + n
 
     def recipient_info(self, cert, session_key):
@@ -47,12 +48,12 @@ class EncryptedData(object):
         tbs_cert = cert['tbs_certificate']
         # TODO: use subject_key_identifier when available
         return cms.RecipientInfo(
-            name = u'ktri',
-            value = {
+            name=u'ktri',
+            value={
                 'version': u'v0',
                 'rid': cms.RecipientIdentifier(
-                    name = u'issuer_and_serial_number',
-                    value = {
+                    name=u'issuer_and_serial_number',
+                    value={
                         'issuer': tbs_cert['issuer'],
                         'serial_number': tbs_cert['serial_number']
                     }
@@ -98,6 +99,7 @@ class EncryptedData(object):
         })
         data = self.email(enveloped_data.dump())
         return data
+
 
 def encrypt(data, certs):
     cls = EncryptedData()

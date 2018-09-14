@@ -2,6 +2,7 @@
 # *-* coding: utf-8 *-*
 import io
 
+
 def main():
     io.open('plain-unsigned.txt', 'wt', encoding='utf-8').write('''\
 Witam,
@@ -12,6 +13,7 @@ Mam nadzieję, że będzie dla Ciebie użyteczna.
 Pozdrawiam,
 Grzegorz Makarewicz
 '''
-    )
+                                                                )
+
 
 main()

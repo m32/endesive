@@ -1,5 +1,7 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+import sys
+
 
 def show(fname):
     print('*' * 20, fname)
@@ -27,11 +29,11 @@ def show(fname):
         end = data.find(b']', s)
         byterange = [int(i, 10) for i in data[start:end].split()]
         print('/ByteRange', ':', s, start, end, ':', byterange)
-        print('/Contents', ':', chr(data[byterange[1]]), '...', chr(data[byterange[2]-1]))
+        print('/Contents', ':', chr(data[byterange[1]]), '...', chr(data[byterange[2] - 1]))
 
 
 def main():
-    show('pdf-signed-cms.pdf')
+    show(sys.argv[1])
 
 
 main()

@@ -1,14 +1,15 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+import datetime
 import os
 import uuid
-import datetime
+
+import pkcs12
+from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography import x509
 from cryptography.x509.oid import NameOID
-import pkcs12
 
 (
     ca, ca_key,
@@ -135,7 +136,7 @@ class Main(object):
             datetime.datetime.utcnow()
         ).not_valid_after(
             # Our certificate will be valid for 10 years
-            datetime.datetime.utcnow() + datetime.timedelta(days=10*365)
+            datetime.datetime.utcnow() + datetime.timedelta(days=10 * 365)
         ).add_extension(
             extension=x509.BasicConstraints(ca=True, path_length=None),
             critical=True
@@ -161,7 +162,8 @@ class Main(object):
         self.ca_pk = ca_pk
 
     def USER(self, no, cert, cert_key, cert_pub, cert_p12):
-        if not os.path.exists(cert) or not os.path.exists(cert_key) or not os.path.exists(cert_pub) or not os.path.exists(cert_p12):
+        if not os.path.exists(cert) or not os.path.exists(cert_key) or not os.path.exists(
+                cert_pub) or not os.path.exists(cert_p12):
             client_pk = self.key_create()
             client_csr = self.csr_create(u'USER %d' % no, client_pk)
             client_cert = self.csr_sign(client_csr)
