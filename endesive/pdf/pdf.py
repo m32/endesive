@@ -14,7 +14,8 @@ class FPDF(fpdf.FPDF):
         data = data + '0' * (0x4000 - len(data))
         return data
 
-    def pkcs11_setup(self, key, cert, othercerts, algomd):
+    def pkcs11_setup(self, config, key, cert, othercerts, algomd):
+        self.pkcs11config = config
         self.pkcs11zeros = self.pkcs11_aligned([0])
         self.pkcs11annot = 0
         self.pkcs11key = key
@@ -30,9 +31,9 @@ class FPDF(fpdf.FPDF):
         self._out('endobj')
 
         self._newobj()
-        self._out('<</Type/Sig/SubFilter/adbe.pkcs7.detached/Location(TriSoft Sp. z o.o.)/M(D:20180802134926+02\'00\')')
+        self._out('<</Type/Sig/SubFilter/adbe.pkcs7.detached/Location(%(location)s)/M(D:%(signingdate)s)' % self.pkcs11config)
         self._out(
-            '/ByteRange [0000000000 0000000000 0000000000 0000000000]/Filter/Adobe.PPKLite/Reason(Faktura Podpisana Elektronicznie)/ContactInfo(mak@trisoft.com.pl)')
+            '/ByteRange [0000000000 0000000000 0000000000 0000000000]/Filter/Adobe.PPKLite/Reason(%(reason)s)/ContactInfo(%(contact)s)' % self.pkcs11config)
         self.buffer += '/Contents <'
         self.buffer += self.pkcs11zeros
         self.buffer += '>>>\n'
