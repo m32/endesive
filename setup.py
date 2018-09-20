@@ -14,7 +14,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='endesive',
     version=__import__('endesive').__version__,
-    description='Python ENDESIVE library',
+    description='Library for digital signing and verification of digital signatures in mail, PDF and XML documents.',
     long_description=long_description,
     url='https://github.com/m32/endesive',
     author='Grzegorz Makarewicz',
