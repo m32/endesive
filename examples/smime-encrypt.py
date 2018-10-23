@@ -1,16 +1,14 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+from OpenSSL import crypto
 from asn1crypto import x509, pem
-
-from endesive import email
+from endesive import email, signer
 
 
 def load_cert(relative_path):
     with open(relative_path, 'rb') as f:
         cert_bytes = f.read()
-        if pem.detect(cert_bytes):
-            _, _, cert_bytes = pem.unarmor(cert_bytes)
-        return x509.Certificate.load(cert_bytes)
+        return crypto.load_certificate(crypto.FILETYPE_PEM, cert_bytes)
 
 
 def main():

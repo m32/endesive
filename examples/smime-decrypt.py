@@ -1,12 +1,12 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
-from oscrypto import asymmetric
-
+from OpenSSL import crypto
 from endesive import email
 
 
 def main():
-    key = asymmetric.load_private_key(open('demo2_user1.key.pem', 'rb').read(), '1234')
+    key = crypto.load_privatekey(crypto.FILETYPE_PEM, open('demo2_user1.key.pem', 'rb').read(), b'1234')
+    key = key.to_cryptography_key()
     for fname in (
             'smime-ssl-encrypted.txt',
             'smime-encrypted.txt',

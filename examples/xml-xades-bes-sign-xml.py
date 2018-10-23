@@ -1,20 +1,27 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
 from lxml import etree
-from oscrypto import asymmetric
-
-from endesive import xades
+from OpenSSL.crypto import load_pkcs12
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from endesive import xades, signer
 
 
 def main():
-    p12 = asymmetric.load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
+    p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
 
     def signproc(tosign, algosig):
-        return asymmetric.rsa_pkcs1v15_sign(p12[0], tosign, algosig)
+        key = p12.get_privatekey().to_cryptography_key()
+        signed_value_signature = key.sign(
+            tosign,
+            padding.PKCS1v15(),
+            getattr(hashes, algosig.upper())()
+        )
+        return signed_value_signature
 
     data = open('xml.xml', 'rb').read()
-    cert = p12[1].asn1
-    certcontent = cert.dump()
+    cert = p12.get_certificate().to_cryptography()
+    certcontent = signer.cert2asn(cert).dump()
 
     cls = xades.BES()
     doc = cls.build('dokument.xml', data, 'application/xml', cert, certcontent, signproc, False, True)

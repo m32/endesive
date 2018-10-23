@@ -4,7 +4,7 @@ import datetime
 import os
 import uuid
 
-import pkcs12
+from OpenSSL import crypto
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
@@ -47,7 +47,7 @@ class Main(object):
 
     def key_load(self, fname, password):
         with open(fname, "rb") as f:
-            private_key = serialization.load_pem_private_key(f.read(), password, default_backend())
+            private_key = serialization.load_pem_private_key(f.read(), password.encode('utf-8'), default_backend())
             return private_key
 
     def cert_load(self, fname):
@@ -105,20 +105,20 @@ class Main(object):
         )
 
     def pk12_create(self, name, cert, key):
-        pk12 = pkcs12.PKCS12()
-        pk12.set_ca_certificates((self.ca_cert,))
-        pk12.set_certificate(cert)
-        pk12.set_privatekey(key)
-        pk12.set_friendlyname(name)
-        return pk12
+        pkcs12 = crypto.PKCS12()
+        pkcs12.set_certificate(crypto.X509.from_cryptography(cert))
+        pkcs12.set_privatekey(crypto.PKey.from_cryptography_key(key))
+        pkcs12.set_ca_certificates((crypto.X509.from_cryptography(self.ca_cert),))
+        pkcs12.set_friendlyname(name)
+        return pkcs12
 
     def pk12_save(self, fname, p12, password):
         with open(fname, 'wb') as f:
-            f.write(p12.export(password.encode('utf-8'), backend=default_backend()))
+            f.write(p12.export(password.encode('utf-8')))
 
     def pk12_load(self, fname, password):
         with open(fname, 'rb') as f:
-            pkcs12.load_pkcs12(f.read(), password, backend=default_backend())
+            crypto.load_pkcs12(f.read(), password.encode('utf-8'))
 
     def ca_create(self, key):
         subject = issuer = x509.Name([
@@ -165,9 +165,9 @@ class Main(object):
         if not os.path.exists(cert) or not os.path.exists(cert_key) or not os.path.exists(
                 cert_pub) or not os.path.exists(cert_p12):
             client_pk = self.key_create()
-            client_csr = self.csr_create(u'USER %d' % no, client_pk)
+            client_csr = self.csr_create('USER %d' % no, client_pk)
             client_cert = self.csr_sign(client_csr)
-            client_p12 = self.pk12_create(u'USER cert'.encode('utf-8'), client_cert, client_pk)
+            client_p12 = self.pk12_create('USER cert'.encode('utf-8'), client_cert, client_pk)
 
             self.pem_save(cert, client_cert)
             self.key_save(cert_key, client_pk, '1234')

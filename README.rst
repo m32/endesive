@@ -6,7 +6,7 @@ Cryptographic routines depend on `oscrypto`_ and `cryptography`_ libraries, so e
 'pure python'.
 
 For certificate verification OpenSSL is used but I would not trust it,
-next version should switch to `certvalidator`_ or `cryptography`_.
+next version should switch to `cryptography`_.
 
 This library implements S/MIME handler which can encrypt and decrypt S/MIME messages
 using a public RSA key, in AES-128/192/256 CBC/OFB modes.
@@ -35,7 +35,6 @@ Requirements
 * Python 3.*
 * `cryptography`_
 * `asn1crypto`_
-* `oscrypto`_
 * `pdfminer.six`_
 * `lxml`_
 
@@ -92,8 +91,6 @@ xml-xades-bes-read.py
 
 .. _cryptography: https://github.com/pyca/cryptography
 .. _asn1crypto: https://github.com/wbond/asn1crypto
-.. _oscrypto: https://github.com/wbond/oscrypto
-.. _certvalidator: https://github.com/wbond/certvalidator
 .. _pyfpdf: https://github.com/reingart/pyfpdf
 .. _pdfminer.six: https://pypi.org/project/pdfminer.six/
 .. _lxml: https://pypi.org/project/lxml/
