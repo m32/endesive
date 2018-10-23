@@ -12,7 +12,7 @@ from endesive import signer
 class SignedData(object):
 
     def aligned(self, data):
-        data = b''.join([b'%02x' % i for i in data])
+        data = data.hex().encode('utf-8')
         nb = 0x4000 - len(data)
         data = data + b'0' * (0x4000 - len(data))
         return data
