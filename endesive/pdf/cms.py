@@ -48,14 +48,8 @@ class SignedData(object):
         info = document.xrefs[0].trailer['Info'].objid
         root = document.xrefs[0].trailer['Root'].objid
         size = document.xrefs[0].trailer['Size']
-        page = None
-        if document.catalog['PageMode'] == 'OneColumn':
-            for i in document.catalog['OpenAction']:
-                if isinstance(i, PDFObjRef):
-                    page = i.objid
-                    break
-        else:
-            page = document.getobj(document.catalog['Pages'].objid)['Kids'][0].objid
+        page = document.getobj(document.catalog['Pages'].objid)['Kids'][0].objid
+
         infodata = self.getdata(pdfdata1, info, prev, document).strip()
         rootdata = self.getdata(pdfdata1, root, prev, document).strip()
         pagedata = self.getdata(pdfdata1, page, prev, document).strip()
