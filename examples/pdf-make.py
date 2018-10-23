@@ -1,6 +1,6 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
-import fpdf
+from endesive.pdf import fpdf
 
 doc = fpdf.FPDF()
 for i in range(2):
