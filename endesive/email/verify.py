@@ -21,4 +21,5 @@ def verify(data, certs=None):
         raise ValueError('not signed email')
 
     plain = plain.encode('utf-8').replace(b'\n', b'\r\n')
+
     return verifier.verify(sig, plain, certs)

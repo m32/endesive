@@ -27,7 +27,7 @@ Content-Disposition: attachment; filename="smime.p7s"
         return s
 
     def build(self, datau, key, cert, othercerts, hashalgo, attrs):
-        datau = datau.replace(b'\n', b'\r\n')
+        #datau = datau.replace(b'\n', b'\r\n')
         datas = signer.sign(datau, key, cert, othercerts, hashalgo, attrs)
         datas = base64.encodebytes(datas)
         if hashalgo == 'sha1':
