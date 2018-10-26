@@ -10,6 +10,7 @@ def main():
             'smime-ssl-signed-attr.txt',
             'smime-ssl-signed-noattr.txt',
             'smime-signed-attr.txt',
+            'smime-signed-attr-custom.txt',
             'smime-signed-noattr.txt',
     ):
         print('*' * 20, fname)

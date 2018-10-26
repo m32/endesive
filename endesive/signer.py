@@ -40,20 +40,23 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None):
         'signature': signed_value,
     }
     if attrs:
-        signer['signed_attrs'] = [
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType('content_type'),
-                'values': ('data',),
-            }),
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType('message_digest'),
-                'values': (signed_value,),
-            }),
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType('signing_time'),
-                'values': (cms.Time({'utc_time': core.UTCTime(signed_time)}),)
-            }),
-        ]
+        if attrs is True:
+            signer['signed_attrs'] = [
+                cms.CMSAttribute({
+                    'type': cms.CMSAttributeType('content_type'),
+                    'values': ('data',),
+                }),
+                cms.CMSAttribute({
+                    'type': cms.CMSAttributeType('message_digest'),
+                    'values': (signed_value,),
+                }),
+                cms.CMSAttribute({
+                    'type': cms.CMSAttributeType('signing_time'),
+                    'values': (cms.Time({'utc_time': core.UTCTime(signed_time)}),)
+                }),
+            ]
+        else:
+            signer['signed_attrs'] = attrs
     config = {
         'version': 'v1',
         'digest_algorithms': cms.DigestAlgorithms((
