@@ -1,0 +1,1 @@
+SOFTHSM2_CONF=softhsm2.conf softhsm2-util $*
