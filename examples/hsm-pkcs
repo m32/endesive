@@ -1,0 +1,5 @@
+#!/bin/bash
+export OPENSC_DEBUG=9
+export PYKCS11LIB=/usr/lib/softhsm/libsofthsm2.so
+export SOFTHSM_CONF=./softhsm2.conf
+pkcs11-tool --module $PYKCS11LIB $*
