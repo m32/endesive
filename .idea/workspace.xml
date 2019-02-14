@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="28a5070a-5973-4be9-bf77-30e0d93dba09" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/endesive/pdf/cms.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/pdf/cms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/endesive/xades/bes.py" beforeDir="false" afterPath="$PROJECT_DIR$/endesive/xades/bes.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -37,12 +36,19 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$USER_HOME$/.virtualenvs/python3/lib/python3.6/site-packages/OpenSSL/crypto.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="15">
               <caret line="6" selection-start-line="6" selection-end-line="6" />
             </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/endesive/xades/bes.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-3" />
           </provider>
         </entry>
       </file>
@@ -147,6 +153,16 @@
               <item name="endesive" type="462c0819:PsiDirectoryNode" />
               <item name="endesive" type="462c0819:PsiDirectoryNode" />
               <item name="email" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="endesive" type="b2602c69:ProjectViewProjectNode" />
+              <item name="endesive" type="462c0819:PsiDirectoryNode" />
+              <item name="endesive" type="462c0819:PsiDirectoryNode" />
+              <item name="xades" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="endesive" type="b2602c69:ProjectViewProjectNode" />
+              <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
             </path>
           </expand>
           <select />
@@ -630,16 +646,17 @@
       <workItem from="1543390543430" duration="371000" />
       <workItem from="1543592487700" duration="40000" />
       <workItem from="1544696344293" duration="578000" />
+      <workItem from="1550180826351" duration="643000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="989000" />
+    <option name="totallyTimeSpent" value="1632000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1920" height="1056" extended-state="0" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.3167735" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.32051283" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -652,7 +669,7 @@
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info active="true" anchor="bottom" id="Event Log" order="10" sideWeight="0.5005342" side_tool="true" visible="true" weight="0.32963374" />
+      <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5005342" side_tool="true" visible="true" weight="0.32963374" />
       <window_info anchor="bottom" id="Terminal" order="11" />
       <window_info anchor="bottom" id="Python Console" order="12" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -715,13 +732,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///usr/lib/python3.6/email/mime/application.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="16" column="33" lean-forward="true" selection-start-line="16" selection-start-column="33" selection-end-line="16" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/lib/python3.6/email/mime/base.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="144">
@@ -946,6 +956,11 @@
         <state relative-caret-position="15">
           <caret line="6" selection-start-line="6" selection-end-line="6" />
         </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/endesive/xades/bes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-3" />
       </provider>
     </entry>
   </component>
