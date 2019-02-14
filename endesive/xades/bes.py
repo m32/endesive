@@ -69,8 +69,8 @@ class BES:
         self.guid = str(uuid.uuid1())
         self.time = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def sha1(self, data):
-        h = hashlib.sha1(data).digest()
+    def sha256(self, data):
+        h = hashlib.sha256(data).digest()
         return ensure_str(base64.b64encode(h))
 
     def _c14n(self, nodes, algorithm, inclusive_ns_prefixes=None):
@@ -121,7 +121,7 @@ class BES:
             tree = etree.parse(io.BytesIO(data))
             signedobj.append(tree.getroot())
 
-        certdigest = self.sha1(certcontent)
+        certdigest = self.sha256(certcontent)
         b64 = b''.join(base64.encodebytes(certcontent).split())
         certcontent = []
         for i in range(0, len(b64), 64):
@@ -151,7 +151,7 @@ class BES:
                     Cert(
                         CertDigest(
                             DigestMethod(
-                                Algorithm="http://www.w3.org/2000/09/xmldsig#sha1",
+                                Algorithm="http://www.w3.org/2001/04/xmlenc#sha256",
                             ),
                             DigestValue(
                                 certdigest,
@@ -167,7 +167,7 @@ class BES:
                         ),
                     ),
                 ),
-                Id="SignedSignatureProperties_" + self.guid + "_54",
+                Id="SignedSignatureProperties_" + self.guid + "_04",
             ),
             SignedDataObjectProperties(
                 DataObjectFormat(
@@ -195,24 +195,24 @@ Content-Disposition: filename="%s"\
                     MimeType(
                         smime,
                     ),
-                    ObjectReference="#Reference1_" + self.guid + "_79",
+                    ObjectReference="#Reference1_" + self.guid + "_29",
                 ),
-                Id="SignedDataObjectProperties_" + self.guid + "_15",
+                Id="SignedDataObjectProperties_" + self.guid + "_45",
             ),
-            Id="SignedProperties_" + self.guid + "_10",
+            Id="SignedProperties_" + self.guid + "_40",
         )
 
         canonicalizedxml = self._c14n(signedobj, '')
-        digestvalue1 = self.sha1(canonicalizedxml)
+        digestvalue1 = self.sha256(canonicalizedxml)
         canonicalizedxml = self._c14n(signedprop, '')
-        digestvalue2 = self.sha1(canonicalizedxml)
+        digestvalue2 = self.sha256(canonicalizedxml)
 
         signedinfo = SignedInfo(
             CanonicalizationMethod(
                 Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
             ),
             SignatureMethod(
-                Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1",
+                Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
             ),
             Reference(
                 Transforms(
@@ -221,29 +221,29 @@ Content-Disposition: filename="%s"\
                     )
                 ),
                 DigestMethod(
-                    Algorithm="http://www.w3.org/2000/09/xmldsig#sha1",
+                    Algorithm="http://www.w3.org/2001/04/xmlenc#sha256",
                 ),
                 DigestValue(
                     digestvalue1,
                 ),
-                Id="Reference1_" + self.guid + "_79",
                 URI="#Object1_" + self.guid,
+                Id="Reference1_" + self.guid + "_29",
             ),
             Reference(
                 DigestMethod(
-                    Algorithm="http://www.w3.org/2000/09/xmldsig#sha1",
+                    Algorithm="http://www.w3.org/2001/04/xmlenc#sha256",
                 ),
                 DigestValue(
                     digestvalue2,
                 ),
-                Id="SignedProperties-Reference_" + self.guid + "_76",
+                Id="SignedProperties-Reference_" + self.guid + "_26",
                 Type="http://uri.etsi.org/01903#SignedProperties",
-                URI="#SignedProperties_" + self.guid + "_10",
+                URI="#SignedProperties_" + self.guid + "_40",
             ),
-            Id="SignedInfo_" + self.guid + "_1f",
+            Id="SignedInfo_" + self.guid + "_4f",
         )
         canonicalizedxml = self._c14n(signedinfo, '')
-        signature = signproc(canonicalizedxml, 'sha1')
+        signature = signproc(canonicalizedxml, 'sha256')
         actualdigestencoded = ensure_str(base64.b64encode(signature))
         digestvalue3 = []
         for i in range(0, len(actualdigestencoded), 64):
@@ -254,7 +254,7 @@ Content-Disposition: filename="%s"\
             signedinfo,
             SignatureValue(
                 digestvalue3,
-                Id="SignatureValue_" + self.guid + "_0c",
+                Id="SignatureValue_" + self.guid + "_5c",
             ),
             KeyInfo(
                 X509Data(
@@ -262,19 +262,19 @@ Content-Disposition: filename="%s"\
                         certcontent.decode()
                     ),
                 ),
-                Id="KeyInfo_" + self.guid + "_7a",
+                Id="KeyInfo_" + self.guid + "_2a",
             ),
             Object(
                 QualifyingProperties(
                     signedprop,
                     UnsignedProperties(
-                        Id="UnsignedProperties_" + self.guid + "_0b",
+                        Id="UnsignedProperties_" + self.guid + "_5b",
                     ),
-                    Id="QualifyingProperties_" + self.guid + "_1d",
-                    Target="#Signature_" + self.guid + "_47",
+                    Id="QualifyingProperties_" + self.guid + "_4d",
+                    Target="#Signature_" + self.guid + "_17",
                 ),
             ),
             signedobj,
-            Id="Signature_" + self.guid + "_47",
+            Id="Signature_" + self.guid + "_17",
         )
         return DOC
