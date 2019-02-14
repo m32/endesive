@@ -36,5 +36,5 @@ setup(
     keywords='cryptography pki x509 smime email pdf pkcs11 asn1 xades',
     packages=find_packages(exclude=['examples',]),
     platforms=["all"],
-    install_requires=['pycrypto', 'asn1crypto', 'pyopenssl', 'pdfminer.six', 'lxml', 'pykcs11'],
+    install_requires=['pycryptodome', 'asn1crypto', 'pyopenssl', 'pdfminer.six', 'lxml', 'pykcs11'],
 )
