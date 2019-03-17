@@ -109,3 +109,4 @@ examples/*.p12
 examples/*.txt
 examples/*.pdf
 examples/*.xml
+.idea/
