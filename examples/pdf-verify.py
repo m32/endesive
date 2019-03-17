@@ -8,9 +8,14 @@ def main():
     for fname in (
             'pdf-signed-cms.pdf',
             'pdf-signed-fpdf.pdf',
+            'test-PDFXRef-signed-cms.pdf',
+            'test-PDFXRefStream-signed-cms.pdf'
     ):
         print('*' * 20, fname)
-        data = open(fname, 'rb').read()
+        try:
+            data = open(fname, 'rb').read()
+        except:
+            continue
         (hashok, signatureok, certok) = pdf.verify(data, trusted_cert_pems)
         print('signature ok?', signatureok)
         print('hash ok?', hashok)

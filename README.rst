@@ -89,6 +89,10 @@ xml-xades-bes-sign-xml.py
 xml-xades-bes-read.py
     Decode generated xml signatures and extract their content.
 
+Tools:
+    Online pdf validator `pdfvalidator`_
+
+.. _pdfvalidator: https://www.pdf-online.com/osa/validate.aspx
 .. _cryptography: https://github.com/pyca/cryptography
 .. _asn1crypto: https://github.com/wbond/asn1crypto
 .. _pyfpdf: https://github.com/reingart/pyfpdf

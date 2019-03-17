@@ -14,14 +14,18 @@ def main():
         b'reason': b'Dokument podpisany cyfrowo',
     }
     p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
-    datau = open('pdf.pdf', 'rb').read()
+    fname = 'pdf.pdf'
+    if len (sys.argv) > 1:
+        fname = sys.argv[1]
+    datau = open(fname, 'rb').read()
     datas = pdf.cms.sign(datau, dct,
         p12.get_privatekey().to_cryptography_key(),
         p12.get_certificate().to_cryptography(),
         [],
         'sha256'
     )
-    with open('pdf-signed-cms.pdf', 'wb') as fp:
+    fname = fname.replace('.pdf', '-signed-cms.pdf')
+    with open(fname, 'wb') as fp:
         fp.write(datau)
         fp.write(datas)
 

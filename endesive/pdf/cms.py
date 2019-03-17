@@ -1,12 +1,21 @@
 # *-* coding: utf-8 *-*
 import hashlib
+import re
 from io import BytesIO
 
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdftypes import PDFObjRef
+from pdfminer.psparser import PSKeyword, PSLiteral
+from pdfminer.utils import isnumber
 
 from endesive import signer
+
+ESC_PAT = re.compile(r'[\000-\037&<>()"\042\047\134\177-\377]')
+
+
+def e(s):
+    return ESC_PAT.sub(lambda m: '&#%d;' % ord(m.group(0)), s)
 
 
 class SignedData(object):
@@ -17,25 +26,67 @@ class SignedData(object):
         data = data + b'0' * (0x4000 - len(data))
         return data
 
+    def dumpobj(self, out, obj):
+        if obj is None:
+            out.write(b'null ')
+            return
+
+        if isinstance(obj, dict):
+            out.write(b' << ')
+            for (k, v) in obj.items():
+                out.write(b'/%s ' % bytes(k, 'utf-8'))
+                self.dumpobj(out, v)
+            out.write(b' >> ')
+            return
+
+        if isinstance(obj, list):
+            out.write(b' [ ')
+            for v in obj:
+                self.dumpobj(out, v)
+            out.write(b' ] ')
+            return
+
+        if isinstance(obj, bytes):
+            out.write(b' ( ')
+            out.write(obj)
+            out.write(b' ) ')
+            return
+
+        if isinstance(obj, str):
+            out.write(b' ( ')
+            out.write(bytes(e(obj), 'utf-8'))
+            out.write(b' ) ')
+            return
+
+        if isnumber(obj):
+            if isinstance(obj, float):
+                s = (b' %.5f ' % obj).rstrip(b'0')
+            else:
+                s = b' %d ' % obj
+            out.write(s)
+            return
+
+        if isinstance(obj, PDFObjRef):
+            out.write(b' %d 0 R ' % (obj.objid))
+            return
+
+        if isinstance(obj, PSKeyword):
+            out.write(b' /%s ' % bytes(obj.name, 'utf-8'))
+            return
+
+        if isinstance(obj, PSLiteral):
+            out.write(b' /%s ' % bytes(obj.name, 'utf-8'))
+            return
+
+        # if isinstance(obj, PDFStream):
+        raise TypeError(obj)
+
     def getdata(self, pdfdata1, objid, startxref, document):
-        i0 = None
-        for xref in document.xrefs:
-            try:
-                (strmid, index, genno) = xref.get_pos(objid)
-            except KeyError:
-                continue
-            i0 = index
-            break
-        i1 = startxref
-        for xref in document.xrefs:
-            for (_, offset, _) in xref.offsets.values():
-                if offset > i0:
-                    i1 = min(i1, offset)
-        data = pdfdata1[i0:i1]
-        i0 = data.find(b'<<') + 2
-        i1 = data.rfind(b'>>')
-        data = data[i0:i1]
-        return data
+        obj = document.getobj(objid)
+        fp = BytesIO()
+        self.dumpobj(fp, obj)
+        data = fp.getvalue().strip()
+        return data[2:-2]
 
     def makeobj(self, no, data):
         return (b'%d 0 obj\n<<' % no) + data + b'>>\nendobj\n'
@@ -62,7 +113,7 @@ class SignedData(object):
             self.makeobj(no + 2, b'/Fields[%d 0 R]/SigFlags %d' % (no + 3, udct[b'sigflags'])),
             self.makeobj(no + 3,
                          b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature1)/V %d 0 R' % (
-                         no + 4, page, no + 5)),
+                             no + 4, page, no + 5)),
             self.makeobj(no + 4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject'),
             b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n',
             self.makeobj(no + 5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
