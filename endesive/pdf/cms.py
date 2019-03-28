@@ -88,8 +88,8 @@ class SignedData(object):
         data = fp.getvalue().strip()
         return data[2:-2]
 
-    def makeobj(self, no, data):
-        return (b'%d 0 obj\n<<' % no) + data + b'>>\nendobj\n'
+    def makeobj(self, no, data, datas=b''):
+        return (b'%d 0 obj\n<<' % no) + data + b'>>\n'+datas+b'endobj\n'
 
     def makepdf(self, pdfdata1, udct, zeros):
         parser = PDFParser(BytesIO(pdfdata1))
@@ -114,8 +114,8 @@ class SignedData(object):
             self.makeobj(no + 3,
                          b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature1)/V %d 0 R' % (
                              no + 4, page, no + 5)),
-            self.makeobj(no + 4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject'),
-            b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n',
+            self.makeobj(no + 4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject',
+                        b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n'),
             self.makeobj(no + 5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
 /Filter/Adobe.PPKLite/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
 /Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason'])) + zeros + b'>'),
@@ -150,11 +150,13 @@ xref\n\
             b'n3': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 3)) + 1,
             b'n4': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 4)) + 1,
             b'n5': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 5)) + 1,
+            b'h1': hashlib.md5(pdfdata1).hexdigest().upper().encode('ascii'),
+            b'h2': hashlib.md5(pdfdata2).hexdigest().upper().encode('ascii'),
         }
 
         trailer = b'''\
 trailer
-<</ID [<1><2>]/Info %(info)d 0 R/Prev %(prev)d/Root %(root)d 0 R/Size %(size)d>>\n\
+<</ID [<%(h1)s><%(h2)s>]/Info %(info)d 0 R/Prev %(prev)d/Root %(root)d 0 R/Size %(size)d>>\n\
 startxref\n\
 %(startxref)d\n\
 %%%%EOF\n\
