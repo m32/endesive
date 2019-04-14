@@ -81,12 +81,17 @@ class SignedData(object):
         # if isinstance(obj, PDFStream):
         raise TypeError(obj)
 
-    def getdata(self, pdfdata1, objid, startxref, document):
+    def getdata(self, pdfdata1, objid, startxref, document, remove=None):
         obj = document.getobj(objid)
+        for elem in remove or ():
+            try:
+                del obj[elem]
+            except KeyError as e:
+                pass
         fp = BytesIO()
         self.dumpobj(fp, obj)
         data = fp.getvalue().strip()
-        return data[2:-2]
+        return data[2:-2].strip()
 
     def makeobj(self, no, data, datas=b''):
         return (b'%d 0 obj\n<<' % no) + data + b'>>\n'+datas+b'endobj\n'
@@ -98,14 +103,18 @@ class SignedData(object):
         prev = document.find_xref(parser)
         info = document.xrefs[0].trailer['Info'].objid
         root = document.xrefs[0].trailer['Root'].objid
-        size = document.xrefs[0].trailer['Size']
+        size = 1
+        # calculate last object id, size is only xref size but not count of object in xref
+        for ref in document.xrefs:
+            no = max(ref.offsets.keys())
+            size = max(size, no)
         page = document.getobj(document.catalog['Pages'].objid)['Kids'][0].objid
 
-        infodata = self.getdata(pdfdata1, info, prev, document).strip()
-        rootdata = self.getdata(pdfdata1, root, prev, document).strip()
-        pagedata = self.getdata(pdfdata1, page, prev, document).strip()
+        infodata = self.getdata(pdfdata1, info, prev, document)
+        rootdata = self.getdata(pdfdata1, root, prev, document, ('AcroForm',))
+        pagedata = self.getdata(pdfdata1, page, prev, document, ('Annots',))
 
-        no = size
+        no = size + 1
         objs = [
             self.makeobj(page, (b'/Annots[%d 0 R]' % (no + 3)) + pagedata),
             self.makeobj(no + 0, infodata),

@@ -4,6 +4,8 @@ import sys
 from OpenSSL.crypto import load_pkcs12
 from endesive import pdf
 
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 def main():
     dct = {

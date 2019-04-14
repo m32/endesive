@@ -1,0 +1,13 @@
+#!/bin/bash
+apatop=/devel/00mirror-sf/pdf
+jars="."
+addjar(){
+jars="$jars:$1"
+}
+for aa in $apatop/*.jar; do
+    addjar $aa
+done
+java -cp $jars \
+--add-modules java.xml.bind \
+--add-modules java.activation \
+PDFValidate $*
