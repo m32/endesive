@@ -32,50 +32,50 @@ class SignedData(object):
             return
 
         if isinstance(obj, dict):
-            out.write(b' << ')
+            out.write(b'<<')
             for (k, v) in obj.items():
                 out.write(b'/%s ' % bytes(k, 'utf-8'))
                 self.dumpobj(out, v)
-            out.write(b' >> ')
+            out.write(b'>>')
             return
 
         if isinstance(obj, list):
-            out.write(b' [ ')
+            out.write(b'[')
             for v in obj:
                 self.dumpobj(out, v)
-            out.write(b' ] ')
+            out.write(b']')
             return
 
         if isinstance(obj, bytes):
-            out.write(b' ( ')
+            out.write(b'(')
             out.write(obj)
-            out.write(b' ) ')
+            out.write(b')')
             return
 
         if isinstance(obj, str):
-            out.write(b' ( ')
+            out.write(b'(')
             out.write(bytes(e(obj), 'utf-8'))
-            out.write(b' ) ')
+            out.write(b')')
             return
 
         if isnumber(obj):
             if isinstance(obj, float):
-                s = (b' %.5f ' % obj).rstrip(b'0')
+                s = (b'%.5f ' % obj).rstrip(b'0')
             else:
-                s = b' %d ' % obj
+                s = b'%d ' % obj
             out.write(s)
             return
 
         if isinstance(obj, PDFObjRef):
-            out.write(b' %d 0 R ' % (obj.objid))
+            out.write(b'%d 0 R ' % (obj.objid))
             return
 
         if isinstance(obj, PSKeyword):
-            out.write(b' /%s ' % bytes(obj.name, 'utf-8'))
+            out.write(b'/%s ' % bytes(obj.name, 'utf-8'))
             return
 
         if isinstance(obj, PSLiteral):
-            out.write(b' /%s ' % bytes(obj.name, 'utf-8'))
+            out.write(b'/%s ' % bytes(obj.name, 'utf-8'))
             return
 
         # if isinstance(obj, PDFStream):
@@ -94,7 +94,32 @@ class SignedData(object):
         return data[2:-2].strip()
 
     def makeobj(self, no, data, datas=b''):
-        return (b'%d 0 obj\n<<' % no) + data + b'>>\n'+datas+b'endobj\n'
+        return (b'%d 0 obj\n<<' % no) + data + b'>>\n' + datas + b'endobj\n'
+
+    def getfields(self, root, document):
+        obj = document.getobj(root)
+        try:
+            obj = obj['AcroForm']
+            obj = document.getobj(obj.objid)
+            sigflags = obj['SigFlags']
+            fields = obj['Fields']
+        except KeyError as e:
+            return 1, ''
+        fp = BytesIO()
+        self.dumpobj(fp, fields)
+        data = fp.getvalue().strip()[1:-1]
+        return len(fields)+1, data
+
+    def getannots(self, root, document):
+        obj = document.getobj(root)
+        try:
+            annots = obj['Annots']
+        except KeyError as e:
+            return ''
+        fp = BytesIO()
+        self.dumpobj(fp, annots)
+        data = fp.getvalue().strip()[1:-1]
+        return data
 
     def makepdf(self, pdfdata1, udct, zeros):
         parser = PDFParser(BytesIO(pdfdata1))
@@ -110,21 +135,27 @@ class SignedData(object):
             size = max(size, no)
         page = document.getobj(document.catalog['Pages'].objid)['Kids'][0].objid
 
+        nsig, fields = self.getfields(root, document)
+        annots = self.getannots(page, document)
+
         infodata = self.getdata(pdfdata1, info, prev, document)
         rootdata = self.getdata(pdfdata1, root, prev, document, ('AcroForm',))
         pagedata = self.getdata(pdfdata1, page, prev, document, ('Annots',))
 
         no = size + 1
         objs = [
-            self.makeobj(page, (b'/Annots[%d 0 R]' % (no + 3)) + pagedata),
+            self.makeobj(page, (b'/Annots[%s%d 0 R]' %(
+                annots, no + 3) + pagedata)),
             self.makeobj(no + 0, infodata),
             self.makeobj(no + 1, (b'/AcroForm %d 0 R' % (no + 2)) + rootdata),
-            self.makeobj(no + 2, b'/Fields[%d 0 R]/SigFlags %d' % (no + 3, udct[b'sigflags'])),
+            self.makeobj(no + 2, b'/Fields[%s%d 0 R]/SigFlags %d' % (
+                fields,
+                no + 3, udct[b'sigflags'])),
             self.makeobj(no + 3,
-                         b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature1)/V %d 0 R' % (
-                             no + 4, page, no + 5)),
+                         b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature%d)/V %d 0 R' % (
+                             no + 4, page, nsig, no + 5)),
             self.makeobj(no + 4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject',
-                        b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n'),
+                         b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n'),
             self.makeobj(no + 5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
 /Filter/Adobe.PPKLite/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
 /Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason'])) + zeros + b'>'),
