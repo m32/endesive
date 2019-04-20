@@ -19,6 +19,12 @@ addjar xmpbox-2.0.14.jar
 javac -cp $jars PDFValidate.java
 */
 
+/*
+maven modueles:
+https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api/2.2.3
+https://mvnrepository.com/artifact/javax.activation/activation/1.1.1
+*/
+
 import java.io.IOException;
 import java.io.File;
 import java.io.FileWriter;

@@ -19,14 +19,21 @@ from asn1crypto import keys as asn1keys
 from asn1crypto import pem as asn1pem
 
 os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
-open('softhsm2.conf', 'wt').write('''\
+if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2.conf')):
+    open('softhsm2.conf', 'wt').write('''\
 log.level = DEBUG
 directories.tokendir = %s/softhsm2/
 objectstore.backend = file
 slots.removable = false
 ''' % os.getcwd())
+if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
+    os.mkdir(os.path.join(os.getcwd(), 'softhsm2'))
+
 #
-# softhsm-util --label "java key" --slot 2 --init-token --pin 1234 --so-pin 12345678
+#!/bin/bash
+#SOFTHSM2_CONF=softhsm2.conf
+#softhsm2-util --label "endesive" --slot 1 --init-token --pin secret1 --so-pin secret2
+#softhsm2-util --show-slots
 #
 
 if sys.platform == 'win32':
@@ -148,13 +155,13 @@ class HSM:
             'version': 'v1',
             'serial_number': sn,
             'issuer': asn1x509.Name.build({
-                'common_name': 'Test Certificate',
+                'common_name': 'CA',
             }),
             'subject': asn1x509.Name.build({
-                'common_name': 'Test Certificate',
+                'common_name': 'CA',
             }),
             'signature': {
-                'algorithm': 'sha1_rsa',
+                'algorithm': 'sha256_rsa',
                 'parameters': None,
             },
             'validity': {
@@ -182,7 +189,7 @@ class HSM:
         cert = asn1x509.Certificate({
             'tbs_certificate': tbs,
             'signature_algorithm': {
-                'algorithm': 'sha1_rsa',
+                'algorithm': 'sha256_rsa',
                 'parameters': None,
             },
             'signature_value': value,
@@ -214,20 +221,20 @@ class HSM:
         open('cert.pem', 'wb').write(pem_bytes)
 
     def main(self):
-        label = 'm32 cert'
+        label = 'ca'
         keyID = (0x1,)
         rec = self.session.findObjects([(PyKCS11.CKA_CLASS, PyKCS11.CKO_PRIVATE_KEY), (PyKCS11.CKA_ID, keyID)])
         if len(rec) == 0:
             self.gen_privkey(label, keyID)
-        rec = self.session.findObjects([(PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE), (PyKCS11.CKA_ID, keyID)])
-        if len(rec) == 0:
-            self.ca_gen(label, keyID, 'Test CA')
-        self.ca_export(label, keyID)
+            self.ca_gen(label, keyID, 'CA')
+
+        #rec = self.session.findObjects([(PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE), (PyKCS11.CKA_ID, keyID)])
+        #self.ca_export(label, keyID)
 
 def main():
     cls = HSM()
-    cls.create("m32 cert", "secret1", "secret2")
-    cls.login("m32 cert", "secret1")
+    cls.create("endesieve", "secret1", "secret2")
+    cls.login("endesieve", "secret1")
     try:
         cls.main()
     finally:

@@ -7,7 +7,7 @@ jars="$jars:$1"
 for aa in $apatop/*.jar; do
     addjar $aa
 done
+addjar /devel/lib/java/javax.xml.bind-2.2.3.jar
+addjar /devel/lib/java/java.activation-1.1.1.jar
 java -cp $jars \
---add-modules java.xml.bind \
---add-modules java.activation \
 PDFValidate $*
