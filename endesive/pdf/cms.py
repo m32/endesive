@@ -1,9 +1,10 @@
 # *-* coding: utf-8 *-*
+import operator
 import hashlib
 import re
 from io import BytesIO
 
-from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfdocument import PDFDocument, PDFXRefStream
 from pdfminer.pdfparser import PDFParser
 from pdfminer.pdftypes import PDFObjRef
 from pdfminer.psparser import PSKeyword, PSLiteral
@@ -131,7 +132,10 @@ class SignedData(object):
         size = 1
         # calculate last object id, size is only xref size but not count of object in xref
         for ref in document.xrefs:
-            no = max(ref.offsets.keys())
+            if isinstance(ref, PDFXRefStream):
+                no = max(ref.ranges, key=operator.itemgetter(1))[1]
+            else:
+                no = max(ref.offsets.keys())
             size = max(size, no)
         page = document.getobj(document.catalog['Pages'].objid)['Kids'][0].objid
 
