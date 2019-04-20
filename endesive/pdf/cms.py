@@ -104,7 +104,7 @@ class SignedData(object):
             sigflags = obj['SigFlags']
             fields = obj['Fields']
         except KeyError as e:
-            return 1, ''
+            return 1, b''
         fp = BytesIO()
         self.dumpobj(fp, fields)
         data = fp.getvalue().strip()[1:-1]
@@ -115,7 +115,7 @@ class SignedData(object):
         try:
             annots = obj['Annots']
         except KeyError as e:
-            return ''
+            return b''
         fp = BytesIO()
         self.dumpobj(fp, annots)
         data = fp.getvalue().strip()[1:-1]
