@@ -59,6 +59,12 @@ class SignedData(object):
             out.write(b')')
             return
 
+        if isinstance(obj, bool):
+            if obj:
+                out.write(b'true ')
+            else:
+                out.write(b'false ')
+            return
         if isnumber(obj):
             if isinstance(obj, float):
                 s = (b'%.5f ' % obj).rstrip(b'0')
