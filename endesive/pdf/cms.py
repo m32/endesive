@@ -1,4 +1,5 @@
 # *-* coding: utf-8 *-*
+import sys
 import operator
 import hashlib
 import re
@@ -22,7 +23,10 @@ def e(s):
 class SignedData(object):
 
     def aligned(self, data):
-        data = data.hex().encode('utf-8')
+        if sys.version[0] < '3':
+            data = data.encode('hex').encode('utf-8')
+        else:
+            data = data.hex().encode('utf-8')
         nb = 0x4000 - len(data)
         data = data + b'0' * (0x4000 - len(data))
         return data
@@ -35,7 +39,10 @@ class SignedData(object):
         if isinstance(obj, dict):
             out.write(b'<<')
             for (k, v) in obj.items():
-                out.write(b'/%s ' % bytes(k, 'utf-8'))
+                if sys.version[0] < '3':
+                    out.write(b'/%s ' % k)
+                else:
+                    out.write(b'/%s ' % bytes(k, 'utf-8'))
                 self.dumpobj(out, v)
             out.write(b'>>')
             return
@@ -82,7 +89,10 @@ class SignedData(object):
             return
 
         if isinstance(obj, PSLiteral):
-            out.write(b'/%s ' % bytes(obj.name, 'utf-8'))
+            if sys.version[0] < '3':
+                out.write(b'/%s ' % obj.name)
+            else:
+                out.write(b'/%s ' % bytes(obj.name, 'utf-8'))
             return
 
         # if isinstance(obj, PDFStream):

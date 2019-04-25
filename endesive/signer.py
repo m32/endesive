@@ -1,4 +1,7 @@
 # *-* coding: utf-8 *-*
+from __future__ import unicode_literals
+
+import sys
 import hashlib
 from datetime import datetime
 
@@ -26,6 +29,8 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None):
     certificates.append(cert)
     for i in range(len(othercerts)):
         certificates.append(cert2asn(othercerts[i]))
+
+    hashalgo = unicode(hashalgo) if sys.version[0] < '3' else hashalgo
 
     signer = {
         'version': 'v1',
