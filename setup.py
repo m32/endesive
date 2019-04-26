@@ -34,7 +34,7 @@ setup(
         'Topic :: Multimedia :: Graphics',
     ],
     keywords='cryptography pki x509 smime email pdf pkcs11 asn1 xades',
-    packages=find_packages(exclude=['examples',]),
+    packages=find_packages(exclude=['examples', 'tests']),
     platforms=["all"],
     install_requires=['cryptography', 'asn1crypto', 'pyopenssl', 'pdfminer.six', 'lxml', 'pykcs11'],
 )
