@@ -1,4 +1,4 @@
-#!/usr/bin/env vpython3
+#!/usr/bin/env vpython2
 #
 # dumppdf.py - dump pdf contents in XML format.
 #
@@ -196,7 +196,7 @@ def extractembedded(outfp, fname, objids, pagenos, password='',
 # dumppdf
 def dumppdf(outfp, fname, objids, pagenos, password='',
             dumpall=False, codec=None, extractdir=None):
-    fp = file(fname, 'rb')
+    fp = open(fname, 'rb')
     parser = PDFParser(fp)
     doc = PDFDocument(parser, password)
     if objids:
@@ -229,7 +229,7 @@ def main(argv):
         print ('usage: %s [-d] [-a] [-p pageid] [-P password] [-r|-b|-t] [-T] [-E directory] [-i objid] file ...' % argv[0])
         return 100
     try:
-        (opts, args) = getopt.getopt(argv[1:], 'dap:P:rbtTE:i:')
+        (opts, args) = getopt.getopt(argv[1:], 'do:i:p:P:arbtTE:')
     except getopt.GetoptError:
         return usage()
     if not args: return usage()
@@ -244,7 +244,7 @@ def main(argv):
     extractdir = None
     for (k, v) in opts:
         if k == '-d': debug += 1
-        elif k == '-o': outfp = file(v, 'wb')
+        elif k == '-o': outfp = open(v, 'wb')
         elif k == '-i': objids.extend( int(x) for x in v.split(',') )
         elif k == '-p': pagenos.update( int(x)-1 for x in v.split(',') )
         elif k == '-P': password = v
