@@ -1,4 +1,5 @@
 # *-* coding: utf-8 *-*
+import sys
 from email import message_from_string
 
 from asn1crypto import cms
@@ -34,7 +35,8 @@ class DecryptedData(object):
         cipher = Cipher(algorithms.AES(udata), getattr(modes, algo.split('_', 1)[1].upper())(param), default_backend())
         decryptor = cipher.decryptor()
         udata = decryptor.update(edata) + decryptor.finalize()
-        udata = udata[:-udata[-1]]
+        nb = ord(udata[-1]) if sys.version[0] < '3' else udata[-1]
+        udata = udata[:-nb]
         return udata
 
 

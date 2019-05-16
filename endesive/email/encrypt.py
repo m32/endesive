@@ -1,4 +1,5 @@
 # *-* coding: utf-8 *-*
+import sys
 import os
 from email.mime.application import MIMEApplication
 
@@ -22,7 +23,7 @@ class EncryptedData(object):
         return data
 
     def pad(self, s, block_size):
-        n = block_size - len(s) % block_size
+        n = (block_size - len(s)) % block_size
         n = bytes([n] * n)
         return s + n
 
@@ -71,6 +72,8 @@ class EncryptedData(object):
         for cert in certs:
             recipient_info = self.recipient_info(cert, session_key)
             recipient_infos.append(recipient_info)
+
+        algo = unicode(algo) if sys.version[0] < '3' else algo
 
         enveloped_data = cms.ContentInfo({
             'content_type': u'enveloped_data',
