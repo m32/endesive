@@ -95,6 +95,7 @@ Tools:
 .. _pdfvalidator: https://www.pdf-online.com/osa/validate.aspx
 .. _cryptography: https://github.com/pyca/cryptography
 .. _asn1crypto: https://github.com/wbond/asn1crypto
+.. _oscrypto: https://github.com/wbond/oscrypto
 .. _pyfpdf: https://github.com/reingart/pyfpdf
 .. _pdfminer.six: https://pypi.org/project/pdfminer.six/
 .. _lxml: https://pypi.org/project/lxml/
