@@ -1,5 +1,6 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+import io
 from OpenSSL import crypto
 from endesive import email
 
@@ -13,13 +14,13 @@ def main():
     ):
         print('*' * 20, fname)
         try:
-            datae = open(fname, 'rt', encoding='utf-8').read()
-        except FileNotFoundError:
+            datae = io.open(fname, 'rt', encoding='utf-8').read()
+        except:
             print('no such file')
             continue
         datad = email.decrypt(datae, key)
         datad = datad.decode('utf-8')
-        open(fname.replace('encrypted', 'decrypted'), 'wt', encoding='utf-8').write(datad)
+        io.open(fname.replace('encrypted', 'decrypted'), 'wt', encoding='utf-8').write(datad)
 
 
 main()

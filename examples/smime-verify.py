@@ -1,5 +1,6 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+import io
 from endesive import email
 
 
@@ -15,8 +16,8 @@ def main():
     ):
         print('*' * 20, fname)
         try:
-            datae = open(fname, 'rt', encoding='utf-8').read()
-        except FileNotFoundError:
+            datae = io.open(fname, 'rt', encoding='utf-8').read()
+        except:
             print('no such file')
             continue
         (hashok, signatureok, certok) = email.verify(datae, trusted_cert_pems)
