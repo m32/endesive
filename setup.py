@@ -16,6 +16,7 @@ setup(
     version=__import__('endesive').__version__,
     description='Library for digital signing and verification of digital signatures in mail, PDF and XML documents.',
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     url='https://github.com/m32/endesive',
     author='Grzegorz Makarewicz',
     author_email='mak@trisoft.com.pl',
