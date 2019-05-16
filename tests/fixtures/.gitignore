@@ -1,0 +1,10 @@
+pdf-signed-cms.pdf
+plain-signed-attr.txt
+plain-signed-noattr.txt
+plain-ssl-signed-attr.txt
+plain-ssl-signed-noattr.txt
+smime-encrypted.txt
+smime-signed-attr-custom.txt
+smime-signed-attr.txt
+smime-signed-noattr.txt
+smime-ssl-encrypted.txt
