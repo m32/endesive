@@ -2,8 +2,7 @@ Python library for digital signing and verification of digital signatures in mai
 PDF and XML documents.
 
 The ASN.1 implementation depends on `asn1crypto`_.
-Cryptographic routines depend on `oscrypto`_ and `cryptography`_ libraries, so everything is
-'pure python'.
+Cryptographic routines depends on `cryptography`_ library.
 
 For certificate verification OpenSSL is used but I would not trust it,
 next version should switch to `cryptography`_.
