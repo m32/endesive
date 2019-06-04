@@ -42,11 +42,15 @@ Examples
 
 cert-make.py
     Create required certificates (password is 1234)
+cert-make-hsm.py
+    Create required certificates for SoftHSM (password is secret1)
 
 pdf-make.py
     Create simple two paged PDF document which is used in pdf-sign-cms.py.
 pdf-sign-cms.py
     Create signature in externally created PDF.
+pdf-sign-cms-hsm.py
+    Create signature in externally created PDF but signed with key stored in SoftHSM.
 pdf-sign-fpdf.py
     Create signature while creating PDF.
 pdf-verify.py
