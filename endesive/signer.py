@@ -19,12 +19,18 @@ def cert2asn(cert, cert_bytes=True):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
 
-def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None):
+def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
     signed_time = datetime.now()
 
-    cert = cert2asn(cert)
+    if hsm is not None:
+        keyid, cert = hsm.certificate()
+        cert = cert2asn(cert, False)
+        othercerts = []
+    else:
+        cert = cert2asn(cert)
+
     certificates = []
     certificates.append(cert)
     for i in range(len(othercerts)):
@@ -85,11 +91,14 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None):
         tosign = b'\x31' + tosign[1:]
     else:
         tosign = datau
-    signed_value_signature = key.sign(
-        tosign,
-        padding.PKCS1v15(),
-        getattr(hashes, hashalgo.upper())()
-    )
+    if hsm is not None:
+        signed_value_signature = hsm.sign(keyid, tosign, hashalgo)
+    else:
+        signed_value_signature = key.sign(
+            tosign,
+            padding.PKCS1v15(),
+            getattr(hashes, hashalgo.upper())()
+        )
     # signed_value_signature = core.OctetString(signed_value_signature)
     datas['content']['signer_infos'][0]['signature'] = signed_value_signature
 

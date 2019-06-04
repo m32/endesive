@@ -232,7 +232,7 @@ startxref\n\
 
         return pdfdata2
 
-    def sign(self, datau, dct, key, cert, othercerts, algomd):
+    def sign(self, datau, dct, key, cert, othercerts, algomd, hsm):
         zeros = self.aligned(b'\0')
 
         pdfdata2 = self.makepdf(datau, dct, zeros)
@@ -253,13 +253,13 @@ startxref\n\
         md.update(b2)
         md = md.digest()
 
-        contents = signer.sign(None, key, cert, othercerts, algomd, True, md)
+        contents = signer.sign(None, key, cert, othercerts, algomd, True, md, hsm)
         contents = self.aligned(contents)
         pdfdata2 = pdfdata2.replace(zeros, contents, 1)
 
         return pdfdata2
 
 
-def sign(datau, udct, key, cert, othercerts, algomd):
+def sign(datau, udct, key, cert, othercerts, algomd, hsm=None):
     cls = SignedData()
-    return cls.sign(datau, udct, key, cert, othercerts, algomd)
+    return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm)
