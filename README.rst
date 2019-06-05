@@ -21,6 +21,8 @@ This library implements XADES-BES handler for creating signed xml files.
 This library implements CMS handler for signing and verifying plain text files with
 detached signature files.
 
+Free S/MIME certificates (usable for documents signing) can be obtained from `actalis`.
+
 License
 =======
 
@@ -101,3 +103,4 @@ Tools:
 .. _pyfpdf: https://github.com/reingart/pyfpdf
 .. _pdfminer.six: https://pypi.org/project/pdfminer.six/
 .. _lxml: https://pypi.org/project/lxml/
+.. _actalis: https://www.actalis.it/products/certificates-for-secure-electronic-mail.aspx
