@@ -3,6 +3,10 @@ language: python
 python:
   - "3.6"
 
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y python3-pykcs11 python3-cryptography python3-asn1crypto python3-openssl python3-lxml
+
 # command to install dependencies
 install:
   - python setup.py -q install
