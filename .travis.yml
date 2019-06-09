@@ -1,4 +1,4 @@
-dist: bionic   # required for Python >= 3.7
+dist: xenial   # required for Python >= 3.7
 language: python
 python:
   - "3.6"
@@ -8,8 +8,8 @@ before_install:
 
 # command to install dependencies
 install:
-  - python setup.py -q install
+  - python3 setup.py -q install
 
 # command to run tests
 script:
-  - python setup.py tests
+  - python3 setup.py tests
