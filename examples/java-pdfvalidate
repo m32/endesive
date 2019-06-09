@@ -1,0 +1,14 @@
+#!/bin/bash
+thisdir=`dirname $0`
+jars="$thisdir"
+addjar(){
+jars="$jars:$1"
+}
+for fname in $thisdir/pdfbox/*.jar; do
+    addjar $fname
+done
+for fname in $thisdir/java/*.jar; do
+    addjar $fname
+done
+java -cp $jars \
+PDFValidate $*
