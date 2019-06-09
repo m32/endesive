@@ -21,7 +21,6 @@ This library implements XADES-BES handler for creating signed xml files.
 This library implements CMS handler for signing and verifying plain text files with
 detached signature files.
 
-Free S/MIME certificates (usable for documents signing) can be obtained from `actalis`.
 
 License
 =======
@@ -38,6 +37,8 @@ Requirements
 * `asn1crypto`_
 * `pdfminer.six`_
 * `lxml`_
+* `pykcs11`_
+
 
 Examples
 ========
@@ -94,13 +95,18 @@ xml-xades-bes-sign-xml.py
 xml-xades-bes-read.py
     Decode generated xml signatures and extract their content.
 
-Tools:
+Tools
+=====
     Online pdf validator `pdfvalidator`_
+    Offline Apache `pdfbox`_ java based validator.
+    Free S/MIME certificates (usable for documents signing) can be obtained from `actalis`_.
 
-.. _pdfvalidator: https://www.pdf-online.com/osa/validate.aspx
 .. _cryptography: https://github.com/pyca/cryptography
 .. _asn1crypto: https://github.com/wbond/asn1crypto
 .. _pyfpdf: https://github.com/reingart/pyfpdf
 .. _pdfminer.six: https://pypi.org/project/pdfminer.six/
 .. _lxml: https://pypi.org/project/lxml/
+.. _pykcs11: https://pypi.org/project/pykcs11/
+.. _pdfvalidator: https://www.pdf-online.com/osa/validate.aspx
+.. _pdfbox: https://pdfbox.apache.org/
 .. _actalis: https://www.actalis.it/products/certificates-for-secure-electronic-mail.aspx
