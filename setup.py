@@ -38,4 +38,5 @@ setup(
     packages=find_packages(exclude=['examples', 'tests']),
     platforms=["all"],
     install_requires=['cryptography', 'asn1crypto', 'pyopenssl', 'pdfminer.six', 'lxml', 'pykcs11'],
+    test_suite="tests",
 )

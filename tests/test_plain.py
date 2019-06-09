@@ -19,8 +19,10 @@ def fixture(fname):
 
 class PLAINTests(unittest.TestCase):
     def test_plain_signed_attr(self):
-        p12 = load_pkcs12(open(fixture('demo2_user1.p12'), 'rb').read(), '1234')
-        datau = open(fixture('plain-unsigned.txt'), 'rb').read()
+        with open(fixture('demo2_user1.p12'), 'rb') as fh:
+            p12 = load_pkcs12(fh.read(), b'1234')
+        with open(fixture('plain-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
         datas = plain.sign(datau,
             p12.get_privatekey().to_cryptography_key(),
             p12.get_certificate().to_cryptography(),
@@ -29,7 +31,8 @@ class PLAINTests(unittest.TestCase):
             attrs=True
         )
         fname = fixture('plain-signed-attr.txt')
-        open(fname, 'wb').write(datas)
+        with open(fname, 'wb') as fh:
+            fh.write(datas)
 
         cmd = [
             'openssl', 'smime', '-verify',
@@ -43,8 +46,10 @@ class PLAINTests(unittest.TestCase):
         assert datau == stdout
 
     def test_plain_signed_noattr(self):
-        p12 = load_pkcs12(open(fixture('demo2_user1.p12'), 'rb').read(), '1234')
-        datau = open(fixture('plain-unsigned.txt'), 'rb').read()
+        with open(fixture('demo2_user1.p12'), 'rb') as fh:
+            p12 = load_pkcs12(fh.read(), b'1234')
+        with open(fixture('plain-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
         datas = plain.sign(datau,
             p12.get_privatekey().to_cryptography_key(),
             p12.get_certificate().to_cryptography(),
@@ -53,7 +58,8 @@ class PLAINTests(unittest.TestCase):
             attrs=False
         )
         fname = fixture('plain-signed-noattr.txt')
-        open(fname, 'wb').write(datas)
+        with open(fname, 'wb') as fh:
+            fh.write(datas)
 
         cmd = [
             'openssl', 'smime', '-verify',
@@ -81,9 +87,12 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stdout
         assert b'' == stderr
 
-        trusted_cert_pems = (open(fixture('demo2_ca.crt.pem'), 'rt').read(),)
-        datau = open(fixture('plain-unsigned.txt'), 'rb').read()
-        datas = open(fixture('plain-ssl-signed-attr.txt'), 'rb').read()
+        with open(fixture('demo2_ca.crt.pem'), 'rt') as fh:
+            trusted_cert_pems = (fh.read(),)
+        with open(fixture('plain-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        with open(fixture('plain-ssl-signed-attr.txt'), 'rb') as fh:
+            datas = fh.read()
         (hashok, signatureok, certok) = plain.verify(datas, datau, trusted_cert_pems)
         assert signatureok and hashok and certok
 
@@ -102,8 +111,11 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stdout
         assert b'' == stderr
 
-        trusted_cert_pems = (open(fixture('demo2_ca.crt.pem'), 'rt').read(),)
-        datau = open(fixture('plain-unsigned.txt'), 'rb').read()
-        datas = open(fixture('plain-ssl-signed-noattr.txt'), 'rb').read()
+        with open(fixture('demo2_ca.crt.pem'), 'rt') as fh:
+            trusted_cert_pems = (fh.read(),)
+        with open(fixture('plain-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        with open(fixture('plain-ssl-signed-noattr.txt'), 'rb') as fh:
+            datas = fh.read()
         (hashok, signatureok, certok) = plain.verify(datas, datau, trusted_cert_pems)
         assert signatureok and hashok and certok

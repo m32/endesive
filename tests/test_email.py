@@ -23,8 +23,10 @@ def fixture(fname):
 
 class EMAILTests(unittest.TestCase):
     def test_email_signed_attr(self):
-        p12 = crypto.load_pkcs12(open(fixture('demo2_user1.p12'), 'rb').read(), '1234')
-        datau = open(fixture('smime-unsigned.txt'), 'rb').read()
+        with open(fixture('demo2_user1.p12'), 'rb') as fh:
+            p12 = crypto.load_pkcs12(fh.read(), b'1234')
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
         datas = email.sign(datau,
             p12.get_privatekey().to_cryptography_key(),
             p12.get_certificate().to_cryptography(),
@@ -33,7 +35,8 @@ class EMAILTests(unittest.TestCase):
             attrs=True
         )
         fname = fixture('smime-signed-attr.txt')
-        open(fname, 'wb').write(datas)
+        with open(fname, 'wb') as fh:
+            fh.write(datas)
 
         cmd = [
             'openssl', 'smime', '-verify',
@@ -47,8 +50,10 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_attr_custom(self):
-        p12 = crypto.load_pkcs12(open(fixture('demo2_user1.p12'), 'rb').read(), '1234')
-        datau = open(fixture('smime-unsigned.txt'), 'rb').read()
+        with open(fixture('demo2_user1.p12'), 'rb') as fh:
+            p12 = crypto.load_pkcs12(fh.read(), b'1234')
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
 
         datau1 = datau.replace(b'\n', b'\r\n')
         hashalgo = 'sha256'
@@ -72,7 +77,8 @@ class EMAILTests(unittest.TestCase):
             attrs=attrs
         )
         fname = fixture('smime-signed-attr-custom.txt')
-        open(fname, 'wb').write(datas)
+        with open(fname, 'wb') as fh:
+            fh.write(datas)
 
         cmd = [
             'openssl', 'smime', '-verify',
@@ -86,8 +92,10 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_noattr(self):
-        p12 = crypto.load_pkcs12(open(fixture('demo2_user1.p12'), 'rb').read(), '1234')
-        datau = open(fixture('smime-unsigned.txt'), 'rb').read()
+        with open(fixture('demo2_user1.p12'), 'rb') as fh:
+            p12 = crypto.load_pkcs12(fh.read(), b'1234')
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
         datas = email.sign(datau,
             p12.get_privatekey().to_cryptography_key(),
             p12.get_certificate().to_cryptography(),
@@ -96,7 +104,8 @@ class EMAILTests(unittest.TestCase):
             attrs=False
         )
         fname = fixture('smime-signed-noattr.txt')
-        open(fname, 'wb').write(datas)
+        with open(fname, 'wb') as fh:
+            fh.write(datas)
 
         cmd = [
             'openssl', 'smime', '-verify',
@@ -117,14 +126,18 @@ class EMAILTests(unittest.TestCase):
         certs = (
             load_cert(fixture('demo2_user1.crt.pem')),
         )
-        datau = open(fixture('smime-unsigned.txt'), 'rb').read()
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
         datae = email.encrypt(datau, certs, 'aes256_ofb')
         fname = fixture('smime-encrypted.txt')
-        open(fname, 'wt').write(datae)
+        with open(fname, 'wt') as fh:
+            fh.write(datae)
 
-        key = crypto.load_privatekey(crypto.FILETYPE_PEM, open(fixture('demo2_user1.key.pem'), 'rb').read(), b'1234')
+        with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
+            key = crypto.load_privatekey(crypto.FILETYPE_PEM, fh.read(), b'1234')
         key = key.to_cryptography_key()
-        datae = io.open(fname, 'rt', encoding='utf-8').read()
+        with io.open(fname, 'rt', encoding='utf-8') as fh:
+            datae = fh.read()
         datad = email.decrypt(datae, key)
 
         assert datau == datad
@@ -137,10 +150,12 @@ class EMAILTests(unittest.TestCase):
         certs = (
             load_cert(fixture('demo2_user1.crt.pem')),
         )
-        datau = open(fixture('smime-unsigned.txt'), 'rb').read()
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
         datae = email.encrypt(datau, certs, 'aes256_ofb')
         fname = fixture('smime-encrypted.txt')
-        open(fname, 'wt').write(datae)
+        with open(fname, 'wt') as fh:
+            fh.write(datae)
 
         cmd = [
             'openssl', 'smime', '-decrypt',
@@ -167,10 +182,13 @@ class EMAILTests(unittest.TestCase):
         assert stderr == b''
         assert stdout == b''
 
-        key = crypto.load_privatekey(crypto.FILETYPE_PEM, open(fixture('demo2_user1.key.pem'), 'rb').read(), b'1234')
+        with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
+            key = crypto.load_privatekey(crypto.FILETYPE_PEM, fh.read(), b'1234')
         key = key.to_cryptography_key()
-        datae = io.open(fixture('smime-ssl-encrypted.txt'), 'rt', encoding='utf-8').read()
+        with io.open(fixture('smime-ssl-encrypted.txt'), 'rt', encoding='utf-8') as fh:
+            datae = fh.read()
         datad = email.decrypt(datae, key)
-        datau = open(fixture('smime-unsigned.txt'), 'rb').read()
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
 
         assert datau == datad.replace(b'\r\n', b'\n')
