@@ -97,7 +97,7 @@ xml-xades-bes-read.py
 
 Tools
 =====
-    Online pdf validator `pdfvalidator`_
+    Online pdf validator `pdfvalidator`_.
     Offline Apache `pdfbox`_ java based validator.
     Free S/MIME certificates (usable for documents signing) can be obtained from `actalis`_.
 
