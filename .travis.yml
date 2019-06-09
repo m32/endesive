@@ -5,7 +5,7 @@ python:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -y python3-pykcs11 python3-cryptography python3-asn1crypto python3-openssl python3-lxml
+  - sudo apt-get install -y python3-pykcs11 python3-cryptography python3-openssl python3-lxml
 
 # command to install dependencies
 install:
