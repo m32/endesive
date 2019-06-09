@@ -12,4 +12,4 @@ install:
 
 # command to run tests
 script:
-  - python3 setup.py tests
+  - python3 setup.py test
