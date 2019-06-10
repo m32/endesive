@@ -5,7 +5,7 @@ python:
 
 before_install:
   - sudo apt-get install -y python3-pip python3-lxml python3-setuptools python3-cffi
-  - sudo apt-get install -y libffi-dev libssl-dev swig
+  - sudo apt-get install -y libffi-dev libssl-dev swig python3-chardet
 
 # command to install dependencies
 install:
