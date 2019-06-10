@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/m32/endesive.png)](https://travis-ci.org/m32/endesive)
+
+# Description
+
 Python library for digital signing and verification of digital signatures in mail,
 PDF and XML documents.
 
@@ -22,15 +26,13 @@ This library implements CMS handler for signing and verifying plain text files w
 detached signature files.
 
 
-License
-=======
+## License
 
 This software is licensed under the MIT License. See the LICENSE file in
 the top distribution directory for the full license text.
 
 
-Requirements
-============
+## Requirements
 
 * Python 3.*
 * `cryptography`_
@@ -40,8 +42,7 @@ Requirements
 * `pykcs11`_
 
 
-Examples
-========
+## Examples
 
 cert-make.py
     Create required certificates (password is 1234)
@@ -95,8 +96,8 @@ xml-xades-bes-sign-xml.py
 xml-xades-bes-read.py
     Decode generated xml signatures and extract their content.
 
-Tools
-=====
+## Tools
+
     Online pdf validator `pdfvalidator`_.
     Offline Apache `pdfbox`_ java based validator.
     Free S/MIME certificates (usable for documents signing) can be obtained from `actalis`_.
