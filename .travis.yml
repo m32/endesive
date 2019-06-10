@@ -4,8 +4,8 @@ python:
   - "3.6"
 
 before_install:
-  - sudo apt-get install -y python3-pykcs11 python3-pip python3-lxml python3-setuptools python3-cffi
-  - sudo apt-get install -y libffi-dev libssl-dev
+  - sudo apt-get install -y python3-pip python3-lxml python3-setuptools python3-cffi
+  - sudo apt-get install -y libffi-dev libssl-dev swig
 
 # command to install dependencies
 install:
