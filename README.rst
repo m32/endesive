@@ -1,3 +1,7 @@
+.. image:: https://travis-ci.org/m32/endesive.svg?branch=master
+   :alt: endesive build status on Travis CI
+   :target: https://travis-ci.org/m32/endesive
+
 Description
 ===========
 
