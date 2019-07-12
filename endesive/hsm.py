@@ -143,7 +143,7 @@ class HSM:
             },
             'validity': {
                 'not_before': asn1x509.Time({
-                    'utc_time': datetime.datetime.now(),
+                    'utc_time': datetime.datetime.utcnow(),
                 }),
                 'not_after':  asn1x509.Time({
                     'utc_time': until,
@@ -160,7 +160,7 @@ class HSM:
 
         # Sign the TBS Certificate
         data = tbs.dump()
-        value = self.session.sign(caprivKey, data, PyKCS11.Mechanism(PyKCS11.CKM_SHA1_RSA_PKCS, None))
+        value = self.session.sign(caprivKey, data, PyKCS11.Mechanism(PyKCS11.CKM_SHA256_RSA_PKCS, None))
         value = bytes(bytearray(value))
 
         cert = asn1x509.Certificate({
