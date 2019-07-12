@@ -91,7 +91,7 @@ def main():
         'sha256',
         clshsm
     )
-    fname = fname.replace('.pdf', '-signed-cms.pdf')
+    fname = fname.replace('.pdf', '-signed-cms-hsm.pdf')
     with open(fname, 'wb') as fp:
         fp.write(datau)
         fp.write(datas)
