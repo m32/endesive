@@ -154,7 +154,10 @@ class SignedData(object):
             if isinstance(ref, PDFXRefStream):
                 no = max(ref.ranges, key=operator.itemgetter(1))[1]
             else:
-                no = max(ref.offsets.keys())
+                if len(ref.offsets) == 0:
+                    no = 0
+                else:
+                    no = max(ref.offsets.keys())
             size = max(size, no)
         page = document.getobj(document.catalog['Pages'].objid)['Kids'][0].objid
 
