@@ -5,6 +5,7 @@ import hashlib
 import io
 import uuid
 
+from cryptography.x509.oid import NameOID
 from lxml import etree, builder
 
 DS = builder.ElementMaker(
@@ -63,15 +64,39 @@ def ensure_str(x, encoding="utf-8", none_ok=False):
         x = x.decode(encoding)
     return x
 
+OID_NAMES = {
+    NameOID.COMMON_NAME: 'CN',
+    NameOID.COUNTRY_NAME: 'C',
+    NameOID.DOMAIN_COMPONENT: 'DC',
+    NameOID.EMAIL_ADDRESS: 'E',
+    NameOID.GIVEN_NAME: 'G',
+    NameOID.LOCALITY_NAME: 'L',
+    NameOID.ORGANIZATION_NAME: 'O',
+    NameOID.ORGANIZATIONAL_UNIT_NAME: 'OU',
+    NameOID.SURNAME: 'SN'
+}
 
 class BES:
     def __init__(self):
         self.guid = str(uuid.uuid1())
-        self.time = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.time = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def sha256(self, data):
         h = hashlib.sha256(data).digest()
         return ensure_str(base64.b64encode(h))
+
+    def get_rdns_name(self, rdns):
+        name = ''
+        for rdn in rdns:
+            for attr in rdn._attributes:
+                if len(name) > 0:
+                    name = name + ','
+                if attr.oid in OID_NAMES:
+                    name = name + OID_NAMES[attr.oid]
+                else:
+                    name = name + attr.oid._name
+                name = name + '=' + attr.value
+        return name
 
     def _c14n(self, nodes, algorithm, inclusive_ns_prefixes=None):
         exclusive, with_comments = False, False
@@ -95,31 +120,44 @@ class BES:
             c14n = c14n.replace(b' xmlns=""', b'')
         return c14n
 
-    def build(self, fname, data, smime, cert, certcontent, signproc, base64encode=True, withcomments=False):
+    def build(self, fname, data, smime, cert, certcontent, signproc, base64encode=True, withcomments=False, detached=False):
         swithcomments = ""
         if withcomments:
             swithcomments = "#WithComments"
-        if base64encode:
-            data = ensure_str(base64.b64encode(data))
-            signedobj = Object(
-                data,
-                Encoding="http://www.w3.org/2000/09/xmldsig#base64",
-                MimeType=smime,
-                Id="Object1_" + self.guid,
-            )
-        elif 0:
-            signedobj = Object(
-                data,
-                MimeType='text/xml',
-                Id="Object1_" + self.guid,
-            )
-        else:
-            signedobj = Object(
-                MimeType='text/xml',
-                Id="Object1_" + self.guid,
-            )
+        if detached:
             tree = etree.parse(io.BytesIO(data))
-            signedobj.append(tree.getroot())
+            signedobj = tree.getroot()
+            canonicalizedxml = self._c14n(signedobj, '')
+            digestvalue1 = self.sha256(canonicalizedxml)
+            URI = fname
+            signedobj = None
+        else:
+            if base64encode:
+                data = ensure_str(base64.b64encode(data))
+                signedobj = Object(
+                    data,
+                    Encoding="http://www.w3.org/2000/09/xmldsig#base64",
+                    MimeType=smime,
+                    Id="Object1_" + self.guid,
+                )
+                URI="#Object1_" + self.guid
+            elif 0:
+                signedobj = Object(
+                    data,
+                    MimeType='text/xml',
+                    Id="Object1_" + self.guid,
+                )
+                URI="#Object1_" + self.guid
+            else:
+                signedobj = Object(
+                    MimeType='text/xml',
+                    Id="Object1_" + self.guid,
+                )
+                tree = etree.parse(io.BytesIO(data))
+                signedobj.append(tree.getroot())
+                URI = "#Object1_" + self.guid
+            canonicalizedxml = self._c14n(signedobj, '')
+            digestvalue1 = self.sha256(canonicalizedxml)
 
         certdigest = self.sha256(certcontent)
         b64 = b''.join(base64.encodebytes(certcontent).split())
@@ -128,19 +166,7 @@ class BES:
             certcontent.append(b64[i:i + 64])
         certcontent = b'\n'.join(certcontent)
         certserialnumber = '%d' % cert.serial_number
-        certissuer = []
-        for k, v in (
-                ('CN', 'common_name'),
-                ('O', 'organization_name'),
-                ('C', 'country_name'),
-                ('serialNumber', 'serial_number'),
-        ):
-            try:
-                v = cert.issuer.native[v]
-                certissuer.append('%s=%s' % (k, v))
-            except:
-                pass
-        certissuer = ','.join(certissuer)
+        certissuer = self.get_rdns_name(cert.issuer.rdns)
 
         signedprop = SignedProperties(
             SignedSignatureProperties(
@@ -202,8 +228,6 @@ Content-Disposition: filename="%s"\
             Id="SignedProperties_" + self.guid + "_40",
         )
 
-        canonicalizedxml = self._c14n(signedobj, '')
-        digestvalue1 = self.sha256(canonicalizedxml)
         canonicalizedxml = self._c14n(signedprop, '')
         digestvalue2 = self.sha256(canonicalizedxml)
 
@@ -226,7 +250,7 @@ Content-Disposition: filename="%s"\
                 DigestValue(
                     digestvalue1,
                 ),
-                URI="#Object1_" + self.guid,
+                URI=URI,
                 Id="Reference1_" + self.guid + "_29",
             ),
             Reference(
@@ -242,6 +266,7 @@ Content-Disposition: filename="%s"\
             ),
             Id="SignedInfo_" + self.guid + "_4f",
         )
+
         canonicalizedxml = self._c14n(signedinfo, '')
         signature = signproc(canonicalizedxml, 'sha256')
         actualdigestencoded = ensure_str(base64.b64encode(signature))
@@ -250,31 +275,59 @@ Content-Disposition: filename="%s"\
             digestvalue3.append(actualdigestencoded[i:i + 64])
         digestvalue3 = '\n'.join(digestvalue3)
 
-        DOC = Signature(
-            signedinfo,
-            SignatureValue(
-                digestvalue3,
-                Id="SignatureValue_" + self.guid + "_5c",
-            ),
-            KeyInfo(
-                X509Data(
-                    X509Certificate(
-                        certcontent.decode()
+        if signedobj is None:
+            DOC = Signature(
+                signedinfo,
+                SignatureValue(
+                    digestvalue3,
+                    Id="SignatureValue_" + self.guid + "_5c",
+                ),
+                KeyInfo(
+                    X509Data(
+                        X509Certificate(
+                            certcontent.decode()
+                        ),
+                    ),
+                    Id="KeyInfo_" + self.guid + "_2a",
+                ),
+                Object(
+                    QualifyingProperties(
+                        signedprop,
+                        UnsignedProperties(
+                            Id="UnsignedProperties_" + self.guid + "_5b",
+                        ),
+                        Id="QualifyingProperties_" + self.guid + "_4d",
+                        Target="#Signature_" + self.guid + "_17",
                     ),
                 ),
-                Id="KeyInfo_" + self.guid + "_2a",
-            ),
-            Object(
-                QualifyingProperties(
-                    signedprop,
-                    UnsignedProperties(
-                        Id="UnsignedProperties_" + self.guid + "_5b",
-                    ),
-                    Id="QualifyingProperties_" + self.guid + "_4d",
-                    Target="#Signature_" + self.guid + "_17",
+                Id="Signature_" + self.guid + "_17",
+            )
+        else:
+            DOC = Signature(
+                signedinfo,
+                SignatureValue(
+                    digestvalue3,
+                    Id="SignatureValue_" + self.guid + "_5c",
                 ),
-            ),
-            signedobj,
-            Id="Signature_" + self.guid + "_17",
-        )
+                KeyInfo(
+                    X509Data(
+                        X509Certificate(
+                            certcontent.decode()
+                        ),
+                    ),
+                    Id="KeyInfo_" + self.guid + "_2a",
+                ),
+                Object(
+                    QualifyingProperties(
+                        signedprop,
+                        UnsignedProperties(
+                            Id="UnsignedProperties_" + self.guid + "_5b",
+                        ),
+                        Id="QualifyingProperties_" + self.guid + "_4d",
+                        Target="#Signature_" + self.guid + "_17",
+                    ),
+                ),
+                signedobj,
+                Id="Signature_" + self.guid + "_17",
+            )
         return DOC
