@@ -99,7 +99,9 @@ xml-make.py
 xml-xades-bes-sign-b64.py
     Create xml file with base64 encoded embedded source file inside own content.
 xml-xades-bes-sign-xml.py
-    Create xml file with no encoded but still embedded source file inside own content.
+    Create xml file with not encoded but still embedded source file inside own content.
+xml-xades-bes-sign-xml-detached.py
+    Create xml file with signature in detached mode.
 xml-xades-bes-read.py
     Decode generated xml signatures and extract their content.
 
