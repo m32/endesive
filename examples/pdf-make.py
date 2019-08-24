@@ -3,6 +3,7 @@
 from endesive.pdf import fpdf
 
 doc = fpdf.FPDF()
+doc.set_compression(0)
 for i in range(2):
     doc.add_page()
     doc.set_font('helvetica', '', 13.0)
