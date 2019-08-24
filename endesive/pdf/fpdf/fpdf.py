@@ -15,6 +15,7 @@
 
 from __future__ import division
 
+import hashlib
 from datetime import datetime
 from functools import wraps
 import math
@@ -1631,11 +1632,15 @@ class FPDF(object):
 
     def _putheader(self):
         self._out('%PDF-'+self.pdf_version)
+        self._out('%\xba\xba\xfe\xda')
 
     def _puttrailer(self):
+        h1 = hashlib.md5(self.buffer.encode('utf8')).hexdigest().upper()
+        h2 = hashlib.md5(datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode('utf8')).hexdigest().upper()
         self._out('/Size '+str(self.n+1))
         self._out('/Root '+str(self.root)+' 0 R')
         self._out('/Info '+str(self.root-1)+' 0 R')
+        self._out('/ID [<'+h1+'><'+h2+'>]')
 
     def _enddoc(self):
         self._putheader()
