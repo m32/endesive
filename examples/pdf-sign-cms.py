@@ -14,6 +14,8 @@ def main():
         b'location': b'Szczecin',
         b'signingdate': b'20180731082642+02\'00\'',
         b'reason': b'Dokument podpisany cyfrowo',
+        b'signature': b'Dokument podpisany cyfrowo',
+        b'signaturebox': (0, 0, 100, 100),
     }
     p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
     fname = 'pdf.pdf'
