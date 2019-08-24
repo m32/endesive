@@ -11,6 +11,11 @@ from pdfminer.pdftypes import PDFObjRef
 from pdfminer.psparser import PSKeyword, PSLiteral
 from pdfminer.utils import isnumber
 
+from pdf_annotate.annotations.text import FreeText
+from pdf_annotate.config.appearance import Appearance
+from pdf_annotate.config.location import Location
+from pdf_annotate.util.geometry import identity
+
 from endesive import signer
 
 ESC_PAT = re.compile(r'[\000-\037&<>()"\042\047\134\177-\377]')
@@ -168,6 +173,22 @@ class SignedData(object):
         rootdata = self.getdata(pdfdata1, root, prev, document, ('AcroForm',))
         pagedata = self.getdata(pdfdata1, page, prev, document, ('Annots',))
 
+        annotation = udct.get(b'signature', b'').decode('utf8')
+        x1, y1, x2, y2 = udct.get(b'signaturebox', (0, 0, 0, 0))
+        annotation = FreeText(
+            Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+            Appearance(
+                fill=[0, 0, 0],
+                stroke_width=1,
+                wrap_text=True,
+                font_size=12,
+                content=annotation,
+            ),
+        )
+        pdfa = annotation.as_pdf_object(identity(), page=None)
+        pdfar = b'[%d %d %d %d]' %tuple(pdfa.Rect)
+        pdfas = pdfa.AP.N.stream.encode('latin1')
+
         no = size + 1
         objs = [
             self.makeobj(page, (b'/Annots[%s%d 0 R]' %(
@@ -178,10 +199,41 @@ class SignedData(object):
                 fields,
                 no + 3, udct[b'sigflags'])),
             self.makeobj(no + 3,
-                         b'/AP<</N %d 0 R>>/F 132/FT/Sig/P %d 0 R/Rect[0 0 0 0]/Subtype/Widget/T(Signature%d)/V %d 0 R' % (
-                             no + 4, page, nsig, no + 5)),
-            self.makeobj(no + 4, b'/BBox[0 0 0 0]/Filter/FlateDecode/Length 8/Subtype/Form/Type/XObject',
-                         b'stream\n\x78\x9C\x03\x00\x00\x00\x00\x01\nendstream\n'),
+                         b'''
+/Type
+/Annot
+/Subtype
+/FreeText
+/AP <</N %d 0 R>>
+/BS <</S /S /Type /Border /W 0>>
+/C []
+/Contents (%s)
+/DA (0 0 0 rg /%s 12 Tf)
+/Rect %s
+/F 704
+/P %d 0 R
+/FT
+/Sig
+/T(Signature%d)
+/V %d 0 R
+''' % (
+                             no + 4, pdfa.Contents.encode('latin1'),
+                             pdfa.AP.N.Resources.Font.keys()[0].encode('latin1'),
+                             pdfar,
+                             page, nsig, no + 5)),
+
+            self.makeobj(no + 4, b'''
+/BBox %s
+/FormType 1
+/Length %d
+/Matrix [1 0 0 1 0 0]
+/Resources <</Font <<%s <</BaseFont /Helvetica /Encoding /WinAnsiEncoding /Subtype /Type1 /Type /Font>>>> /ProcSet /PDF>>
+/Subtype
+/Form
+/Type
+/XObject
+''' %(pdfar, len(pdfas), pdfa.AP.N.Resources.Font.keys()[0].encode('latin1'),),
+                            b'stream\n' + pdfas + b'\nendstream\n'),
             self.makeobj(no + 5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
 /Filter/Adobe.PPKLite/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
 /Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason'])) + zeros + b'>'),
