@@ -37,6 +37,6 @@ setup(
     keywords='cryptography pki x509 smime email pdf pkcs11 asn1 xades',
     packages=find_packages(exclude=['examples', 'tests']),
     platforms=["all"],
-    install_requires=['cryptography', 'asn1crypto', 'pyopenssl', 'pdfminer.six', 'lxml', 'pykcs11', 'pdf_annotate'],
+    install_requires=['cryptography', 'asn1crypto', 'pyopenssl', 'pdfminer.six', 'lxml', 'pykcs11', 'pdf_annotate', 'pytz'],
     test_suite="tests",
 )
