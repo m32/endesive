@@ -186,7 +186,7 @@ class HSM:
             'public_exponent':int('0x'+exponent, 16)
         })
         #pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.now() + datetime.timedelta(days=365*10)
+        until = datetime.datetime.utcnow() + datetime.timedelta(days=365*10)
         der_bytes = self.certsign(1, pubKey, subject, until, privKey)
         self.cert_save(der_bytes, label, subject, keyID)
 
@@ -203,7 +203,7 @@ class HSM:
             'public_exponent':int('0x'+exponent, 16)
         })
         #pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.now() + datetime.timedelta(days=days)
+        until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
         der_bytes = self.certsign(sn, pubKey, subject, until, caprivKey)
         self.cert_save(der_bytes, label, subject, keyID)
 

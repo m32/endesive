@@ -22,7 +22,7 @@ def cert2asn(cert, cert_bytes=True):
 def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
-    signed_time = datetime.now()
+    signed_time = datetime.utcnow()
 
     if hsm is not None:
         keyid, cert = hsm.certificate()
