@@ -165,7 +165,7 @@ class SignedData(object):
                     no = max(ref.offsets.keys())
             size = max(size, no)
         pages = len(document.getobj(document.catalog['Pages'].objid)['Kids'])
-        page = udct.get(b'sigpage') if 0 <= udct.get(b'sigpage') <= pages - 1 else 0
+        page = udct.get(b'sigpage', 0) if 0 <= udct.get(b'sigpage', 0) <= pages - 1 else 0
         page = document.getobj(document.catalog['Pages'].objid)['Kids'][page].objid
 
         nsig, fields = self.getfields(root, document)
