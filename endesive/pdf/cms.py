@@ -205,7 +205,7 @@ class SignedData(object):
 /Type
 /Annot
 /Subtype
-/FreeText
+%s
 /AP <</N %d 0 R>>
 /BS <</S /S /Type /Border /W 0>>
 /C []
@@ -216,13 +216,17 @@ class SignedData(object):
 /P %d 0 R
 /FT
 /Sig
+%s
 /T(Signature%d)
 /V %d 0 R
 ''' % (
+                             b'/Widget' if udct.get(b'sigbutton', False) else b'/FreeText',
                              no + 4, pdfa.Contents.encode('latin1'),
                              pdfa.AP.N.Resources.Font.keys()[0].encode('latin1'),
                              pdfar,
-                             page, nsig, no + 5)),
+                             page,
+                             b'/SM(TabletPOSinline)' if udct.get(b'sigbutton', False) else b'',
+                             nsig, no + 5)),
 
             self.makeobj(no + 4, b'''
 /BBox %s

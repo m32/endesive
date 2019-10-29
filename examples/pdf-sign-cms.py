@@ -10,6 +10,8 @@ from endesive import pdf
 def main():
     dct = {
         b'sigflags': 3,
+        b'sigpage': 1,
+        b'sigbutton': True,
         b'contact': b'mak@trisoft.com.pl',
         b'location': b'Szczecin',
         b'signingdate': b'20180731082642+02\'00\'',
