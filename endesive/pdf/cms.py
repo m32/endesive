@@ -183,7 +183,7 @@ class SignedData(object):
                 fill=[0, 0, 0],
                 stroke_width=1,
                 wrap_text=True,
-                font_size=12,
+                font_size=udct.get(b'fontsize', 12),
                 content=annotation,
             ),
         )
