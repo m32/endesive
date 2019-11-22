@@ -11,19 +11,18 @@ from endesive import pdf
 def main():
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
-    date = '201911220500+00\'00\''
     dct = {
         b'sigflags': 3,
-#        b'sigpage': 0,
-#        b'sigbutton': True,
+        b'sigpage': 0,
+        b'sigbutton': True,
         b'contact': b'mak@trisoft.com.pl',
         b'location': b'Szczecin',
         b'signingdate': date.encode(),
         b'reason': b'Dokument podpisany cyfrowo',
-#        b'signature': b'Dokument podpisany cyfrowo',
-#        b'signaturebox': (0, 0, 100, 100),
+        b'signature': b'Dokument podpisany cyfrowo',
+        b'signaturebox': (0, 0, 100, 100),
     }
-    p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
+    p12 = load_pkcs12(open('/devel/klient/m32/ssl/cert.p12', 'rb').read(), '1234')
     fname = 'pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]
@@ -34,7 +33,7 @@ def main():
         [],
         'sha256'
     )
-    fname = fname.replace('.pdf', '-signed-cms.pdf')
+    fname = fname.replace('.pdf', '-signed-cms-m32.pdf')
     with open(fname, 'wb') as fp:
         fp.write(datau)
         fp.write(datas)

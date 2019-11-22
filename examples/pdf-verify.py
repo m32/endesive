@@ -4,12 +4,19 @@ from endesive import pdf
 
 
 def main():
-    trusted_cert_pems = (open('demo2_ca.crt.pem', 'rt').read(),)
+    trusted_cert_pems = (
+        open('demo2_ca.crt.pem', 'rt').read(),
+        open('cert-hsm-ca.pem', 'rt').read(),
+    )
     for fname in (
-            'pdf-signed-cms.pdf',
-            'pdf-signed-fpdf.pdf',
-            'test-PDFXRef-signed-cms.pdf',
-            'test-PDFXRefStream-signed-cms.pdf'
+        'pdf-signed-cms-hsm-certum.pdf',
+        'pdf-signed-cms-hsm.pdf',
+        'pdf-signed-cms-m32.pdf',
+        'pdf-signed-cms-pfx.pdf',
+        'pdf-signed-cms.pdf',
+        'pdf-signed-fpdf.pdf',
+        'test-PDFXRef-signed-cms.pdf',
+        'test-PDFXRefStream-signed-cms.pdf'
     ):
         print('*' * 20, fname)
         try:

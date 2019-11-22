@@ -32,27 +32,27 @@ import PyKCS11 as PK11
 
 '''
 Create two certificates:
-1. self signed CA certificate with serial equal to HSM keyID=0x01
-2. USER 1 certificate with serial equal to HSM keyID=0x666690
+1. self signed hsm CA certificate with serial equal to HSM keyID=0x01
+2. hsm USER 1 certificate with serial equal to HSM keyID=0x666690
 '''
 class HSM(hsm.HSM):
     def main(self):
         cakeyID = bytes((0x1,))
         rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, cakeyID)])
         if len(rec) == 0:
-            label = 'ca'
+            label = 'hasm CA'
             self.gen_privkey(label, cakeyID)
-            self.ca_gen(label, cakeyID, 'CA')
+            self.ca_gen(label, cakeyID, 'hsm CA')
 
         keyID = bytes((0x66,0x66,0x90))
         rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, keyID)])
         if len(rec) == 0:
-            label = 'user 1'
+            label = 'hasm USER 1'
             self.gen_privkey(label, keyID)
-            self.ca_sign(keyID, label, 0x666690, "USER 1", 365, cakeyID)
+            self.ca_sign(keyID, label, 0x666690, "hsm USER 1", 365, cakeyID)
 
-        #self.cert_export('cert-ca', cakeyID)
-        #self.cert_export('cert-user1', keyID)
+        self.cert_export('cert-hsm-ca', cakeyID)
+        self.cert_export('cert-hsm-user1', keyID)
 
 def main():
     cls = HSM(dllpath)

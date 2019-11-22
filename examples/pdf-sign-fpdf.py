@@ -1,15 +1,18 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+import datetime
 from OpenSSL.crypto import load_pkcs12
 from endesive.pdf import pdf
 
 
 def main():
+    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
         'sigflags': 3,
         'contact': 'mak@trisoft.com.pl',
         'location': 'Szczecin',
-        'signingdate': '20180731082642+02\'00\'',
+        'signingdate': date,
         'reason': 'Dokument podpisany cyfrowo',
     }
     p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')

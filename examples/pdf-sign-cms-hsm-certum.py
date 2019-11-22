@@ -2,41 +2,25 @@
 # *-* coding: utf-8 *-*
 import sys
 import OpenSSL
+import datetime
 from endesive import pdf, hsm
 
 import os
 import sys
-import datetime
-
-os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2.conf')):
-    open('softhsm2.conf', 'wt').write('''\
-log.level = DEBUG
-directories.tokendir = %s/softhsm2/
-objectstore.backend = file
-slots.removable = false
-''' % os.getcwd())
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
-    os.mkdir(os.path.join(os.getcwd(), 'softhsm2'))
-
-#
-#!/bin/bash
-#SOFTHSM2_CONF=softhsm2.conf
-#softhsm2-util --label "endesive" --slot 1 --init-token --pin secret1 --so-pin secret2
-#softhsm2-util --show-slots
-#
 
 if sys.platform == 'win32':
-    dllpath = r'W:\binw\SoftHSM2\lib\softhsm2-x64.dll'
+    dllpath = r'c:\windows\system32\cryptoCertum3PKCS.dll'
 else:
-    dllpath = '/usr/lib/softhsm/libsofthsm2.so'
+    dllpath = '/devel/bin/proCertumSmartSign/libcryptoCertum3PKCS.so'
 
 import PyKCS11 as PK11
 
 class Signer(hsm.HSM):
     def certificate(self):
-        self.login("endesieve", "secret1")
-        keyid = bytes((0x66,0x66,0x90))
+        self.login("profil bezpieczny", "9593")
+        keyid = [0x5e, 0x9a, 0x33, 0x44, 0x8b, 0xc3, 0xa1, 0x35, 0x33, 0xc7, 0xc2, 0x02, 0xf6, 0x9b, 0xde, 0x55, 0xfe, 0x83, 0x7b, 0xde]
+        #keyid = [0x3f, 0xa6, 0x63, 0xdb, 0x75, 0x97, 0x5d, 0xa6, 0xb0, 0x32, 0xef, 0x2d, 0xdc, 0xc4, 0x8d, 0xe8]
+        keyid = bytes(keyid)
         try:
             pk11objects = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_CERTIFICATE)])
             all_attributes = [
@@ -64,7 +48,7 @@ class Signer(hsm.HSM):
         return None, None
 
     def sign(self, keyid, data, mech):
-        self.login("endesieve", "secret1")
+        self.login("profil bezpieczny", "9593")
         try:
             privKey = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, keyid)])[0]
             mech = getattr(PK11, 'CKM_%s_RSA_PKCS' % mech.upper())
@@ -94,7 +78,7 @@ def main():
         'sha256',
         clshsm
     )
-    fname = fname.replace('.pdf', '-signed-cms-hsm.pdf')
+    fname = fname.replace('.pdf', '-signed-cms-hsm-certum.pdf')
     with open(fname, 'wb') as fp:
         fp.write(datau)
         fp.write(datas)
