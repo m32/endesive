@@ -5,7 +5,15 @@ from endesive import pdf
 
 def main():
     trusted_cert_pems = (
+        # certum chain
+        open('ca-certum.pem', 'rt').read(),
+        open('ca-ncc.pem', 'rt').read(),
+        # actalis chain
+        open('ca-actalis-cag1.pem', 'rt').read(),
+        open('ca-actalis.pem', 'rt').read(),
+        # demo ca chain
         open('demo2_ca.crt.pem', 'rt').read(),
+        # demo hsm ca chain
         open('cert-hsm-ca.pem', 'rt').read(),
     )
     for fname in (
