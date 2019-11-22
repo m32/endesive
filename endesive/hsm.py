@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from asn1crypto import x509 as asn1x509
 from asn1crypto import keys as asn1keys
 from asn1crypto import pem as asn1pem
+from asn1crypto import util as asn1util
 
 class HSM:
     def __init__(self, dllpath):
@@ -132,7 +133,7 @@ class HSM:
             'version': 'v1',
             'serial_number': sn,
             'issuer': asn1x509.Name.build({
-                'common_name': 'CA',
+                'common_name': 'hsm CA',
             }),
             'subject': asn1x509.Name.build({
                 'common_name': subject,
@@ -143,7 +144,7 @@ class HSM:
             },
             'validity': {
                 'not_before': asn1x509.Time({
-                    'utc_time': datetime.datetime.utcnow(),
+                    'utc_time': datetime.datetime.now(tz=asn1util.timezone.utc) - datetime.timedelta(days=1),
                 }),
                 'not_after':  asn1x509.Time({
                     'utc_time': until,
@@ -186,7 +187,7 @@ class HSM:
             'public_exponent':int('0x'+exponent, 16)
         })
         #pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.utcnow() + datetime.timedelta(days=365*10)
+        until = datetime.datetime.now(tz=asn1util.timezone.utc) + datetime.timedelta(days=365*10)
         der_bytes = self.certsign(1, pubKey, subject, until, privKey)
         self.cert_save(der_bytes, label, subject, keyID)
 
@@ -203,7 +204,7 @@ class HSM:
             'public_exponent':int('0x'+exponent, 16)
         })
         #pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+        until = datetime.datetime.now(tz=asn1util.timezone.utc) + datetime.timedelta(days=days)
         der_bytes = self.certsign(sn, pubKey, subject, until, caprivKey)
         self.cert_save(der_bytes, label, subject, keyID)
 

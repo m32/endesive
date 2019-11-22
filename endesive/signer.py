@@ -6,7 +6,7 @@ import hashlib
 from datetime import datetime
 
 import pytz
-from asn1crypto import cms, algos, core, pem, x509
+from asn1crypto import cms, algos, core, pem, x509, util
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
@@ -23,7 +23,7 @@ def cert2asn(cert, cert_bytes=True):
 def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
-    signed_time = datetime.now(tz=pytz.utc)
+    signed_time = datetime.now(tz=util.timezone.utc)
 
     if hsm is not None:
         keyid, cert = hsm.certificate()
