@@ -14,14 +14,15 @@ def main():
     date = '201911220500+00\'00\''
     dct = {
         b'sigflags': 3,
-#        b'sigpage': 0,
-#        b'sigbutton': True,
+        # b'sigpage': 0,
+        b'sigbutton': True,
+        b'signature_img': b'signature_test.png',
         b'contact': b'mak@trisoft.com.pl',
         b'location': b'Szczecin',
         b'signingdate': date.encode(),
         b'reason': b'Dokument podpisany cyfrowo',
-#        b'signature': b'Dokument podpisany cyfrowo',
-#        b'signaturebox': (0, 0, 100, 100),
+        b'signature': b'Dokument podpisany cyfrowo',
+        b'signaturebox': (470, 0, 570, 100),
     }
     p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
     fname = 'pdf.pdf'
