@@ -252,7 +252,7 @@ class SignedData(object):
 /T(Signature%d)
 /V %d 0 R
 ''' % (
-                             b'/Widget' if udct.get(b'signbutton', False) else b'/Square',
+                             b'/Widget' if udct.get(b'sigbutton', False) else b'/Square',
                              pdfar,
                              no + 4,
                              page,
