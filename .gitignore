@@ -110,3 +110,4 @@ examples/*.txt
 examples/*.pdf
 examples/*.xml
 .idea/
+.vscode

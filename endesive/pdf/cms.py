@@ -11,6 +11,7 @@ from pdfminer.pdftypes import PDFObjRef
 from pdfminer.psparser import PSKeyword, PSLiteral
 from pdfminer.utils import isnumber
 
+from pdf_annotate.annotations.image import Image
 from pdf_annotate.annotations.text import FreeText
 from pdf_annotate.config.appearance import Appearance
 from pdf_annotate.config.location import Location
@@ -146,6 +147,127 @@ class SignedData(object):
         data = fp.getvalue().strip()[1:-1]
         return data
 
+    def makeannotation(self, obj, nobj):
+        obj_list = []
+        result = b'%d 0 obj\n<<' % nobj
+        for key, value in obj.items():
+            if isinstance(value, str):
+                value = value.encode('latin1')
+            elif isinstance(value, bytes):
+                value = value
+            elif isinstance(value, (int, float)):
+                value = str(value).encode('latin1')
+            elif isinstance(value, list):
+                value = b'[%s]' % b' '.join([str(n).encode('latin1') for n in value])
+            elif isinstance(value, dict):
+                nobj += 1
+                value, d = b'%d 0 R' % nobj, value
+                fr, nobj = self.makeannotation(d, nobj)
+                obj_list.append(fr)
+            else:
+                continue
+            result += b'%s %s ' % (key.encode('latin1'), value)
+        result += b'>>\n'
+        stream = obj.stream
+        if stream is not None:
+            result += b'stream\n%s\nendstream\n' % stream.encode('latin1')
+        result += b'endobj\n'
+        result += b''.join(obj_list)
+        return result, nobj
+
+    def textvisual(self, no, udct, nsig, page):
+        annotation = udct.get(b'signature', b'').decode('utf8')
+        x1, y1, x2, y2 = udct.get(b'signaturebox', (0, 0, 0, 0))
+        annotation = FreeText(
+            Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+            Appearance(
+                fill=[0, 0, 0],
+                stroke_width=1,
+                wrap_text=True,
+                font_size=udct.get(b'fontsize', 12),
+                content=annotation,
+            ),
+        )
+        pdfa = annotation.as_pdf_object(identity(), page=None)
+        pdfar = b'[%d %d %d %d]' % tuple(pdfa.Rect)
+        pdfao = pdfa.AP.N
+        visual, nav = self.makeannotation(pdfao, no+4)
+        obj = [
+            self.makeobj(no + 3,
+                         b'''
+/Type
+/Annot
+/Subtype
+%s
+/AP <</N %d 0 R>>
+/BS <</S /S /Type /Border /W 0>>
+/C []
+/Contents (%s)
+/DA (0 0 0 rg /%s 12 Tf)
+/Rect %s
+/F 704
+/P %d 0 R
+/FT
+/Sig
+%s
+/T(Signature%d)
+/V %d 0 R
+''' % (
+                             b'/Widget' if udct.get(b'sigbutton', False) else b'/FreeText',
+                             no + 4, pdfa.Contents.encode('latin1'),
+                             pdfa.AP.N.Resources.Font.keys()[0].encode('latin1'),
+                             pdfar,
+                             page,
+                             b'/SM(TabletPOSinline)' if udct.get(b'sigbutton', False) else b'',
+                             nsig, nav + 1)),
+
+            visual
+        ]
+        return b''.join(obj), nav
+
+    def imagevisual(self, image_path, no, udct, nsig, page):
+        x1, y1, x2, y2 = udct.get(b'signaturebox', (0, 0, 0, 0))
+        annotation = Image(
+            Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+            Appearance(image=image_path),
+        )
+
+        pdfa = annotation.as_pdf_object(identity(), page=None)
+        pdfar = b'[%d %d %d %d]' % tuple(pdfa.Rect)
+        pdfao = pdfa.AP.N
+        visual, nav = self.makeannotation(pdfao, no+4)
+        obj = [
+            self.makeobj(no + 3,
+                         b'''
+/Type
+/Annot
+/Subtype %s
+/Rect %s
+/AP <</N %d 0 R>>
+/F 4
+/P %d 0 R
+/FT
+/Sig
+%s
+/T(Signature%d)
+/V %d 0 R
+''' % (
+                             b'/Widget' if udct.get(b'sigbutton', False) else b'/Square',
+                             pdfar,
+                             no + 4,
+                             page,
+                             b'/SM(TabletPOSinline)' if udct.get(b'sigbutton', False) else b'',
+                             nsig, nav + 1)),
+            visual,
+        ]
+        return b''.join(obj), nav
+
+    def makevisualization(self, no, udct, nsig, page):
+        image = udct.get(b'signature_img', b'').decode('utf8')
+        if image:
+            return self.imagevisual(image, no, udct, nsig, page)
+        return self.textvisual(no, udct, nsig, page)
+
     def makepdf(self, pdfdata1, udct, zeros):
         parser = PDFParser(BytesIO(pdfdata1))
         document = PDFDocument(parser, fallback=False)
@@ -175,108 +297,29 @@ class SignedData(object):
         rootdata = self.getdata(pdfdata1, root, prev, document, ('AcroForm',))
         pagedata = self.getdata(pdfdata1, page, prev, document, ('Annots',))
 
-        annotation = udct.get(b'signature', b'').decode('utf8')
-        x1, y1, x2, y2 = udct.get(b'signaturebox', (0, 0, 0, 0))
-        annotation = FreeText(
-            Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-            Appearance(
-                fill=[0, 0, 0],
-                stroke_width=1,
-                wrap_text=True,
-                font_size=udct.get(b'fontsize', 12),
-                content=annotation,
-            ),
-        )
-        pdfa = annotation.as_pdf_object(identity(), page=None)
-        pdfar = b'[%d %d %d %d]' %tuple(pdfa.Rect)
-        pdfas = pdfa.AP.N.stream.encode('latin1')
-
         no = size + 1
+        visualization, nav = self.makevisualization(no, udct, nsig, page)
         objs = [
-            self.makeobj(page, (b'/Annots[%s%d 0 R]' %(
+            self.makeobj(page, (b'/Annots[%s%d 0 R]' % (
                 annots, no + 3) + pagedata)),
             self.makeobj(no + 0, infodata),
             self.makeobj(no + 1, (b'/AcroForm %d 0 R' % (no + 2)) + rootdata),
             self.makeobj(no + 2, b'/Fields[%s%d 0 R]/SigFlags %d' % (
                 fields,
                 no + 3, udct[b'sigflags'])),
-            self.makeobj(no + 3,
-                         b'''
-/Type
-/Annot
-/Subtype
-%s
-/AP <</N %d 0 R>>
-/BS <</S /S /Type /Border /W 0>>
-/C []
-/Contents (%s)
-/DA (0 0 0 rg /%s 12 Tf)
-/Rect %s
-/F 704
-/P %d 0 R
-/FT
-/Sig
-%s
-/T(Signature%d)
-/V %d 0 R
-''' % (
-                             b'/Widget' if udct.get(b'sigbutton', False) else b'/FreeText',
-                             no + 4, pdfa.Contents.encode('latin1'),
-                             pdfa.AP.N.Resources.Font.keys()[0].encode('latin1'),
-                             pdfar,
-                             page,
-                             b'/SM(TabletPOSinline)' if udct.get(b'sigbutton', False) else b'',
-                             nsig, no + 5)),
-
-            self.makeobj(no + 4, b'''
-/BBox %s
-/FormType 1
-/Length %d
-/Matrix [1 0 0 1 0 0]
-/Resources <</Font <<%s <</BaseFont /Helvetica /Encoding /WinAnsiEncoding /Subtype /Type1 /Type /Font>>>> /ProcSet /PDF>>
-/Subtype
-/Form
-/Type
-/XObject
-''' %(pdfar, len(pdfas), pdfa.AP.N.Resources.Font.keys()[0].encode('latin1'),),
-                            b'stream\n' + pdfas + b'\nendstream\n'),
-            self.makeobj(no + 5, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
+            visualization,
+            self.makeobj(nav + 1, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
 /Filter/Adobe.PPKLite/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
 /Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason'])) + zeros + b'>'),
         ]
 
+        size = nav - no + 2
         pdfdata2 = b''.join(objs)
-        xref = b'''\
-xref\n\
-%(page)d 1\n\
-%(p0)010d 00000 n \n\
-%(no)d 6\n\
-%(n0)010d 00000 n \n\
-%(n1)010d 00000 n \n\
-%(n2)010d 00000 n \n\
-%(n3)010d 00000 n \n\
-%(n4)010d 00000 n \n\
-%(n5)010d 00000 n \n\
-'''
         startxref = len(pdfdata1)
-        dct = {
-            b'page': page,
-            b'no': no,
-            b'startxref': startxref + len(pdfdata2),
-            b'prev': prev,
-            b'info': no + 0,
-            b'root': no + 1,
-            b'size': 6,
-            b'p0': startxref + pdfdata2.find(b'\n%d 0 obj\n' % page) + 1,
-            b'n0': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 0)) + 1,
-            b'n1': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 1)) + 1,
-            b'n2': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 2)) + 1,
-            b'n3': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 3)) + 1,
-            b'n4': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 4)) + 1,
-            b'n5': startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + 5)) + 1,
-            b'h1': hashlib.md5(pdfdata1).hexdigest().upper().encode('ascii'),
-            b'h2': hashlib.md5(pdfdata2).hexdigest().upper().encode('ascii'),
-        }
+        xref = b'xref\n%d 1\n%010d 00000 n \n%d %d\n' % (
+            page, startxref + pdfdata2.find(b'\n%d 0 obj\n' % page) + 1, no, size)
+        xref += b''.join(
+            [b'%010d 00000 n \n' % (startxref + pdfdata2.find(b'\n%d 0 obj\n' % (no + i)) + 1) for i in range(size)])
 
         trailer = b'''\
 trailer
@@ -285,9 +328,17 @@ startxref\n\
 %(startxref)d\n\
 %%%%EOF\n\
 '''
-
-        xref = xref % dct
-        trailer = trailer % dct
+        trailer = trailer % {
+            b'page': page,
+            b'no': no,
+            b'startxref': startxref + len(pdfdata2),
+            b'prev': prev,
+            b'info': no + 0,
+            b'root': no + 1,
+            b'size': size,
+            b'h1': hashlib.md5(pdfdata1).hexdigest().upper().encode('ascii'),
+            b'h2': hashlib.md5(pdfdata2).hexdigest().upper().encode('ascii'),
+        }
 
         pdfdata2 = pdfdata2 + xref + trailer
 
