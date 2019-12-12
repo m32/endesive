@@ -104,8 +104,6 @@ venv.bak/
 .mypy_cache/
 
 examples/endesive
-examples/*.pem
-examples/*.p12
 examples/*.txt
 examples/*.pdf
 examples/*.xml
