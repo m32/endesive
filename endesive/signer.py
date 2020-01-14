@@ -7,8 +7,9 @@ from datetime import datetime
 
 import pytz
 from asn1crypto import cms, algos, core, pem, x509, util
+from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, utils
 
 
 def cert2asn(cert, cert_bytes=True):
@@ -20,7 +21,7 @@ def cert2asn(cert, cert_bytes=True):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
 
-def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None):
+def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
     signed_time = datetime.now(tz=util.timezone.utc)
@@ -48,9 +49,27 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
             }),
         }),
         'digest_algorithm': algos.DigestAlgorithm({'algorithm': hashalgo}),
-        'signature_algorithm': algos.SignedDigestAlgorithm({'algorithm': 'rsassa_pkcs1v15'}),
         'signature': signed_value,
     }
+    if not pss:
+        signer['signature_algorithm'] = algos.SignedDigestAlgorithm({'algorithm': 'rsassa_pkcs1v15'})
+    else:
+        salt_length = padding.calculate_max_pss_salt_length(key, hashes.SHA512)
+        signer['signature_algorithm'] = algos.SignedDigestAlgorithm({
+            'algorithm': 'rsassa_pss',
+            'parameters': algos.RSASSAPSSParams({
+                'hash_algorithm': algos.DigestAlgorithm({'algorithm': 'sha512'}),
+                'mask_gen_algorithm': algos.MaskGenAlgorithm({
+                    'algorithm': algos.MaskGenAlgorithmId('mgf1'),
+                    'parameters': {
+                        'algorithm': algos.DigestAlgorithmId('sha512'),
+                    }
+                }),
+                'salt_length': algos.Integer(salt_length),
+                'trailer_field': algos.TrailerField(1)
+            })
+        })
+
     if attrs:
         if attrs is True:
             signer['signed_attrs'] = [
@@ -95,11 +114,24 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
     if hsm is not None:
         signed_value_signature = hsm.sign(keyid, tosign, hashalgo)
     else:
-        signed_value_signature = key.sign(
-            tosign,
-            padding.PKCS1v15(),
-            getattr(hashes, hashalgo.upper())()
-        )
+        if pss:
+            hasher = hashes.Hash(hashes.SHA512(), backend=backends.default_backend())
+            hasher.update(tosign)
+            digest = hasher.finalize()
+            signed_value_signature = key.sign(
+                digest,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA512()),
+                    salt_length=salt_length
+                ),
+                utils.Prehashed(hashes.SHA512())
+            )
+        else:
+            signed_value_signature = key.sign(
+                tosign,
+                padding.PKCS1v15(),
+                getattr(hashes, hashalgo.upper())()
+            )
     # signed_value_signature = core.OctetString(signed_value_signature)
     datas['content']['signer_infos'][0]['signature'] = signed_value_signature
 

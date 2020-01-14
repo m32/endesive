@@ -14,6 +14,7 @@ def main():
             'smime-signed-attr-custom.txt',
             'smime-signed-noattr.txt',
             'smime-ssl-pss-signed.txt',
+            'smime-signed-pss.txt',
     ):
         print('*' * 20, fname)
         try:

@@ -24,8 +24,12 @@ psssign(){
     openssl cms -sign -signer $1 -inkey $2 -in $3 -out $4 -keyopt rsa_padding_mode:pss -md sha512
 }
 
+pssverify(){
+    openssl cms -verify -signer $1 -CAfile demo2_ca.crt.pem -in $2 -keyopt rsa_padding_mode:pss -md sha512
+}
+
 oaepencrypt(){
-    openssl cms -encrypt -recip $1 -in $2 -out $3 -keyopt rsa_padding_mode:oaep
+    openssl cms -encrypt -recip $1 -in $2 -out $3 -keyopt rsa_padding_mode:oaep -md sha512
 }
 
 oaepdecrypt(){
@@ -44,7 +48,8 @@ if [ -z "$1" ]; then
     decrypt demo2_user1.crt.pem demo2_user1.key.pem smime-ssl-encrypted.txt
     echo "************************** pss sign"
     psssign demo2_user1.crt.pem demo2_user1.key.pem smime-unsigned.txt smime-ssl-pss-signed.txt
-    echo "************************** pss encrypt"
+    pssverify demo2_user1.crt.pem smime-ssl-pss-signed.txt
+    echo "************************** oaep encrypt"
     oaepencrypt demo2_user1.crt.pem smime-unsigned.txt smime-ssl-oaep-encrypted.txt
     oaepdecrypt demo2_user1.crt.pem demo2_user1.key.pem smime-ssl-oaep-encrypted.txt
 else

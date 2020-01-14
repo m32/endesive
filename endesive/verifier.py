@@ -70,15 +70,17 @@ class VerifyData(object):
         # sigalgo.debug()
         if sigalgo['algorithm'].native == 'rsassa_pss':
             parameters = sigalgo['parameters']
-            salgo = getattr(hashes, parameters['hash_algorithm'].native['algorithm'].upper())()
-            mgf = getattr(padding, parameters['mask_gen_algorithm'].native['algorithm'].upper())(salgo)
+            #parameters.debug()
+            #print(parameters.native)
+            salgo = parameters['hash_algorithm'].native['algorithm'].upper()
+            mgf = getattr(padding, parameters['mask_gen_algorithm'].native['algorithm'].upper())(getattr(hashes, salgo)())
             salt_length = parameters['salt_length'].native
             try:
                 public_key.verify(
                     signature,
                     signedData,
                     padding.PSS(mgf, salt_length),
-                    getattr(hashes, algo.upper())()
+                    getattr(hashes, salgo)()
                 )
                 signatureok = True
             except:
