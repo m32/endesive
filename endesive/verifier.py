@@ -66,17 +66,36 @@ class VerifyData(object):
                 public_key = crypto.load_certificate(crypto.FILETYPE_PEM, cert).get_pubkey().to_cryptography_key()
                 break
 
-        try:
-            public_key.verify(
-                signature,
-                signedData,
-                padding.PKCS1v15(),
-                getattr(hashes, algo.upper())()
-            )
-            signatureok = True
-        except:
-            signatureok = False
-
+        sigalgo = signed_data['signer_infos'][0]['signature_algorithm']
+        # sigalgo.debug()
+        if sigalgo['algorithm'].native == 'rsassa_pss':
+            parameters = sigalgo['parameters']
+            salgo = getattr(hashes, parameters['hash_algorithm'].native['algorithm'].upper())()
+            mgf = getattr(padding, parameters['mask_gen_algorithm'].native['algorithm'].upper())(salgo)
+            salt_length = parameters['salt_length'].native
+            try:
+                public_key.verify(
+                    signature,
+                    signedData,
+                    padding.PSS(mgf, salt_length),
+                    getattr(hashes, algo.upper())()
+                )
+                signatureok = True
+            except:
+                signatureok = False
+        elif sigalgo['algorithm'].native == 'rsassa_pkcs1v15':
+            try:
+                public_key.verify(
+                    signature,
+                    signedData,
+                    padding.PKCS1v15(),
+                    getattr(hashes, algo.upper())()
+                )
+                signatureok = True
+            except:
+                signatureok = False
+        else:
+            raise ValueError('Unknown signature algorithm')
         # TODO verify certificates
         certok = True
         for cert in signed_data['certificates']:

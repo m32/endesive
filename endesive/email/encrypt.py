@@ -61,7 +61,11 @@ class EncryptedData(object):
         block_size = 16
         session_key = os.urandom(key_size)
         iv = os.urandom(block_size)
-        cipher = Cipher(algorithms.AES(session_key), getattr(modes, algo.split('_', 1)[1].upper())(iv), default_backend())
+        cipher = Cipher(
+            algorithms.AES(session_key),
+            getattr(modes, algo.split('_', 1)[1].upper())(iv),
+            default_backend()
+        )
 
         data = self.pad(data, block_size)
 

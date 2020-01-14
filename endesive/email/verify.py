@@ -15,6 +15,8 @@ def verify(data, certs=None):
             continue
         if ct == 'application/x-pkcs7-signature':
             sig = part.get_payload(decode=True)
+        elif ct == 'application/pkcs7-signature':
+            sig = part.get_payload(decode=True)
         elif ct == 'text/plain':
             plain = part.get_payload(decode=False)
     if sig is None:

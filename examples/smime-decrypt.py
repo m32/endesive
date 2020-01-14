@@ -11,6 +11,7 @@ def main():
     for fname in (
             'smime-ssl-encrypted.txt',
             'smime-encrypted.txt',
+            'smime-ssl-oaep-encrypted.txt',
     ):
         print('*' * 20, fname)
         try:
