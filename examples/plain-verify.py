@@ -11,6 +11,7 @@ def main():
             'plain-ssl-signed-noattr.txt',
             'plain-signed-attr.txt',
             'plain-signed-noattr.txt',
+            'plain-signed-pss.txt',
     ):
         print('*' * 20, fname)
         try:
