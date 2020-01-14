@@ -38,24 +38,6 @@ class DecryptedData(object):
 
         keyalgo = signed_data['recipient_infos'].native[0]['key_encryption_algorithm']
         if keyalgo['algorithm'] == 'rsaes_oaep':
-            #OrderedDict([
-            #    ('algorithm', 'rsaes_oaep'),
-            #    ('parameters', OrderedDict([
-            #        ('hash_algorithm', OrderedDict([
-            #            ('algorithm', 'sha1'),
-            #            ('parameters', None)])),
-            #        ('mask_gen_algorithm', OrderedDict([
-            #            ('algorithm', 'mgf1'),
-            #            ('parameters', OrderedDict([
-            #                ('algorithm', 'sha1'),
-            #                ('parameters', None)]))
-            #        ])),
-            #        ('p_source_algorithm', OrderedDict([
-            #            ('algorithm', 'p_specified'),
-            #            ('parameters', b'')])
-            #        )
-            #    ]))
-            #])
             keyparam = keyalgo['parameters']
             mga = keyparam['mask_gen_algorithm']
             mgh = getattr(hashes, mga['parameters']['algorithm'].upper())()
@@ -95,8 +77,9 @@ class DecryptedData(object):
 
         decryptor = cipher.decryptor()
         udata = decryptor.update(edata) + decryptor.finalize()
-        nb = ord(udata[-1]) if sys.version[0] < '3' else udata[-1]
-        udata = udata[:-nb]
+        if keyalgo['algorithm'] != 'rsaes_oaep':
+            nb = ord(udata[-1]) if sys.version[0] < '3' else udata[-1]
+            udata = udata[:-nb]
         return udata
 
 

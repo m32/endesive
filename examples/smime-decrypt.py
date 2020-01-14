@@ -10,8 +10,9 @@ def main():
     key = key.to_cryptography_key()
     for fname in (
             'smime-ssl-encrypted.txt',
-            'smime-encrypted.txt',
             'smime-ssl-oaep-encrypted.txt',
+            'smime-encrypted.txt',
+            'smime-encrypted-oaep.txt',
     ):
         print('*' * 20, fname)
         try:

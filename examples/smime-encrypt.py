@@ -18,6 +18,8 @@ def main():
     datau = open('smime-unsigned.txt', 'rb').read()
     datae = email.encrypt(datau, certs, 'aes256_ofb')
     open('smime-encrypted.txt', 'wt').write(datae)
+    datae = email.encrypt(datau, certs, 'aes256_ofb', True)
+    open('smime-encrypted-oaep.txt', 'wt').write(datae)
 
 
 main()
