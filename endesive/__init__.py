@@ -2,6 +2,6 @@
 
 __author__ = 'Grzegorz Makarewicz'
 __license__ = 'MIT'
-__version__ = '1.3.0'
+__version__ = '1.4.0'
 
 __all__ = [__author__, __license__, __version__]

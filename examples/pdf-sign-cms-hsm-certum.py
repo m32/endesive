@@ -11,7 +11,7 @@ import sys
 if sys.platform == 'win32':
     dllpath = r'c:\windows\system32\cryptoCertum3PKCS.dll'
 else:
-    dllpath = '/devel/bin/proCertumSmartSign/libcryptoCertum3PKCS.so'
+    dllpath = '/devel/bin/proCertumSmartSign-8.1.15/libcryptoCertum3PKCS.so'
 
 import PyKCS11 as PK11
 
@@ -58,14 +58,20 @@ class Signer(hsm.HSM):
             self.logout()
 
 def main():
+    tspurl = "http://time.certum.pl"
+    tspurl = "http://public-qlts.certum.pl/qts-17"
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
         b'sigflags': 3,
+        b'sigpage': 0,
+        b'sigbutton': True,
         b'contact': b'mak@trisoft.com.pl',
         b'location': b'Szczecin',
         b'signingdate': date.encode(),
         b'reason': b'Dokument podpisany cyfrowo',
+        b'signature': b'Dokument podpisany cyfrowo',
+        b'signaturebox': (0, 0, 100, 100),
     }
     clshsm = Signer(dllpath)
     fname = 'pdf.pdf'
@@ -76,7 +82,8 @@ def main():
         None, None,
         [],
         'sha256',
-        clshsm
+        clshsm,
+        tspurl,
     )
     fname = fname.replace('.pdf', '-signed-cms-hsm-certum.pdf')
     with open(fname, 'wb') as fp:

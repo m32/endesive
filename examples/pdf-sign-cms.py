@@ -11,7 +11,6 @@ from endesive import pdf
 def main():
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
-    date = '201911220500+00\'00\''
     dct = {
         b'sigflags': 3,
         # b'sigpage': 0,

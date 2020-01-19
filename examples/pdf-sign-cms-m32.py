@@ -9,6 +9,8 @@ from endesive import pdf
 #logging.basicConfig(level=logging.DEBUG)
 
 def main():
+    tspurl = "http://time.certum.pl"
+    tspurl = "http://public-qlts.certum.pl/qts-17"
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
@@ -22,7 +24,7 @@ def main():
         b'signature': b'Dokument podpisany cyfrowo',
         b'signaturebox': (0, 0, 100, 100),
     }
-    p12 = load_pkcs12(open('/devel/klient/m32/ssl/cert.p12', 'rb').read(), '1234')
+    p12 = load_pkcs12(open('/home/mak/Dokumenty/m32/ssl/cert.p12', 'rb').read(), '1234')
     fname = 'pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]
@@ -31,7 +33,9 @@ def main():
         p12.get_privatekey().to_cryptography_key(),
         p12.get_certificate().to_cryptography(),
         [],
-        'sha256'
+        'sha256',
+        None,
+        tspurl,
     )
     fname = fname.replace('.pdf', '-signed-cms-m32.pdf')
     with open(fname, 'wb') as fp:

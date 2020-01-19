@@ -311,6 +311,9 @@ class SignedData(object):
             self.makeobj(nav + 1, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
 /Filter/Adobe.PPKLite/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
 /Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason'])) + zeros + b'>'),
+#            self.makeobj(nav + 1, (b'/ByteRange [0000000000 0000000000 0000000000 0000000000]/ContactInfo(%s)\
+#/Filter/Adobe.PPKMS/SubFilter/ETSI.CAdES.detached/Location(%s)/M(D:%s)/Prop_Build<</App<</Name/>>>>/Reason(%s)/SubFilter/adbe.pkcs7.detached/Type/Sig\
+#/Contents <' % (udct[b'contact'], udct[b'location'], udct[b'signingdate'], udct[b'reason'])) + zeros + b'>'),
         ]
 
         size = nav - no + 2
@@ -344,7 +347,7 @@ startxref\n\
 
         return pdfdata2
 
-    def sign(self, datau, dct, key, cert, othercerts, algomd, hsm):
+    def sign(self, datau, dct, key, cert, othercerts, algomd, hsm, timestampurl):
         zeros = self.aligned(b'\0')
 
         pdfdata2 = self.makepdf(datau, dct, zeros)
@@ -365,13 +368,13 @@ startxref\n\
         md.update(b2)
         md = md.digest()
 
-        contents = signer.sign(None, key, cert, othercerts, algomd, True, md, hsm)
+        contents = signer.sign(None, key, cert, othercerts, algomd, True, md, hsm, False, timestampurl)
         contents = self.aligned(contents)
         pdfdata2 = pdfdata2.replace(zeros, contents, 1)
 
         return pdfdata2
 
 
-def sign(datau, udct, key, cert, othercerts, algomd, hsm=None):
+def sign(datau, udct, key, cert, othercerts, algomd, hsm=None, timestampurl=None):
     cls = SignedData()
-    return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm)
+    return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm, timestampurl)

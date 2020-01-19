@@ -3,10 +3,12 @@ from __future__ import unicode_literals
 
 import sys
 import hashlib
+import time
 from datetime import datetime
 
+import requests
 import pytz
-from asn1crypto import cms, algos, core, pem, x509, util
+from asn1crypto import cms, algos, core, pem, tsp, x509, util
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, utils
@@ -21,7 +23,7 @@ def cert2asn(cert, cert_bytes=True):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
 
-def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False):
+def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False, timestampurl=None):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
     signed_time = datetime.now(tz=util.timezone.utc)
@@ -88,6 +90,8 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
             ]
         else:
             signer['signed_attrs'] = attrs
+
+
     config = {
         'version': 'v1',
         'digest_algorithms': cms.DigestAlgorithms((
@@ -132,7 +136,43 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
                 padding.PKCS1v15(),
                 getattr(hashes, hashalgo.upper())()
             )
+
+    if timestampurl is not None:
+        signed_value = getattr(hashlib, hashalgo)(signed_value_signature).digest()
+        tspreq = tsp.TimeStampReq({
+            "version": 1,
+            "message_imprint": tsp.MessageImprint({
+                "hash_algorithm": algos.DigestAlgorithm({'algorithm': hashalgo}),
+                "hashed_message": signed_value,
+            }),
+            #'req_policy', ObjectIdentifier, {'optional': True}),
+            "nonce": int(time.time()*1000),
+            "cert_req": True,
+            #'extensions': tsp.Extensions()
+        })
+        tspreq = tspreq.dump()
+
+        tspheaders = {"Content-Type": "application/timestamp-query"}
+        tspresp = requests.post(timestampurl, data=tspreq, headers=tspheaders)
+        if tspresp.headers.get('Content-Type', None) == 'application/timestamp-reply':
+            tspresp = tsp.TimeStampResp.load(tspresp.content)
+
+            if tspresp['status']['status'].native == 'granted':
+                attrs = [
+                    cms.CMSAttribute({
+                        'type': cms.CMSAttributeType('signature_time_stamp_token'),
+                        'values': cms.SetOfContentInfo([
+                            cms.ContentInfo({
+                                'content_type': cms.ContentType('signed_data'),
+                                'content': tspresp["time_stamp_token"]["content"],
+                            })
+                        ])
+                    })
+                ]
+                datas['content']['signer_infos'][0]['unsigned_attrs'] = attrs
+
     # signed_value_signature = core.OctetString(signed_value_signature)
     datas['content']['signer_infos'][0]['signature'] = signed_value_signature
 
+    #open('signed-content-info', 'wb').write(datas.dump())
     return datas.dump()
