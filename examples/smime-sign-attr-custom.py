@@ -15,8 +15,8 @@ def main():
     signed_value = getattr(hashlib, hashalgo)(datau1).digest()
     attrs = [
         cms.CMSAttribute({
-            'type': cms.CMSAttributeType('1.2.840.113549.1.9.16.2.47'),
-            'values': (algos.DigestAlgorithm({'algorithm': hashalgo}),),
+            'type': cms.CMSAttributeType('content_type'),
+            'values': ('data',),
         }),
         cms.CMSAttribute({
             'type': cms.CMSAttributeType('message_digest'),
