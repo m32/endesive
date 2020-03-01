@@ -85,7 +85,7 @@ class VerifyData(object):
                 signatureok = True
             except:
                 signatureok = False
-        elif sigalgo['algorithm'].native == 'rsassa_pkcs1v15':
+        elif sigalgo['algorithm'].native in ['rsassa_pkcs1v15', 'sha256_rsa']:
             try:
                 public_key.verify(
                     signature,
