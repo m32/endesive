@@ -68,7 +68,8 @@ class VerifyData(object):
 
         sigalgo = signed_data['signer_infos'][0]['signature_algorithm']
         # sigalgo.debug()
-        if sigalgo['algorithm'].native == 'rsassa_pss':
+        sigalgoname = sigalgo.signature_algo
+        if sigalgoname == 'rsassa_pss':
             parameters = sigalgo['parameters']
             #parameters.debug()
             #print(parameters.native)
@@ -85,7 +86,7 @@ class VerifyData(object):
                 signatureok = True
             except:
                 signatureok = False
-        elif sigalgo['algorithm'].native == 'rsassa_pkcs1v15':
+        elif sigalgoname == 'rsassa_pkcs1v15':
             try:
                 public_key.verify(
                     signature,
