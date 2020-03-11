@@ -8,13 +8,16 @@ from datetime import datetime
 
 import requests
 import pytz
-from asn1crypto import cms, algos, core, pem, tsp, x509, util
+from asn1crypto import cms, algos, core, keys, pem, tsp, x509, util
+from oscrypto import asymmetric
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, utils
 
 
 def cert2asn(cert, cert_bytes=True):
+    if isinstance(cert, x509.Certificate):
+        return cert
     if cert_bytes:
         cert_bytes = cert.public_bytes(serialization.Encoding.PEM)
     else:
@@ -56,7 +59,11 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
     if not pss:
         signer['signature_algorithm'] = algos.SignedDigestAlgorithm({'algorithm': 'rsassa_pkcs1v15'})
     else:
-        salt_length = padding.calculate_max_pss_salt_length(key, hashes.SHA512)
+        if isinstance(key, keys.PrivateKeyInfo):
+            salt_length = key.byte_size - hashes.SHA512.digest_size - 2
+            salt_length = hashes.SHA512.digest_size
+        else:
+            salt_length = padding.calculate_max_pss_salt_length(key, hashes.SHA512)
         signer['signature_algorithm'] = algos.SignedDigestAlgorithm({
             'algorithm': 'rsassa_pss',
             'parameters': algos.RSASSAPSSParams({
@@ -117,6 +124,20 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
         tosign = datau
     if hsm is not None:
         signed_value_signature = hsm.sign(keyid, tosign, hashalgo)
+    elif isinstance(key, keys.PrivateKeyInfo):
+        key = asymmetric.load_private_key(key)
+        if pss:
+            signed_value_signature = asymmetric.rsa_pss_sign(
+                key,
+                tosign,
+                'sha512'
+            )
+        else:
+            signed_value_signature = asymmetric.rsa_pkcs1v15_sign(
+                key,
+                tosign,
+                hashalgo.lower()
+            )
     else:
         if pss:
             hasher = hashes.Hash(hashes.SHA512(), backend=backends.default_backend())
