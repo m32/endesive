@@ -6,7 +6,8 @@ from subprocess import PIPE, Popen
 import sys
 from datetime import datetime
 
-from OpenSSL.crypto import load_pkcs12
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import plain
 
 tests_root = os.path.dirname(__file__)
@@ -19,14 +20,12 @@ def fixture(fname):
 
 class PLAINTests(unittest.TestCase):
     def test_plain_signed_attr(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fh:
-            p12 = load_pkcs12(fh.read(), b'1234')
+        with open(fixture('demo2_user1.p12'), 'rb') as fp:
+            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = plain.sign(datau,
-            p12.get_privatekey().to_cryptography_key(),
-            p12.get_certificate().to_cryptography(),
-            [],
+            p12[0], p12[1], p12[2],
             'sha256',
             attrs=True
         )
@@ -46,14 +45,12 @@ class PLAINTests(unittest.TestCase):
         assert datau == stdout
 
     def test_plain_signed_noattr(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fh:
-            p12 = load_pkcs12(fh.read(), b'1234')
+        with open(fixture('demo2_user1.p12'), 'rb') as fp:
+            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = plain.sign(datau,
-            p12.get_privatekey().to_cryptography_key(),
-            p12.get_certificate().to_cryptography(),
-            [],
+            p12[0], p12[1], p12[2],
             'sha256',
             attrs=False
         )

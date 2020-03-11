@@ -3,7 +3,8 @@
 import unittest
 import os
 
-from OpenSSL.crypto import load_pkcs12
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import pdf
 
 tests_root = os.path.dirname(__file__)
@@ -23,15 +24,13 @@ class PDFTests(unittest.TestCase):
             b'signingdate': b'20180731082642+02\'00\'',
             b'reason': b'Dokument podpisany cyfrowo',
         }
-        with open(fixture('demo2_user1.p12'), 'rb') as fh:
-            p12 = load_pkcs12(fh.read(), b'1234')
+        with open(fixture('demo2_user1.p12'), 'rb') as fp:
+            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
         datas = pdf.cms.sign(datau, dct,
-            p12.get_privatekey().to_cryptography_key(),
-            p12.get_certificate().to_cryptography(),
-            [],
+            p12[0], p12[1], p12[2],
             'sha256'
         )
         fname = fname.replace('.pdf', '-signed-cms.pdf')
