@@ -20,11 +20,13 @@ def main():
         'pdf-signed-cms-hsm-certum.pdf',
         'pdf-signed-cms-hsm.pdf',
         'pdf-signed-cms-m32.pdf',
+        'pdf-signed-cms-oscrypto.pdf',
         'pdf-signed-cms-pfx.pdf',
         'pdf-signed-cms.pdf',
         'pdf-signed-fpdf.pdf',
         'test-PDFXRef-signed-cms.pdf',
-        'test-PDFXRefStream-signed-cms.pdf'
+        'test-PDFXRefStream-signed-cms.pdf',
+        'test-SHA256_RSA-signed-cms.pdf',
     ):
         print('*' * 20, fname)
         try:
