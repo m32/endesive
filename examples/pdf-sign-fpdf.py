@@ -1,7 +1,8 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
 import datetime
-from OpenSSL.crypto import load_pkcs12
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive.pdf import pdf
 
 
@@ -15,12 +16,11 @@ def main():
         'signingdate': date,
         'reason': 'Dokument podpisany cyfrowo',
     }
-    p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
+    with open('demo2_user1.p12', 'rb') as fp:
+        p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
     doc = pdf.FPDF()
     doc.pkcs11_setup(dct,
-        p12.get_privatekey().to_cryptography_key(),
-        p12.get_certificate().to_cryptography(),
-        [],
+        p12[0], p12[1], p12[2],
         'sha256'
     )
     for i in range(2):

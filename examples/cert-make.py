@@ -9,6 +9,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 
 (
@@ -118,7 +119,7 @@ class Main(object):
 
     def pk12_load(self, fname, password):
         with open(fname, 'rb') as f:
-            crypto.load_pkcs12(f.read(), password.encode('utf-8'))
+            return pkcs12.load_key_and_certificates(fp.read(), password.encode('utf-8'), default_backend())
 
     def ca_create(self, key):
         subject = issuer = x509.Name([

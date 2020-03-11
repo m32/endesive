@@ -1,7 +1,6 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
 import sys
-import OpenSSL
 from endesive import pdf, hsm
 
 import os
@@ -57,7 +56,6 @@ class Signer(hsm.HSM):
                 attrDict = dict(list(zip(all_attributes, attributes)))
                 cert = bytes(attrDict[PK11.CKA_VALUE])
                 if keyid == bytes(attrDict[PK11.CKA_ID]):
-                    #cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, cert)
                     return keyid, cert
         finally:
             self.logout()

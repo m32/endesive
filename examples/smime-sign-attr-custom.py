@@ -1,13 +1,15 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
-from OpenSSL.crypto import load_pkcs12
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import email
 
 import hashlib
 from asn1crypto import cms, algos, core, pem, x509
 
 def main():
-    p12 = load_pkcs12(open('demo2_user1.p12', 'rb').read(), '1234')
+    with open('demo2_user1.p12', 'rb') as fp:
+        p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
     datau = open('smime-unsigned.txt', 'rb').read()
 
     datau1 = datau.replace(b'\n', b'\r\n')
@@ -25,9 +27,7 @@ def main():
     ]
 
     datas = email.sign(datau,
-        p12.get_privatekey().to_cryptography_key(),
-        p12.get_certificate().to_cryptography(),
-        [],
+        p12[0], p12[1], p12[2],
         'sha256',
         attrs=attrs
     )

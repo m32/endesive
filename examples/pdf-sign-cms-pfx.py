@@ -9,7 +9,9 @@ import re
 import sys
 import datetime
 
-from OpenSSL.crypto import load_pkcs12
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives.serialization import pkcs12
+from cryptography.x509.oid import NameOID
 from endesive import pdf
 
 signature_string = lambda organization, date, country : (organization + '\nDATE: '+ date)
@@ -20,7 +22,8 @@ def eprint(error):
 def load_pfx(file_path, password):
     """ Function to load pkcs12 object from the given password protected pfx file."""
 
-    return load_pkcs12(open(file_path, 'rb').read(), password.encode())
+    with open(file_path, 'rb') as fp:
+        return pkcs12.load_key_and_certificates(fp.read(), password.encode(), backends.default_backend())
 
 def create_args():
     """Creates CLI arguments for the pdfSigner script."""
@@ -54,6 +57,28 @@ def validate_args(args):
             if not num.isdigit():
                 raise ValueError('Coords are not integers')
 
+
+OID_NAMES = {
+    NameOID.COMMON_NAME: 'CN',
+    NameOID.COUNTRY_NAME: 'C',
+    NameOID.DOMAIN_COMPONENT: 'DC',
+    NameOID.EMAIL_ADDRESS: 'E',
+    NameOID.GIVEN_NAME: 'G',
+    NameOID.LOCALITY_NAME: 'L',
+    NameOID.ORGANIZATION_NAME: 'O',
+    NameOID.ORGANIZATIONAL_UNIT_NAME: 'OU',
+    NameOID.SURNAME: 'SN'
+}
+def get_rdns_names(rdns):
+    names = {}
+    for oid in OID_NAMES:
+        names[OID_NAMES[oid]] = ''
+    for rdn in rdns:
+        for attr in rdn._attributes:
+            if attr.oid in OID_NAMES:
+                names[OID_NAMES[attr.oid]] = attr.value
+    return names
+
 def run():
     args = create_args()
 
@@ -65,9 +90,9 @@ def run():
 
     try:
         # Load the PKCS12 object from the pfx file
-        p12 = load_pfx(args.pfx_certificate, args.password)
+        p12pk, p12pc, p12oc = load_pfx(args.pfx_certificate, args.password)
 
-        subject = p12.get_certificate().get_subject()
+        names = get_rdns_names(p12pc.subject.rdns)
         timezone = pytz.timezone('Asia/Calcutta')
         #default coords of bottom right corner in a pdf page
         coords = [350, 50, 550, 150]
@@ -77,7 +102,7 @@ def run():
         dest = args.dest if args.dest else args.src
         date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
         date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
-        signature = signature_string(subject.CN, date, subject.C)
+        signature = signature_string(names['CN'], date, names['C'])
         dct = {
           b'sigflags': 3,
           b'sigpage': page - 1,
@@ -95,9 +120,7 @@ def run():
         datau = open(input_file, 'rb').read()
         datas = pdf.cms.sign(datau,
                      dct,
-                     p12.get_privatekey().to_cryptography_key(),
-                     p12.get_certificate().to_cryptography(),
-                     [],
+                     p12pk, p12pc, p12oc,
                      'sha256'
                      )
 

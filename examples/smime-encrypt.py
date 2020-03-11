@@ -1,14 +1,13 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
-from OpenSSL import crypto
-from asn1crypto import x509, pem
+from cryptography import x509
+from cryptography.hazmat import backends
 from endesive import email, signer
 
 
 def load_cert(relative_path):
     with open(relative_path, 'rb') as f:
-        cert_bytes = f.read()
-        return crypto.load_certificate(crypto.FILETYPE_PEM, cert_bytes)
+        return x509.load_pem_x509_certificate(f.read(), backends.default_backend())
 
 
 def main():

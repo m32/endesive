@@ -30,8 +30,8 @@ class EncryptedData(object):
         return s + n
 
     def recipient_info(self, cert, session_key, oaep):
-        public_key = cert.get_pubkey().to_cryptography_key()
-        cert = signer.cert2asn(cert.to_cryptography())
+        public_key = cert.public_key()
+        cert = signer.cert2asn(cert)
 
         tbs_cert = cert['tbs_certificate']
         # TODO: use subject_key_identifier when available
