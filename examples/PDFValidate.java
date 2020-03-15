@@ -47,6 +47,8 @@ public class PDFValidate {
             PDFValidate.demo(args[0]);
         } catch (IOException e) {
             System.out.println("usage: PDFValidate <file name>");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
     }
 
