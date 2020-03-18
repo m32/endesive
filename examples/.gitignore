@@ -4,3 +4,4 @@ softhsm2.conf
 softhsm2/
 *.class
 tweaks/
+java/

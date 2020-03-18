@@ -24,6 +24,7 @@ def main():
         'pdf-signed-cms-pfx.pdf',
         'pdf-signed-cms.pdf',
         'pdf-signed-fpdf.pdf',
+        'pdf-signed-pypdf.pdf',
         'test-PDFXRef-signed-cms.pdf',
         'test-PDFXRefStream-signed-cms.pdf',
         'test-SHA256_RSA-signed-cms.pdf',
