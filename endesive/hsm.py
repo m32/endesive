@@ -44,7 +44,7 @@ class BaseHSM:
         raise NotImplementedError()
 
 
-class HSM:
+class HSM(BaseHSM):
     def __init__(self, dllpath):
         self.pkcs11 = PyKCS11.PyKCS11Lib()
         self.pkcs11.load(dllpath)
@@ -248,11 +248,11 @@ class SSHAgentHSM(BaseHSM):
 
     def certificate(self):
         """
-		callback for HSM
-		used to identfy the ssh agents key exports via fingerprint
+            callback for HSM
+            used to identfy the ssh agents key exports via fingerprint
 
-		:return: public-key-fingerprint, certificate-in-pem
-		"""
+            :return: public-key-fingerprint, certificate-in-pem
+        """
 
         # https://superuser.com/questions/421997/what-is-a-ssh-key-fingerprint-and-how-is-it-generated
         # convert RSA Key to SSH Fingerprint
@@ -268,11 +268,11 @@ class SSHAgentHSM(BaseHSM):
     @staticmethod
     def _decode_fp(keyfp):
         """
-		decode a fingerprint
+            decode a fingerprint
 
-		:param keyfp: key fingerprint in OpenSSH Format
-		:return: alg, fingerprint-binary
-		"""
+            :param keyfp: key fingerprint in OpenSSH Format
+            :return: alg, fingerprint-binary
+        """
         if not isinstance(keyfp, str):
             keyfp = keyfp.decode()
         alg, other = keyfp.split(':', 1)
@@ -289,11 +289,11 @@ class SSHAgentHSM(BaseHSM):
 
     def key(self, fp):
         """
-		lookup a ssh-agent-exported key using fingerprint
+            lookup a ssh-agent-exported key using fingerprint
 
-		:param fp: the fingerprint
-		:return: the key on success
-		"""
+            :param fp: the fingerprint
+            :return: the key on success
+        """
 
         alg, fp = self._decode_fp(fp)
         for key in self._a.get_keys():
@@ -306,14 +306,14 @@ class SSHAgentHSM(BaseHSM):
 
     def sign(self, keyid, data, hashalgo):
         """
-		sign using ssh-agent sign_data
-		creates RSA signature with padding=PKCS1v15 alg=SHA1
+            sign using ssh-agent sign_data
+            creates RSA signature with padding=PKCS1v15 alg=SHA1
 
-		:param keyid: the keyid as returned by certificate()
-		:param data:
-		:param hashalgo: has to be sha1
-		:return: PKCS7 signature blob
-		"""
+            :param keyid: the keyid as returned by certificate()
+            :param data:
+            :param hashalgo: has to be sha1
+            :return: PKCS7 signature blob
+            """
         assert hashalgo == 'sha1'
         if not isinstance(data, bytes):
             data = data.encode()
