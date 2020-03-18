@@ -27,6 +27,7 @@ def main():
         'test-PDFXRef-signed-cms.pdf',
         'test-PDFXRefStream-signed-cms.pdf',
         'test-SHA256_RSA-signed-cms.pdf',
+        'pdf-acrobat.pdf',
     ):
         print('*' * 20, fname)
         try:
