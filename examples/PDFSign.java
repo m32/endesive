@@ -33,6 +33,8 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.ExternalSigningSupport;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 
 /**
  * An example for signing a PDF with bouncy castle.
@@ -66,22 +68,12 @@ public class PDFSign extends CreateSignatureBase
     }
 
     /**
-     * Signs the given PDF file. Alters the original file on disk.
-     * @param file the PDF file to sign
-     * @throws IOException if the file could not be read or written
-     */
-    public void signDetached(File file) throws IOException
-    {
-        signDetached(file, file);
-    }
-
-    /**
      * Signs the given PDF file.
      * @param inFile input PDF file
      * @param outFile output PDF file
      * @throws IOException if the input file could not be read
      */
-    public void signDetached(File inFile, File outFile) throws IOException
+    public void signDetached(File inFile, String password, File outFile) throws IOException
     {
         if (inFile == null || !inFile.exists())
         {
@@ -90,7 +82,8 @@ public class PDFSign extends CreateSignatureBase
 
         // sign
         FileOutputStream fos = new FileOutputStream(outFile);
-        PDDocument doc = PDDocument.load(inFile);
+        PDDocument doc = PDDocument.load(inFile, password);
+
         signDetached(doc, fos);
     }
 
@@ -101,7 +94,7 @@ public class PDFSign extends CreateSignatureBase
         if (accessPermissions == 1)
         {
             throw new IllegalStateException("No changes to the document are permitted due to DocMDP transform parameters dictionary");
-        }     
+        }
 
         // create signature dictionary
         PDSignature signature = new PDSignature();
@@ -119,7 +112,7 @@ public class PDFSign extends CreateSignatureBase
         if (accessPermissions == 0)
         {
             SigUtils.setMDPPermission(document, signature, 2);
-        }        
+        }
 
         if (isExternalSigning())
         {
@@ -146,42 +139,54 @@ public class PDFSign extends CreateSignatureBase
 
     public static void main(String[] args) throws IOException, GeneralSecurityException
     {
-        if (args.length < 3)
-        {
-            usage();
-            System.exit(1);
-        }
-
+        String pdfPassword = null;
         boolean externalSig = false;
-        for (int i = 0; i < args.length; i++)
+        String keystoreName = "";
+        char[] keystorePassword = null;
+        String inName = "";
+
+        for(int i=0; i<args.length; i++)
         {
             if (args[i].equals("-e"))
             {
                 externalSig = true;
+            } else if (args[i].equals("-k")) {
+                keystoreName = args[i+1];
+                keystorePassword = args[i+2].toCharArray();
+                i += 2;
+            } else if (args[i].equals("-p")) {
+                pdfPassword = args[i+1];
+                i += 1;
+            } else if (args[i].equals("-i")) {
+                inName = args[i+1];
+                i += 1;
             }
         }
-
+System.err.println(
+    "keystore:"+keystoreName+"\n"+
+    "pdfpassword:"+pdfPassword+"\n"+
+    "inname:"+inName+"\n"
+);
         // load the keystore
         KeyStore keystore = KeyStore.getInstance("PKCS12");
-        char[] password = args[1].toCharArray(); // TODO use Java 6 java.io.Console.readPassword
-        keystore.load(new FileInputStream(args[0]), password);
+        keystore.load(new FileInputStream(keystoreName), keystorePassword);
         // TODO alias command line argument
 
         // sign PDF
-        CreateSignature signing = new CreateSignature(keystore, password);
+        PDFSign signing = new PDFSign(keystore, keystorePassword);
         signing.setExternalSigning(externalSig);
 
-        File inFile = new File(args[2]);
+        File inFile = new File(inName);
         String name = inFile.getName();
         String substring = name.substring(0, name.lastIndexOf('.'));
 
         File outFile = new File(inFile.getParent(), substring + "-signed-java.pdf");
-        signing.signDetached(inFile, outFile);
+        signing.signDetached(inFile, pdfPassword, outFile);
     }
 
     private static void usage()
     {
-        System.err.println("usage: java " + CreateSignature.class.getName() + " " +
+        System.err.println("usage: java " + PDFSign.class.getName() + " " +
                            "<pkcs12_keystore> <password> <pdf_to_sign>\n" + "" +
                            "options:\n" +
                            "  -e            sign using external signature creation scenario");

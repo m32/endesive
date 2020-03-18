@@ -11,5 +11,6 @@ for fname in $thisdir/java/*.jar; do
     addjar $fname
 done
 java -cp $jars \
-PDFSign demo2_user1.p12 1234 \
- $*
+PDFSign \
+-k demo2_user1.p12 1234 \
+$*
