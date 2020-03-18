@@ -6,18 +6,43 @@ import sys
 import binascii
 import datetime
 import PyKCS11
+import base64
+import hashlib
 
 from cryptography import x509
-from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 from asn1crypto import x509 as asn1x509
 from asn1crypto import keys as asn1keys
 from asn1crypto import pem as asn1pem
 from asn1crypto import util as asn1util
+
+import paramiko.agent
+
+import cryptography
+
+class BaseHSM:
+    def certificate(self):
+        """
+        callback for HSM
+        used to identfy the ssh agents key exports via fingerprint
+
+        :return: public-key-fingerprint, certificate-in-pem
+        """
+        raise NotImplementedError()
+
+    def sign(self, keyid, data, mech):
+        """
+        sign
+
+        :param keyid: the keyid as returned by certificate()
+        :param data:
+        :param mech: hash algo
+        :return: PKCS7 signature blob
+        """
+        raise NotImplementedError()
+
 
 class HSM:
     def __init__(self, dllpath):
@@ -213,3 +238,98 @@ class HSM:
         pem_bytes = asn1pem.armor('CERTIFICATE', der_bytes)
         open(fname+'.der', 'wb').write(der_bytes)
         open(fname+'.pem', 'wb').write(pem_bytes)
+
+
+class SSHAgentHSM(BaseHSM):
+    def __init__(self, cert):
+        assert isinstance(cert, cryptography.x509.Certificate)
+        self._a = paramiko.agent.Agent()
+        self._cert = cert
+
+    def certificate(self):
+        """
+		callback for HSM
+		used to identfy the ssh agents key exports via fingerprint
+
+		:return: public-key-fingerprint, certificate-in-pem
+		"""
+
+        # https://superuser.com/questions/421997/what-is-a-ssh-key-fingerprint-and-how-is-it-generated
+        # convert RSA Key to SSH Fingerprint
+        alg, key = self._cert.public_key().public_bytes(
+            encoding=cryptography.hazmat.primitives.serialization.Encoding.OpenSSH,
+            format=cryptography.hazmat.primitives.serialization.PublicFormat.OpenSSH).split(b' ')
+
+        fp = b"SHA256:" + base64.b64encode(hashlib.sha256(base64.b64decode(key)).digest())
+        cert = self._cert.public_bytes(cryptography.hazmat.primitives.serialization.Encoding.PEM)
+
+        return fp, cert
+
+    @staticmethod
+    def _decode_fp(keyfp):
+        """
+		decode a fingerprint
+
+		:param keyfp: key fingerprint in OpenSSH Format
+		:return: alg, fingerprint-binary
+		"""
+        if not isinstance(keyfp, str):
+            keyfp = keyfp.decode()
+        alg, other = keyfp.split(':', 1)
+        if alg == 'SHA256':
+            # pad base64 data
+            data = other.encode() + b'=' * (-len(other) % 4)
+            fp = base64.b64decode(data)
+        elif alg == 'MD5':
+            data = other.replace(':', ' ')
+            fp = bytes.fromhex(data)
+        else:
+            raise ValueError(alg)
+        return alg.lower(), fp
+
+    def key(self, fp):
+        """
+		lookup a ssh-agent-exported key using fingerprint
+
+		:param fp: the fingerprint
+		:return: the key on success
+		"""
+
+        alg, fp = self._decode_fp(fp)
+        for key in self._a.get_keys():
+            kfp = getattr(hashlib, alg)(key.asbytes()).digest()
+            if kfp == fp:
+                break
+        else:
+            raise ValueError("Key not found")
+        return key
+
+    def sign(self, keyid, data, hashalgo):
+        """
+		sign using ssh-agent sign_data
+		creates RSA signature with padding=PKCS1v15 alg=SHA1
+
+		:param keyid: the keyid as returned by certificate()
+		:param data:
+		:param hashalgo: has to be sha1
+		:return: PKCS7 signature blob
+		"""
+        assert hashalgo == 'sha1'
+        if not isinstance(data, bytes):
+            data = data.encode()
+        key = self.key(keyid)
+
+        # sign_ssh_data is padding=PKCS1v15 alg=SHA1
+        d = paramiko.message.Message(
+            key.sign_ssh_data(data)
+        )
+
+        # parse operation result
+        alg = d.get_text()
+
+        # interpret
+        if alg == key.name == 'ssh-rsa':
+            sig = d.get_binary()
+        else:
+            raise ValueError(alg)
+        return sig
