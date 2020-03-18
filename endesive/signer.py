@@ -34,7 +34,6 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
     if hsm is not None:
         keyid, cert = hsm.certificate()
         cert = cert2asn(cert, False)
-        othercerts = []
     else:
         cert = cert2asn(cert)
 
