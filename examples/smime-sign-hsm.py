@@ -52,9 +52,9 @@ def compose(From, To, Subject, Body, Attachment, signer):
     return msg, env, sig
 
 
-def sign(datau, key, cert, othercerts, hsm):
+def sign(datau, key, cert, othercerts, hashalgo, hsm):
     datau = datau.replace(b'\n', b'\r\n')
-    datas = signer.sign(datau, key, cert, othercerts, 'sha1', attrs=True, pss=False, hsm=hsm)
+    datas = signer.sign(datau, key, cert, othercerts, hashalgo, attrs=True, pss=False, hsm=hsm)
     return base64.encodebytes(datas)
 
 
@@ -116,7 +116,7 @@ def main():
         Subject='this is the subject',
         Body=datau,
         Attachment='pdf-acrobat.pdf',
-        signer=lambda data: sign(data, None, cert, othercerts, agent)
+        signer=lambda data: sign(data, None, cert, othercerts, 'sha256', agent)
     )
     datas = msg.as_bytes(unixfrom=True)
     open('smime-signed-hsm.txt', 'wb').write(datas)
