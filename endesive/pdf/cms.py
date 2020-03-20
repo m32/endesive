@@ -225,11 +225,13 @@ class SignedData(object):
         ]
         return b''.join(obj), nav
 
-    def imagevisual(self, image_path, no, udct, nsig, page):
+    def imagevisual(self, image, no, udct, nsig, page):
         x1, y1, x2, y2 = udct.get(b'signaturebox', (0, 0, 0, 0))
+        ap = Appearance()
+        ap.image = image
         annotation = Image(
             Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-            Appearance(image=image_path),
+            ap
         )
 
         pdfa = annotation.as_pdf_object(identity(), page=None)
@@ -263,8 +265,10 @@ class SignedData(object):
         return b''.join(obj), nav
 
     def makevisualization(self, no, udct, nsig, page):
-        image = udct.get(b'signature_img', b'').decode('utf8')
-        if image:
+        image = udct.get(b'signature_img', None)
+        if image is not None:
+            if isinstance(image, bytes):
+                image = image.decode('utf-8')
             return self.imagevisual(image, no, udct, nsig, page)
         return self.textvisual(no, udct, nsig, page)
 
