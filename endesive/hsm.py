@@ -311,24 +311,43 @@ class SSHAgentHSM(BaseHSM):
 
             :param keyid: the keyid as returned by certificate()
             :param data:
-            :param hashalgo: has to be sha1
+            :param hashalgo: has to be sha1, sha256 or sha512
             :return: PKCS7 signature blob
             """
-        assert hashalgo == 'sha1'
+        assert hashalgo in ('sha1', 'sha256', 'sha512')
+
         if not isinstance(data, bytes):
             data = data.encode()
+
+        # defined in
+        # SSH Agent Protocol draft-miller-ssh-agent-00 5.3.  Signature flags
+        # https://tools.ietf.org/html/draft-miller-ssh-agent-00#section-5.3
+        flags = {
+            'sha1':   0,
+            'sha256': 2,    # SSH_AGENT_RSA_SHA2_256
+            'sha512': 4,    # SSH_AGENT_RSA_SHA2_512
+        }[hashalgo]
+
         key = self.key(keyid)
 
-        # sign_ssh_data is padding=PKCS1v15 alg=SHA1
-        d = paramiko.message.Message(
-            key.sign_ssh_data(data)
-        )
+        # AgentKey.sign_ssh_data is padding=PKCS1v15 alg=SHA1
+        # paramiko does not expose the ssh-agent sign flags to use sha2-256/512
+        # re-implement sign_ssh_agent ..
+        msg = paramiko.message.Message()
+        msg.add_byte(paramiko.agent.cSSH2_AGENTC_SIGN_REQUEST)
+        msg.add_string(key.blob)
+        msg.add_string(data)
+        msg.add_int(flags)
+        ptype, result = self._a._send_message(msg)
+        if ptype != paramiko.agent.SSH2_AGENT_SIGN_RESPONSE:
+            raise paramiko.SSHException("key cannot be used for signing")
+        d = paramiko.message.Message(result.get_binary())
 
         # parse operation result
         alg = d.get_text()
 
         # interpret
-        if alg == key.name == 'ssh-rsa':
+        if alg in ('ssh-rsa','rsa-sha2-256','rsa-sha2-512'):
             sig = d.get_binary()
         else:
             raise ValueError(alg)
