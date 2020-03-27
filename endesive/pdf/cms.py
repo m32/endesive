@@ -144,7 +144,7 @@ class SignedData(object):
             return b''
         fp = BytesIO()
         self.dumpobj(fp, annots)
-        data = fp.getvalue().strip()[1:-1]
+        data = fp.getvalue()
         return data
 
     def makeannotation(self, obj, nobj):
