@@ -105,7 +105,7 @@ class Main(pdf.PdfFileWriter):
         xref_location = startxref + stream.tell()
         stream.write(pdf.b_("xref\n"))
         stream.write(pdf.b_("0 1\n"))
-        stream.write(pdf.b_("0000000000 65535 f\r\n"))
+        stream.write(pdf.b_("0000000000 65535 f \n"))
         keys = sorted(positions.keys())
         i = 0
         while i < len(keys):
@@ -116,11 +116,11 @@ class Main(pdf.PdfFileWriter):
                 start = i
                 while i < len(keys) and positions[keys[i]] != 0:
                     i += 1
-                stream.write(pdf.b_("%d %d\r\n" % (keys[start], i - start)))
+                stream.write(pdf.b_("%d %d \n" % (keys[start], i - start)))
                 i = start
                 continue
             else:
-                stream.write(pdf.b_("%010d %05d n\r\n" % (off, 0)))
+                stream.write(pdf.b_("%010d %05d n \n" % (off, 0)))
             i += 1
 
         # trailer
