@@ -141,10 +141,12 @@ class BooleanObject(PdfObject):
 class ArrayObject(list, PdfObject):
     def writeToStream(self, stream, encryption_key):
         stream.write(b_("["))
-        for data in self:
-            stream.write(b_(" "))
-            data.writeToStream(stream, encryption_key)
-        stream.write(b_(" ]"))
+        n = len(self)
+        for i in range(n):
+            self[i].writeToStream(stream, encryption_key)
+            if i+1 != n:
+                stream.write(b_(" "))
+        stream.write(b_("]"))
 
     def readFromStream(stream, pdf):
         arr = ArrayObject()
@@ -231,13 +233,13 @@ class FloatObject(decimal.Decimal, PdfObject):
             return decimal.Decimal.__new__(cls, str(value))
 
     def __repr__(self):
-        if self == self.to_integral():
+        if 0 and self == self.to_integral():
             return str(self.quantize(decimal.Decimal(1)))
         else:
             # Standard formatting adds useless extraneous zeros.
             o = "%.5f" % self
             # Remove the zeros.
-            while o and o[-1] == '0':
+            while o and o[-1] == '0' and o[-2]!='.':
                 o = o[:-1]
             return o
 
