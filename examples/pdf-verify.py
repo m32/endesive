@@ -17,6 +17,10 @@ def main():
         open('cert-hsm-ca.pem', 'rt').read(),
     )
     for fname in (
+        'test-PDFXRef-signed-cms.pdf',
+        'test-PDFXRefStream-signed-cms.pdf',
+        'test-SHA256_RSA-signed-cms.pdf',
+        'pdf-acrobat.pdf',
         'pdf-signed-cms-hsm-certum.pdf',
         'pdf-signed-cms-hsm.pdf',
         'pdf-signed-cms-m32.pdf',
@@ -24,11 +28,10 @@ def main():
         'pdf-signed-cms-pfx.pdf',
         'pdf-signed-cms.pdf',
         'pdf-signed-fpdf.pdf',
+        'pdf-signed-java.pdf',
         'pdf-signed-pypdf.pdf',
-        'test-PDFXRef-signed-cms.pdf',
-        'test-PDFXRefStream-signed-cms.pdf',
-        'test-SHA256_RSA-signed-cms.pdf',
-        'pdf-acrobat.pdf',
+        'pdf-encrypted-signed-java.pdf',
+        'pdf-encrypted-signed-pypdf.pdf',
     ):
         print('*' * 20, fname)
         try:

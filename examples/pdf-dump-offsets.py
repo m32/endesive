@@ -3,6 +3,7 @@ class Main:
     def __init__(self, fname):
         with open(fname, "rb") as fi:
             self.data = fi.read()
+        self.xrefs = []
 
     def find(self, s, start=0):
         i = self.data.find(s, start)
@@ -44,7 +45,8 @@ class Main:
                             assert len(line1) == 3 and int(line1[0]) == off + i
                         except:
                             print('bad xref:', line, line1, 'off:', off+i, len(line1))
-
+                        print(line1, off+i, offset)
+                        #self.xref.append(
     def byterange(self):
         start = self.find(b'/ByteRange')
         i0 = self.find(b'[', start)
@@ -66,10 +68,12 @@ class Main:
         self.byterange()
 
 for fname in (
-    "pdf-certum.pdf",
-    "pdf-acrobat.pdf",
+    #"pdf-certum.pdf",
+    #"pdf-acrobat.pdf",
     'pdf-signed-java.pdf',
     'pdf-signed-pypdf.pdf',
+    'pdf-encrypted-signed-java.pdf',
+    'pdf-encrypted-signed-pypdf.pdf',
 ):
     print('*'*20, fname)
     cls = Main(fname)
