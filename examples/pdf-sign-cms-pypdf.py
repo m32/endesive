@@ -326,10 +326,10 @@ class Main(pdf.PdfFileWriter):
 
 
 def main():
-    if 0:
+    if len(sys.argv) > 0:
         cls = Main()
         cls.main(sys.argv[1], "")
-    if 1:
+    else:
         cls = Main()
         cls.main("pdf.pdf", "")
 
