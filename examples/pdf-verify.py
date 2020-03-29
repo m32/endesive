@@ -32,6 +32,8 @@ def main():
         'pdf-signed-pypdf.pdf',
         'pdf-encrypted-signed-java.pdf',
         'pdf-encrypted-signed-pypdf.pdf',
+        'pdf-link-signed-java.pdf',
+        'pdf-link-signed-pypdf.pdf',
     ):
         print('*' * 20, fname)
         try:
