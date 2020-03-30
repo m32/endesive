@@ -10,10 +10,13 @@ parser.add_option("-f", "--file", dest="filename", default="pdf.pdf",
 parser.add_option("-l", "--link",
                   action="store_true", dest="link", default=False,
                   help="add link on page 1 to page 2")
+parser.add_option("-v", "--pdf-version", dest="pdf_version", default="1.3",
+                  help="set pdf vesion of generated document")
 
 (options, args) = parser.parse_args()
 
 doc = fpdf.FPDF()
+doc.pdf_version = options.pdf_version
 doc.set_compression(0)
 for i in range(2):
     doc.add_page()
