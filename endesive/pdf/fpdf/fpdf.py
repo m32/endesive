@@ -1152,7 +1152,7 @@ class FPDF(object):
                     annots+='SIGNER 0 R'
                 for pl in self.page_links[n]:
                     rect=sprintf('%.2f %.2f %.2f %.2f',pl[0],pl[1],pl[0]+pl[2],pl[1]-pl[3])
-                    annots+='<</Type /Annot /Subtype /Link /Rect ['+rect+'] /Border [0 0 0] '
+                    annots+='<</Type /Annot /Subtype /Link /F 4 /Rect ['+rect+'] /Border [0 0 0] '
                     if(isinstance(pl[4],basestring)):
                         annots+='/A <</S /URI /URI '+self._textstring(pl[4])+'>>>>'
                     else:
