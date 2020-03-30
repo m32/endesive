@@ -274,10 +274,14 @@ class Main(pdf.PdfFileWriter):
             self.encrypt(prev, password, rc)
         else:
             self._encrypt_key = None
+        ID = prev.trailer.get("/ID", None)
+        if ID is None:
+            ID = po.ByteStringObject(hashlib.md5(pdf.b_(repr(time.time()))).digest())
+        else:
+            ID = ID[0]
         self._ID = po.ArrayObject(
             [
-                prev.trailer["/ID"][0],
-                # po.ByteStringObject(hashlib.md5(pdf.b_(repr(time.time()))).digest()),
+                ID,
                 po.ByteStringObject(
                     hashlib.md5(pdf.b_(repr(random.random()))).digest()
                 ),
