@@ -9,7 +9,7 @@ import codecs
 import struct
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
-from endesive.pdf.PyPDF2 import pdf, generic as po
+from PyPDF2 import pdf, generic as po
 from endesive import signer
 
 
@@ -27,7 +27,10 @@ class B(po.utils.bytes_type, po.PdfObject):
 
 
 class WNumberObject(po.NumberObject):
-    Format = "%08d"
+    Format = b"%08d"
+
+    def writeToStream(self, stream, encryption_key):
+        stream.write(self.Format % self)
 
 
 class Main(pdf.PdfFileWriter):
@@ -49,7 +52,7 @@ class Main(pdf.PdfFileWriter):
             U, key = pdf._alg35(password, rev, keylen, O, P, ID_1, False)
         self._encrypt_key = key
 
-    def write(self, stream, prev, startxref):
+    def write(self, stream, prev, startdata, startprev):
 
         externalReferenceMap = {}
 
@@ -77,9 +80,6 @@ class Main(pdf.PdfFileWriter):
         self._sweepIndirectReferences(externalReferenceMap, self._root)
         del self.stack
 
-        # self._objects[0] = pages catalog
-        # self._objects[1] = producer info
-        # Begin writing:
         stream.write(pdf.b_("\r\n"))
         positions = {}
         for i in range(2, len(self._objects)):
@@ -88,7 +88,7 @@ class Main(pdf.PdfFileWriter):
             if obj is None:
                 positions[idnum] = 0
                 continue
-            positions[idnum] = startxref + stream.tell()
+            positions[idnum] = startdata + stream.tell()
             stream.write(pdf.b_(str(idnum) + " 0 obj\n"))
             key = None
             if self._encrypt_key is not None:
@@ -102,7 +102,7 @@ class Main(pdf.PdfFileWriter):
             stream.write(pdf.b_("\nendobj\n"))
 
         # xref table
-        xref_location = startxref + stream.tell()
+        xref_location = startdata + stream.tell()
         stream.write(pdf.b_("xref\n"))
         stream.write(pdf.b_("0 1\n"))
         stream.write(pdf.b_("0000000000 65535 f \n"))
@@ -131,7 +131,7 @@ class Main(pdf.PdfFileWriter):
                 po.NameObject("/Size"): po.NumberObject(len(self._objects) + 1),
                 po.NameObject("/Root"): self.x_root,
                 po.NameObject("/Info"): self.x_info,
-                po.NameObject("/Prev"): po.NumberObject(prev.startxref),
+                po.NameObject("/Prev"): po.NumberObject(startprev),
                 po.NameObject("/ID"): self._ID,
             }
         )
@@ -155,16 +155,16 @@ class Main(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
-        obj14 = po.DictionaryObject()
-        obj14ref = self._addObject(obj14)
-        obj13 = po.DictionaryObject()
-        obj13ref = self._addObject(obj13)
-        obj12 = po.DictionaryObject()
-        obj12ref = self._addObject(obj12)
-        obj11 = po.DictionaryObject()
-        obj11ref = self._addObject(obj11)
         obj10 = po.DictionaryObject()
         obj10ref = self._addObject(obj10)
+        obj11 = po.DictionaryObject()
+        obj11ref = self._addObject(obj11)
+        obj12 = po.DictionaryObject()
+        obj12ref = self._addObject(obj12)
+        obj13 = po.DictionaryObject()
+        obj13ref = self._addObject(obj13)
+        obj14 = po.DictionaryObject()
+        obj14ref = self._addObject(obj14)
 
         obj14.update({po.NameObject("/DocMDP"): obj12ref})
         obj10.update(
@@ -260,7 +260,9 @@ class Main(pdf.PdfFileWriter):
 
         with open(fname, "rb") as fi:
             datau = fi.read()
-        startxref = len(datau)
+        startdata = len(datau)
+        startprev = datau.rfind(b"\nstartxref\n")
+        startprev = datau.rfind(b"\nxref\n", 0, startprev) + 1
 
         fi = io.BytesIO(datau)
 
@@ -289,18 +291,18 @@ class Main(pdf.PdfFileWriter):
         )
 
         fo = io.BytesIO()
-        self.write(fo, prev, startxref)
+        self.write(fo, prev, startdata, startprev)
         datas = fo.getvalue()
 
         br = [0, 0, 0, 0]
-        bfrom = b"[%08d %08d %08d %08d]" % tuple(br)
+        bfrom = (b"[ " + b" ".join([WNumberObject.Format] * 4) + b" ]") % tuple(br)
 
         pdfbr1 = datas.find(zeros)
         pdfbr2 = pdfbr1 + len(zeros)
         br = [
             0,
-            startxref + pdfbr1 - 1,
-            startxref + pdfbr2 + 1,
+            startdata + pdfbr1 - 1,
+            startdata + pdfbr2 + 1,
             len(datas) - pdfbr2 - 1,
         ]
         bto = b"[%d %d %d %d]" % tuple(br)
@@ -310,8 +312,8 @@ class Main(pdf.PdfFileWriter):
 
         md = getattr(hashlib, algomd)()
         md.update(datau)
-        b1 = datas[: br[1] - startxref]
-        b2 = datas[br[2] - startxref :]
+        b1 = datas[: br[1] - startdata]
+        b2 = datas[br[2] - startdata :]
         md.update(b1)
         md.update(b2)
         md = md.digest()
