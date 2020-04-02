@@ -295,7 +295,7 @@ class Signer(object):
         datas = fo.getvalue()
 
         br = [0, 0, 0, 0]
-        bfrom = " ".join([PdfNumberB.Format % b for b in br])
+        bfrom = (" ".join([PdfNumberB.Format] * 4)) % tuple(br)
         bfrom = ("[" + bfrom + "]").encode()
 
         pdfbr1 = datas.find(zeros)
