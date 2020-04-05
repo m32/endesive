@@ -55,8 +55,17 @@ class Signer(object):
         with open(fname, "rb") as fi:
             self.datau = fi.read()
         self.startdata = len(self.datau)
-        startprev = self.datau.rfind(b"\nstartxref\n")
-        startprev = self.datau.rfind(b"\nxref\n", 0, startprev) + 1
+        s = b"startxref"
+        i = self.datau.rfind(s)
+        assert i != -1
+        i += len(s)
+        while self.datau[i] not in b"0123456789":
+            i += 1
+        j = i
+        while self.datau[j] in b"0123456789":
+            j += 1
+        s = self.datau[i:j].decode()
+        startprev = int(s, 10)
         self.startprev = startprev
         self.prev = pdf.PdfFileReader(
             fdata=self.datau, decrypt=(password is not None), password=password
@@ -171,6 +180,21 @@ class Signer(object):
             dct[k] = v
         return dct
 
+    def extend(self, obj):
+        dct = pdf.PdfDict()
+        dct.stream = obj.stream
+        for k, v in obj.iteritems():
+            if isinstance(v, pdf.PdfDict):
+                if not v.indirect:
+                    v = self.extend(v)
+                    v = self.addObject(v)
+                else:
+                    v = self.extend(v)
+            elif isinstance(v, list):
+                v = pdf.PdfArray(v)
+            dct[k] = v
+        return dct
+
     def makepdf(self, zeros):
         root = self.prev.Root
         size = int(self.prev.Size, 10)
@@ -179,8 +203,7 @@ class Signer(object):
             self.objects.append(None)
 
         page0 = self.copydict(root.Pages.Kids[0])
-        self.objects[root.Pages.Kids[0].indirect[0] - 1] = page0
-        page0 = PdfIndirect(root.Pages.Kids[0].indirect)
+        page0ref = PdfIndirect(root.Pages.Kids[0].indirect)
 
         obj10 = pdf.PdfDict()
         obj10ref = self.addObject(obj10)
@@ -232,7 +255,7 @@ class Signer(object):
                 pdf.PdfName("F"): PdfNumber(132),
                 pdf.PdfName("T"): pdf.PdfString.from_unicode("Signature1"),
                 pdf.PdfName("V"): obj12ref,
-                pdf.PdfName("P"): page0,
+                pdf.PdfName("P"): page0ref,
                 pdf.PdfName("Rect"): pdf.PdfArray(
                     [
                         PdfNumberFloat(0.0),
@@ -244,27 +267,98 @@ class Signer(object):
             }
         )
         obj14.update({pdf.PdfName("DocMDP"): obj12ref})
-        obj = pdf.PdfDict()
-        obj.update(
+        obj15 = pdf.PdfDict()
+        obj15.update(
             {
                 pdf.PdfName("Fields"): pdf.PdfArray([obj13ref]),
                 pdf.PdfName("SigFlags"): PdfNumber(3),
             }
         )
+        obj15ref = self.addObject(obj15)
+        if 1:
+            from pdf_annotate.annotations.image import Image
+            from pdf_annotate.annotations.text import FreeText
+            from pdf_annotate.config.appearance import Appearance
+            from pdf_annotate.config.location import Location
+            from pdf_annotate.util.geometry import identity
+
+            annotation = "User signature text"
+            x1, y1, x2, y2 = (470, 0, 570, 100)
+            annotation = FreeText(
+                Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+                Appearance(
+                    fill=[0, 0, 0],
+                    stroke_width=1,
+                    wrap_text=True,
+                    font_size=12,
+                    content=annotation,
+                ),
+            )
+            pdfa = annotation.as_pdf_object(identity(), page=None)
+            objapn = self.extend(pdfa[pdf.PdfName("AP")][pdf.PdfName("N")])
+            objapnref = self.addObject(objapn)
+            for name in (
+                "BS",
+                "C",
+                "Contents",
+                "DA",
+                "Rect",
+                # "Subtype",
+            ):
+                key = pdf.PdfName(name)
+                v = pdfa[key]
+                if isinstance(v, str):
+                    v = v.replace("/", "//")
+                    v = pdf.PdfString.from_unicode(v)
+                elif isinstance(v, list):
+                    v = pdf.PdfArray(v)
+                obj13.update({key: v})
+
+            objap = pdf.PdfDict()
+            objap.update({pdf.PdfName("N"): objapnref})
+            obj13.update(
+                {
+                    pdf.PdfName("SM"): pdf.PdfString.from_unicode("TabletPOSinline"),
+                    pdf.PdfName("AP"): objap,
+                }
+            )
+            self.objects[root.Pages.Kids[0].indirect[0] - 1] = page0
+            annots = pdf.PdfArray([obj13ref])
+            # if False and pdf.PdfName("Annots") in page0:
+            if pdf.PdfName("Annots") in page0:
+                page0annots = page0[pdf.PdfName("Annots")]
+                if isinstance(page0annots, PdfIndirect):
+                    annots.insert(0, page0annots)
+                elif isinstance(page0annots, pdf.PdfArray):
+                    annots = page0annots
+                    annots.append(obj13ref)
+            page0.update({pdf.PdfName("Annots"): annots})
+
         croot = self.copydict(root)
-        croot.update({pdf.PdfName("Perms"): obj14ref, pdf.PdfName("AcroForm"): obj})
+        croot.update(
+            {pdf.PdfName("Perms"): obj14ref, pdf.PdfName("AcroForm"): obj15ref}
+        )
         self.objects[root.indirect[0] - 1] = croot
+        try:
+            ID = self.prev.ID[0]
+        except:
+            b = hashlib.md5(self.datau).digest()
+            ID = pdf.PdfString.from_bytes(b, bytes_encoding="hex")
+        b = repr(random.random()).encode()
+        b = hashlib.md5(b).digest()
         self.trailer = pdf.PdfDict(
             Size=len(self.objects),
             Root=PdfIndirect(root.indirect),
             Info=PdfIndirect(self.prev.Info.indirect),
             Prev=self.startprev,
+            ID=pdf.PdfArray([ID, pdf.PdfString.from_bytes(b, bytes_encoding="hex")]),
         )
 
     def sign(self, md, algomd):
         tspurl = "http://public-qlts.certum.pl/qts-17"
         tspurl = None
-        with open("demo2_user1.p12", "rb") as fp:
+        fname = "demo2_user1.p12"
+        with open(fname, "rb") as fp:
             p12 = pkcs12.load_key_and_certificates(
                 fp.read(), b"1234", backends.default_backend()
             )
@@ -285,10 +379,6 @@ class Signer(object):
             zeros = zeros.hex().encode()
 
         self.makepdf(zeros)
-        ID = self.prev.ID[0]
-        b = repr(random.random()).encode()
-        b = hashlib.md5(b).digest()
-        self.ID = pdf.PdfArray([ID, pdf.PdfString.from_bytes(b, bytes_encoding="hex")])
 
         fo = io.BytesIO()
         self.write(fo)
@@ -337,8 +427,9 @@ def main():
         cls = Signer(sys.argv[1], sys.argv[2])
     else:
         for fname, password in (
-            ("pdf.pdf", ""),
+            # ("pdf.pdf", ""),
             # ("pdf-encrypted.pdf", "1234")
+            ("/devel/pdf1.pdf", ""),
         ):
             cls = Signer(fname, password)
             cls.main()
