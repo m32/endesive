@@ -429,7 +429,7 @@ def main():
         for fname, password in (
             # ("pdf.pdf", ""),
             # ("pdf-encrypted.pdf", "1234")
-            ("/devel/pdf1.pdf", ""),
+            ("pdf-buggy.pdf", ""),
         ):
             cls = Signer(fname, password)
             cls.main()
