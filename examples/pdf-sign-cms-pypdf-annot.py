@@ -256,12 +256,12 @@ class Main(pdf.PdfFileWriter):
             }
         )
         if self.annottext:
-            from PyPDF2_annotate.annotations.text import FreeText
-            from PyPDF2_annotate.annotations.image import Image
-            from PyPDF2_annotate.annotations.text import FreeText
-            from PyPDF2_annotate.config.appearance import Appearance
-            from PyPDF2_annotate.config.location import Location
-            from PyPDF2_annotate.util.geometry import identity
+            from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
+            from endesive.pdf.PyPDF2_annotate.annotations.image import Image
+            from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
+            from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
+            from endesive.pdf.PyPDF2_annotate.config.location import Location
+            from endesive.pdf.PyPDF2_annotate.util.geometry import identity
 
             annotation = "User signature text"
             x1, y1, x2, y2 = (470, 0, 570, 100)
