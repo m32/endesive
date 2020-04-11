@@ -81,7 +81,7 @@ class Main(pdf.PdfFileWriter):
         del self.stack
 
         stream.write(pdf.b_("\r\n"))
-        positions = {}
+        positions = {2: 0}
         for i in range(2, len(self._objects)):
             idnum = i + 1
             obj = self._objects[i]
@@ -335,6 +335,7 @@ def main():
     if len(sys.argv) > 1:
         cls = Main()
         cls.main(sys.argv[1], "")
+        cls.main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "")
     else:
         cls = Main()
         cls.main("pdf.pdf", "")

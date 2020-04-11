@@ -1,7 +1,7 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
 import sys
-from endesive.pdf.PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfFileReader, PdfFileWriter
 
 fname = "pdf.pdf"
 with open(fname, "rb") as in_file:

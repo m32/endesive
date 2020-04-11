@@ -14,7 +14,12 @@ from pdfrw import pdfwriter as pdfw
 from endesive import signer
 
 
-class B(pdf.PdfObject):
+class PdfBasicObject(pdf.PdfObject):
+    def __init__(self, data):
+        self.data = data
+
+
+class PdfHexBytes(pdf.PdfObject):
     def __init__(self, data):
         self.data = data
 
@@ -22,7 +27,7 @@ class B(pdf.PdfObject):
         return "<" + self.data.decode("utf-8") + ">"
 
 
-class PdfNumber(B):
+class PdfNumber(PdfBasicObject):
     Format = "%d"
 
     def __str__(self):
@@ -55,6 +60,7 @@ class Signer(object):
         with open(fname, "rb") as fi:
             self.datau = fi.read()
         self.startdata = len(self.datau)
+        self.annotbutton = False
         s = b"startxref"
         i = self.datau.rfind(s)
         assert i != -1
@@ -241,7 +247,7 @@ class Signer(object):
                 pdf.PdfName("Reason"): pdf.PdfString.from_unicode("Testing"),
                 pdf.PdfName("M"): pdf.PdfString.from_unicode("D:20200317214832+01'00'"),
                 pdf.PdfName("Reference"): pdf.PdfArray([obj11ref]),
-                pdf.PdfName("Contents"): B(zeros),
+                pdf.PdfName("Contents"): PdfHexBytes(zeros),
                 pdf.PdfName("ByteRange"): pdf.PdfArray(
                     [PdfNumberB(0), PdfNumberB(0), PdfNumberB(0), PdfNumberB(0)]
                 ),
@@ -275,7 +281,7 @@ class Signer(object):
             }
         )
         obj15ref = self.addObject(obj15)
-        if 1:
+        if self.annotbutton:
             from pdf_annotate.annotations.image import Image
             from pdf_annotate.annotations.text import FreeText
             from pdf_annotate.config.appearance import Appearance
@@ -353,6 +359,10 @@ class Signer(object):
             Prev=self.startprev,
             ID=pdf.PdfArray([ID, pdf.PdfString.from_bytes(b, bytes_encoding="hex")]),
         )
+        if self.prev.private.pdfdict.encrypt:
+            self.trailer.Encrypt = PdfIndirect(
+                self.prev.private.pdfdict.encrypt.indirect
+            )
 
     def sign(self, md, algomd):
         tspurl = "http://public-qlts.certum.pl/qts-17"
@@ -425,11 +435,12 @@ class Signer(object):
 def main():
     if len(sys.argv) > 2:
         cls = Signer(sys.argv[1], sys.argv[2])
+        cls.main()
     else:
         for fname, password in (
-            # ("pdf.pdf", ""),
-            # ("pdf-encrypted.pdf", "1234")
-            ("pdf-buggy.pdf", ""),
+            ("pdf.pdf", ""),
+            # ("pdf-encrypted.pdf", "1234"),
+            # ("pdf-buggy.pdf", ""),
         ):
             cls = Signer(fname, password)
             cls.main()
