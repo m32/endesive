@@ -76,5 +76,8 @@ for fname in (
     'pdf-encrypted-signed-pypdf.pdf',
 ):
     print('*'*20, fname)
-    cls = Main(fname)
+    try:
+        cls = Main(fname)
+    except IOError:
+        continue
     cls.main()
