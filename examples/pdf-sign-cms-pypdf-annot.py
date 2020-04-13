@@ -3,6 +3,7 @@ import sys
 import time
 import random
 import io
+import struct
 import datetime
 import hashlib
 import codecs
@@ -55,7 +56,7 @@ class Main(pdf.PdfFileWriter):
             U, key = pdf._alg35(password, rev, keylen, O, P, ID_1, False)
         self._encrypt_key = key
 
-    def write(self, stream, prev, startdata, startprev):
+    def write(self, stream, prev, startdata):
 
         externalReferenceMap = {}
 
@@ -104,43 +105,81 @@ class Main(pdf.PdfFileWriter):
             obj.writeToStream(stream, key)
             stream.write(pdf.b_("\nendobj\n"))
 
-        # xref table
         xref_location = startdata + stream.tell()
-        stream.write(pdf.b_("xref\n"))
-        stream.write(pdf.b_("0 1\n"))
-        stream.write(pdf.b_("0000000000 65535 f \n"))
-        keys = sorted(positions.keys())
-        i = 0
-        while i < len(keys):
-            off = positions[keys[i]]
-            if off == 0:
-                while i < len(keys) and positions[keys[i]] == 0:
-                    i += 1
-                start = i
-                while i < len(keys) and positions[keys[i]] != 0:
-                    i += 1
-                stream.write(pdf.b_("%d %d \n" % (keys[start], i - start)))
-                i = start
-                continue
-            else:
-                stream.write(pdf.b_("%010d %05d n \n" % (off, 0)))
-            i += 1
-
-        # trailer
-        stream.write(pdf.b_("trailer\n"))
-        trailer = po.DictionaryObject()
+        if not prev.xrefstream:
+            trailer = po.DictionaryObject()
+        else:
+            trailer = po.StreamObject()
+            self._addObject(trailer)
+        # xref table
         trailer.update(
             {
                 po.NameObject("/Size"): po.NumberObject(len(self._objects) + 1),
                 po.NameObject("/Root"): self.x_root,
                 po.NameObject("/Info"): self.x_info,
-                po.NameObject("/Prev"): po.NumberObject(startprev),
+                po.NameObject("/Prev"): po.NumberObject(prev.startxref),
                 po.NameObject("/ID"): self._ID,
             }
         )
         if prev.isEncrypted:
             trailer[po.NameObject("/Encrypt")] = prev.trailer.raw_get("/Encrypt")
-        trailer.writeToStream(stream, None)
+        if not prev.xrefstream:
+            stream.write(pdf.b_("xref\n"))
+            stream.write(pdf.b_("0 1\n"))
+            stream.write(pdf.b_("0000000000 65535 f \n"))
+            keys = sorted(positions.keys())
+            i = 0
+            while i < len(keys):
+                off = positions[keys[i]]
+                if off == 0:
+                    while i < len(keys) and positions[keys[i]] == 0:
+                        i += 1
+                    start = i
+                    while i < len(keys) and positions[keys[i]] != 0:
+                        i += 1
+                    stream.write(pdf.b_("%d %d \n" % (keys[start], i - start)))
+                    i = start
+                    continue
+                else:
+                    stream.write(pdf.b_("%010d %05d n \n" % (off, 0)))
+                i += 1
+
+            # trailer
+            stream.write(pdf.b_("trailer\n"))
+            trailer.writeToStream(stream, None)
+        else:
+
+            def pack(offset):
+                return struct.pack(">q", offset)
+
+            dataindex = ["0 1"]
+            dataxref = [b"\x00" + pack(0)]
+            keys = sorted(positions.keys())
+            i = 0
+            while i < len(keys):
+                off = positions[keys[i]]
+                if off != 0:
+                    start = i
+                    while i < len(keys) and positions[keys[i]] != 0:
+                        dataxref.append(b"\x01" + pack(positions[keys[i]]))
+                        i += 1
+                    stop = i
+                    dataindex.append("%d %d" % (keys[start], stop - start))
+                else:
+                    i += 1
+            dataindex = " ".join(dataindex)
+            dataxref = b"".join(dataxref)
+            trailer[po.NameObject("/Type")] = po.NameObject("/XRef")
+            trailer[po.NameObject("/W")] = po.NameObject("[1 8 0]")
+            trailer[po.NameObject("/Index")] = po.NameObject("[%s]" % dataindex)
+            # reftype, offset, generation
+            trailer._data = dataxref
+            retval = trailer.flateEncode()
+            trailer.update(retval)
+            trailer._data = retval._data
+            stream.write(pdf.b_("%d 0 obj\n" % (len(self._objects))))
+            trailer.writeToStream(stream, None)
+            stream.write(pdf.b_("\nendobj"))
 
         # eof
         stream.write(pdf.b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
@@ -168,7 +207,7 @@ class Main(pdf.PdfFileWriter):
             dct[k] = v
         return dct
 
-    def makepdf(self, prev, zeros):
+    def makepdf(self, prev, algomd, zeros):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].getObject()
@@ -181,33 +220,11 @@ class Main(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
-        obj10 = po.DictionaryObject()
-        obj10ref = self._addObject(obj10)
-        obj11 = po.DictionaryObject()
-        obj11ref = self._addObject(obj11)
-        obj12 = po.DictionaryObject()
-        obj12ref = self._addObject(obj12)
         obj13 = po.DictionaryObject()
         obj13ref = self._addObject(obj13)
-        obj14 = po.DictionaryObject()
-        obj14ref = self._addObject(obj14)
+        obj12 = po.DictionaryObject()
+        obj12ref = self._addObject(obj12)
 
-        obj14.update({po.NameObject("/DocMDP"): obj12ref})
-        obj10.update(
-            {
-                po.NameObject("/Type"): po.NameObject("/TransformParams"),
-                po.NameObject("/P"): po.NumberObject(2),
-                po.NameObject("/V"): po.NameObject("/1.2"),
-            }
-        )
-        obj11.update(
-            {
-                po.NameObject("/Type"): po.NameObject("/SigRef"),
-                po.NameObject("/TransformMethod"): po.NameObject("/DocMDP"),
-                po.NameObject("/DigestMethod"): po.NameObject("/SHA1"),
-                po.NameObject("/TransformParams"): obj10ref,
-            }
-        )
         obj12.update(
             {
                 po.NameObject("/Type"): po.NameObject("/Sig"),
@@ -217,7 +234,6 @@ class Main(pdf.PdfFileWriter):
                 po.NameObject("/Location"): EncodedString("Los Angeles, CA"),
                 po.NameObject("/Reason"): EncodedString("Testing"),
                 po.NameObject("/M"): EncodedString("D:20200317214832+01'00'"),
-                po.NameObject("/Reference"): po.ArrayObject([obj11ref]),
                 po.NameObject("/Contents"): UnencryptedBytes(zeros),
                 po.NameObject("/ByteRange"): po.ArrayObject(
                     [
@@ -248,13 +264,7 @@ class Main(pdf.PdfFileWriter):
                 ),
             }
         )
-        obj = po.DictionaryObject()
-        obj.update(
-            {
-                po.NameObject("/Fields"): po.ArrayObject([obj13ref]),
-                po.NameObject("/SigFlags"): po.NumberObject(3),
-            }
-        )
+
         if self.annottext:
             from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
             from endesive.pdf.PyPDF2_annotate.annotations.image import Image
@@ -301,21 +311,62 @@ class Main(pdf.PdfFileWriter):
                     po.NameObject("/AP"): objap,
                 }
             )
-            page0 = page0ref.getObject()
-            annots = po.ArrayObject([obj13ref])
-            # if False and pdf.PdfName("Annots") in page0:
-            if "/Annots" in page0:
-                page0annots = page0["/Annots"]
-                if isinstance(page0annots, po.IndirectObject):
-                    annots.insert(0, page0annots)
-                elif isinstance(page0annots, po.ArrayObject):
-                    annots = page0annots
-                    annots.append(obj13ref)
-            page0.update({po.NameObject("/Annots"): annots})
-            self._objects[page0ref.idnum - 1] = page0
-        catalog.update(
-            {po.NameObject("/Perms"): obj14ref, po.NameObject("/AcroForm"): obj}
-        )
+
+        if "/Perms" not in catalog:
+            obj10 = po.DictionaryObject()
+            obj10ref = self._addObject(obj10)
+            obj11 = po.DictionaryObject()
+            obj11ref = self._addObject(obj11)
+            obj14 = po.DictionaryObject()
+            obj14ref = self._addObject(obj14)
+            obj14.update({po.NameObject("/DocMDP"): obj12ref})
+            obj10.update(
+                {
+                    po.NameObject("/Type"): po.NameObject("/TransformParams"),
+                    po.NameObject("/P"): po.NumberObject(2),
+                    po.NameObject("/V"): po.NameObject("/1.2"),
+                }
+            )
+            obj11.update(
+                {
+                    po.NameObject("/Type"): po.NameObject("/SigRef"),
+                    po.NameObject("/TransformMethod"): po.NameObject("/DocMDP"),
+                    po.NameObject("/DigestMethod"): po.NameObject("/" + algomd.upper()),
+                    po.NameObject("/TransformParams"): obj10ref,
+                }
+            )
+            obj12[po.NameObject("/Reference")] = po.ArrayObject([obj11ref])
+            catalog[po.NameObject("/Perms")] = obj14ref
+
+        if "/AcroForm" in catalog:
+            formref = catalog.raw_get("/AcroForm")
+            form = catalog["/AcroForm"].getObject()
+            if "/Fields" in form:
+                fields = form["/Fields"]
+            else:
+                fields = po.ArrayObject()
+            fields.append(obj13ref)
+            form.update(
+                {
+                    po.NameObject("/Fields"): fields,
+                    po.NameObject("/SigFlags"): po.NumberObject(3),
+                }
+            )
+            self._objects[formref.idnum - 1] = form
+            form = formref
+        else:
+            form = po.DictionaryObject()
+            form.update(
+                {
+                    po.NameObject("/Fields"): po.ArrayObject([obj13ref]),
+                    po.NameObject("/SigFlags"): po.NumberObject(3),
+                }
+            )
+        catalog[po.NameObject("/AcroForm")] = form
+
+        if "/Metadata" in catalog:
+            catalog[po.NameObject("/Metadata")] = catalog.raw_get("/Metadata")
+
         self._objects[self.x_root.idnum - 1] = catalog
         self.x_root = po.IndirectObject(self.x_root.idnum, 0, self)
 
@@ -332,21 +383,9 @@ class Main(pdf.PdfFileWriter):
         return contents
 
     def main(self, fname, password):
-        algomd = "sha1"
-        aligned = False
-
-        if aligned:
-            zeros = b"0" * 37888
-        else:
-            md = getattr(hashlib, algomd)().digest()
-            contents = self.sign(md, algomd)
-            zeros = contents.hex().encode("utf-8")
-
         with open(fname, "rb") as fi:
             datau = fi.read()
         startdata = len(datau)
-        startprev = datau.rfind(b"\nstartxref\n")
-        startprev = datau.rfind(b"\nxref\n", 0, startprev) + 1
 
         fi = io.BytesIO(datau)
 
@@ -355,7 +394,32 @@ class Main(pdf.PdfFileWriter):
             rc = prev.decrypt(password)
         else:
             rc = 0
-        self.makepdf(prev, zeros)
+
+        algomd = "sha1"
+        aligned = False
+
+        obj = prev.trailer
+        for k in ("/Root", "/Perms", "/DocMDP", "/Reference"):
+            if k in obj:
+                obj = obj[k]
+                if isinstance(obj, po.ArrayObject):
+                    obj = obj[0]
+                obj = obj.getObject()
+            else:
+                obj = None
+                break
+        if obj is not None:
+            algomd = obj["/DigestMethod"][1:].lower()
+
+        if aligned:
+            zeros = b"0" * 37888
+        else:
+            md = getattr(hashlib, algomd)().digest()
+            contents = self.sign(md, algomd)
+            zeros = contents.hex().encode("utf-8")
+
+        self.makepdf(prev, algomd, zeros)
+
         if prev.isEncrypted:
             self.encrypt(prev, password, rc)
         else:
@@ -375,7 +439,7 @@ class Main(pdf.PdfFileWriter):
         )
 
         fo = io.BytesIO()
-        self.write(fo, prev, startdata, startprev)
+        self.write(fo, prev, startdata)
         datas = fo.getvalue()
 
         br = [0, 0, 0, 0]
