@@ -236,7 +236,6 @@ class Main(pdf.PdfFileWriter):
         if self.annottext:
             from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
             from endesive.pdf.PyPDF2_annotate.annotations.image import Image
-            from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
             from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
             from endesive.pdf.PyPDF2_annotate.config.location import Location
             from endesive.pdf.PyPDF2_annotate.util.geometry import identity
