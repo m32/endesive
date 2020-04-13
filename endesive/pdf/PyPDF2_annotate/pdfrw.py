@@ -1,4 +1,4 @@
-from PyPDF2 import generic as pdf
+from endesive.pdf.PyPDF2 import generic as pdf
 
 
 def makeObject(obj):

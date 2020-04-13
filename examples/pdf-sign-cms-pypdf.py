@@ -10,8 +10,8 @@ import codecs
 import struct
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
-from PyPDF2 import pdf, generic as po
 from endesive import signer
+from endesive.pdf.PyPDF2 import pdf, generic as po
 
 
 def EncodedString(s):
@@ -57,33 +57,6 @@ class Main(pdf.PdfFileWriter):
         self._encrypt_key = key
 
     def write(self, stream, prev, startdata):
-
-        externalReferenceMap = {}
-
-        # PDF objects sometimes have circular references to their /Page objects
-        # inside their object tree (for example, annotations).  Those will be
-        # indirect references to objects that we've recreated in this PDF.  To
-        # address this problem, PageObject's store their original object
-        # reference number, and we add it to the external reference map before
-        # we sweep for indirect references.  This forces self-page-referencing
-        # trees to reference the correct new object location, rather than
-        # copying in a new copy of the page object.
-        for objIndex in range(len(self._objects)):
-            obj = self._objects[objIndex]
-            if isinstance(obj, pdf.PageObject) and obj.indirectRef != None:
-                data = obj.indirectRef
-                if data.pdf not in externalReferenceMap:
-                    externalReferenceMap[data.pdf] = {}
-                if data.generation not in externalReferenceMap[data.pdf]:
-                    externalReferenceMap[data.pdf][data.generation] = {}
-                externalReferenceMap[data.pdf][data.generation][
-                    data.idnum
-                ] = po.IndirectObject(objIndex + 1, 0, self)
-
-        self.stack = []
-        self._sweepIndirectReferences(externalReferenceMap, self._root)
-        del self.stack
-
         stream.write(pdf.b_("\r\n"))
         positions = {2: 0}
         for i in range(2, len(self._objects)):
@@ -172,7 +145,6 @@ class Main(pdf.PdfFileWriter):
             trailer[po.NameObject("/Type")] = po.NameObject("/XRef")
             trailer[po.NameObject("/W")] = po.NameObject("[1 8 0]")
             trailer[po.NameObject("/Index")] = po.NameObject("[%s]" % dataindex)
-            # reftype, offset, generation
             trailer._data = dataxref
             retval = trailer.flateEncode()
             trailer.update(retval)
@@ -212,10 +184,6 @@ class Main(pdf.PdfFileWriter):
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].getObject()
         page0ref = pages["/Kids"][0]
-        pages = catalog.raw_get("/Pages")
-
-        self.x_info = prev.trailer.raw_get("/Info")
-        self.x_root = prev.trailer.raw_get("/Root")
 
         while len(self._objects) < size - 1:
             self._objects.append(None)
@@ -312,6 +280,18 @@ class Main(pdf.PdfFileWriter):
                 }
             )
 
+            page0 = page0ref.getObject()
+            annots = po.ArrayObject([obj13ref])
+            if "/Annots" in page0:
+                page0annots = page0["/Annots"]
+                if isinstance(page0annots, po.IndirectObject):
+                    annots.insert(0, page0annots)
+                elif isinstance(page0annots, po.ArrayObject):
+                    annots = page0annots
+                    annots.append(obj13ref)
+            page0.update({po.NameObject("/Annots"): annots})
+            self._objects[page0ref.idnum - 1] = page0
+
         if "/Perms" not in catalog:
             obj10 = po.DictionaryObject()
             obj10ref = self._addObject(obj10)
@@ -339,7 +319,6 @@ class Main(pdf.PdfFileWriter):
             catalog[po.NameObject("/Perms")] = obj14ref
 
         if "/AcroForm" in catalog:
-            formref = catalog.raw_get("/AcroForm")
             form = catalog["/AcroForm"].getObject()
             if "/Fields" in form:
                 fields = form["/Fields"]
@@ -352,8 +331,10 @@ class Main(pdf.PdfFileWriter):
                     po.NameObject("/SigFlags"): po.NumberObject(3),
                 }
             )
-            self._objects[formref.idnum - 1] = form
-            form = formref
+            formref = catalog.raw_get("/AcroForm")
+            if isinstance(formref, po.IndirectObject):
+                self._objects[formref.idnum - 1] = form
+                form = formref
         else:
             form = po.DictionaryObject()
             form.update(
@@ -367,8 +348,10 @@ class Main(pdf.PdfFileWriter):
         if "/Metadata" in catalog:
             catalog[po.NameObject("/Metadata")] = catalog.raw_get("/Metadata")
 
-        self._objects[self.x_root.idnum - 1] = catalog
-        self.x_root = po.IndirectObject(self.x_root.idnum, 0, self)
+        x_root = prev.trailer.raw_get("/Root")
+        self._objects[x_root.idnum - 1] = catalog
+        self.x_root = po.IndirectObject(x_root.idnum, 0, self)
+        self.x_info = prev.trailer.raw_get("/Info")
 
     def sign(self, md, algomd):
         tspurl = "http://public-qlts.certum.pl/qts-17"
