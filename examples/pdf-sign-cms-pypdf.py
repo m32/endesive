@@ -480,8 +480,8 @@ def main():
         cls = Main()
         cls.main("pdf.pdf", "")
 
-#        cls = Main()
-#        cls.main("pdf-encrypted.pdf", "1234")
+        cls = Main()
+        cls.main("pdf-encrypted.pdf", "1234")
 
 
 main()
