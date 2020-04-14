@@ -34,13 +34,15 @@ class PdfDict(pdf.DictionaryObject):
             self[k] = v
 
     def __setitem__(self, k, v):
-        if not isinstance(k, pdf.NameObject) and k != "stream":
+        if k == "stream":
+            if isinstance(v, str):
+                v = v.encode()
+            self.stream = v
+            return
+        if not isinstance(k, pdf.NameObject):
             k = PdfName(k)
         v = makeObject(v)
-        if k == "stream":
-            self.stream = v
-        else:
-            super(PdfDict, self).__setitem__(k, v)
+        super(PdfDict, self).__setitem__(k, v)
 
 
 class IndirectPdfDict(PdfDict):
