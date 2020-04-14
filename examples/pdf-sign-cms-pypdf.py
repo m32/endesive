@@ -36,7 +36,7 @@ class WNumberObject(po.NumberObject):
 
 class Main(pdf.PdfFileWriter):
     annottext = True
-    annotbutton = False
+    annotbutton = True
 
     def encrypt(self, prev, password, rc):
         encrypt = prev.trailer["/Encrypt"].getObject()
@@ -159,17 +159,14 @@ class Main(pdf.PdfFileWriter):
     def _extend(self, obj):
         stream = getattr(obj, "stream", None)
         if stream is not None:
-            dct = pdf.StreamObject()
-            dct._data = stream.encode()
+            d = {"__streamdata__": stream, "/Length": len(stream)}
+            d.update(obj)
+            dct = pdf.StreamObject.initializeFromDictionary(d)
         else:
             dct = pdf.DictionaryObject()
         for k, v in obj.items():
             if isinstance(v, pdf.DictionaryObject):
-                try:
-                    indirect = v.indirect
-                except AttributeError:
-                    indirect = False
-                if not indirect:
+                if v.indirect:
                     v = self._extend(v)
                     v = self._addObject(v)
                 else:
@@ -240,26 +237,43 @@ class Main(pdf.PdfFileWriter):
             from endesive.pdf.PyPDF2_annotate.config.location import Location
             from endesive.pdf.PyPDF2_annotate.util.geometry import identity
 
-            annotation = "User signature text"
+            annotationtext = None
+            #annotationtext = "User signature text"
             x1, y1, x2, y2 = (470, 0, 570, 100)
-            annotation = FreeText(
-                Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-                Appearance(
-                    fill=[0, 0, 0],
-                    stroke_width=1,
-                    wrap_text=True,
-                    font_size=12,
-                    content=annotation,
-                ),
-            )
+            if annotationtext is not None:
+                annotation = FreeText(
+                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+                    Appearance(
+                        fill=[0, 0, 0],
+                        stroke_width=1,
+                        wrap_text=True,
+                        font_size=12,
+                        content=annotationtext,
+                    ),
+                )
+                names = ("BS", "C", "Contents", "DA")
+                if not self.annotbutton:
+                    obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
+            else:
+                from PIL import Image as PILImage
+
+                image = PILImage.open("signature_test.png")
+                ap = Appearance()
+                ap.image = image
+                annotation = Image(Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), ap)
+                if not self.annotbutton:
+                    names = (
+                        #
+                        "Subtype",
+                    )
+                else:
+                    names = ()
+
             pdfa = annotation.as_pdf_object(identity(), page=page0ref)
             objapn = self._extend(pdfa["/AP"]["/N"])
             objapnref = self._addObject(objapn)
-            for name in (
-                "BS",
-                "C",
-                "Contents",
-                "DA",
+
+            for name in names + (
                 "Rect",
                 # "Subtype",
             ):
@@ -267,15 +281,12 @@ class Main(pdf.PdfFileWriter):
                 v = pdfa[key]
                 obj13[key] = v
 
-            if not self.annotbutton:
-                obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
-
             objap = po.DictionaryObject()
             objap[po.NameObject("/N")] = objapnref
             obj13.update(
                 {
-                    po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
                     po.NameObject("/AP"): objap,
+                    po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
                 }
             )
 
@@ -469,8 +480,8 @@ def main():
         cls = Main()
         cls.main("pdf.pdf", "")
 
-        cls = Main()
-        cls.main("pdf-encrypted.pdf", "1234")
+#        cls = Main()
+#        cls.main("pdf-encrypted.pdf", "1234")
 
 
 main()
