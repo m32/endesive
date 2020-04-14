@@ -14,7 +14,7 @@ from io import BytesIO
 from PIL import Image as PILImage
 from PIL.ImageFile import ImageFile
 
-from ..pdfrw import PdfDict, PdfName
+from ..pdfrw import PdfDict, PdfName, IndirectPdfDict
 
 from .rect import RectAnnotation
 from ..config.appearance import set_appearance_state
@@ -60,7 +60,7 @@ class Image(RectAnnotation):
     _image_xobject = None  # PdfDict of Image XObject
 
     def add_additional_resources(self, resources):
-        resources[PdfName("XObject")] = PdfDict(Image=self.image_xobject)
+        resources[PdfName("XObject")] = IndirectPdfDict(Image=self.image_xobject)
 
     def add_additional_pdf_object_data(self, obj):
         obj[PdfName("Image")] = self.image_xobject
@@ -112,7 +112,7 @@ class Image(RectAnnotation):
                 "PNG, JPEG, and GIF".format(image.format)
             )
 
-        xobj = PdfDict(
+        xobj = IndirectPdfDict(
             stream=content,
             BitsPerComponent=8,
             Filter=PdfName(filter_type),
@@ -123,7 +123,7 @@ class Image(RectAnnotation):
             Type=PdfName("XObject"),
         )
         if smask_xobj is not None:
-            xobj.SMask = smask_xobj
+            xobj[PdfName("SMask")] = smask_xobj
         return xobj
 
     @staticmethod
@@ -154,7 +154,7 @@ class Image(RectAnnotation):
     def get_png_smask(image):
         width, height = image.size
         smask = Image.make_compressed_image_content(image.getchannel("A"))
-        smask_xobj = PdfDict(
+        smask_xobj = IndirectPdfDict(
             stream=smask,
             Width=width,
             Height=height,
@@ -164,7 +164,6 @@ class Image(RectAnnotation):
             Subtype=PdfName("Image"),
             Type=PdfName("XObject"),
         )
-        smask_xobj.indirect = True
         return smask_xobj
 
     @staticmethod
@@ -188,7 +187,7 @@ class Image(RectAnnotation):
     @staticmethod
     def make_compressed_image_content(image):
         compressed = zlib.compress(Image.get_raw_image_bytes(image))
-        return Image.get_decoded_bytes(compressed)
+        return compressed
 
     @staticmethod
     def make_jpeg_image_content(image):
@@ -199,7 +198,7 @@ class Image(RectAnnotation):
         # special wrapper around PILImage that preserves the original bytes so
         # we can just use those for JPEGs. TODO.
         image.save(file_obj, format="JPEG")
-        return Image.get_decoded_bytes(file_obj.getvalue())
+        return file_obj.getvalue()
 
     @staticmethod
     def get_decoded_bytes(content):
