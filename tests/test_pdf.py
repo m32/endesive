@@ -18,11 +18,11 @@ def fixture(fname):
 class PDFTests(unittest.TestCase):
     def test_pdf(self):
         dct = {
-            b'sigflags': 3,
-            b'contact': b'mak@trisoft.com.pl',
-            b'location': b'Szczecin',
-            b'signingdate': b'20180731082642+02\'00\'',
-            b'reason': b'Dokument podpisany cyfrowo',
+            'sigflags': 3,
+            'contact': 'mak@trisoft.com.pl',
+            'location': 'Szczecin',
+            'signingdate': '20180731082642+02\'00\'',
+            'reason': 'Dokument podpisany cyfrowo',
         }
         with open(fixture('demo2_user1.p12'), 'rb') as fp:
             p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())

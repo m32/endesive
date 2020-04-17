@@ -11,18 +11,22 @@ from endesive import pdf
 
 def main():
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
-    date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
+    date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
     dct = {
-        b'sigflags': 3,
-        # b'sigpage': 0,
-        b'sigbutton': True,
-        b'signature_img': b'signature_test.png',
-        b'contact': b'mak@trisoft.com.pl',
-        b'location': b'Szczecin',
-        b'signingdate': date.encode(),
-        b'reason': b'Dokument podpisany cyfrowo',
-        b'signature': b'Dokument podpisany cyfrowo',
-        b'signaturebox': (470, 0, 570, 100),
+        'aligned': 0,
+        'sigflags': 3,
+        'sigflagsft': 132,
+        'sigpage': 1,
+        'sigbutton': True,
+        'sigfield': 'Signature2',
+        'signaturebox': (470, 0, 570, 100),
+        'signature': 'Dokument podpisany cyfrowo',
+        'signature_img': 'signature_test.png',
+        'contact': 'mak@trisoft.com.pl',
+        'location': 'Szczecin',
+        'signingdate': date,
+        'reason': 'Dokument podpisany cyfrowo ąćęłńóśżź',
+        'password': '1234',
     }
     with open('demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
