@@ -43,9 +43,9 @@ the top distribution directory for the full license text.
 * Python 3.*
 * `cryptography`_
 * `asn1crypto`_
-* `pdfminer.six`_
 * `lxml`_
 * `pykcs11`_
+* `Pillow`_
 
 
 Examples
@@ -115,9 +115,9 @@ Tools
 .. _cryptography: https://github.com/pyca/cryptography
 .. _asn1crypto: https://github.com/wbond/asn1crypto
 .. _pyfpdf: https://github.com/reingart/pyfpdf
-.. _pdfminer.six: https://pypi.org/project/pdfminer.six/
 .. _lxml: https://pypi.org/project/lxml/
 .. _pykcs11: https://pypi.org/project/pykcs11/
+.. _Pillow: https://pypi.org/project/Pillow/
 .. _pdfvalidator: https://www.pdf-online.com/osa/validate.aspx
 .. _verapdf: https://demo.verapdf.org/
 .. _pdfbox: https://pdfbox.apache.org/
