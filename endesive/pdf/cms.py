@@ -471,7 +471,7 @@ def sign(datau, udct, key, cert, othercerts, algomd='sha1', hsm=None, timestampu
                                             must be equal or greather than hex representation of signature
                                             probably 16384 will be sufficient ....
             sigflags: int               default:3 1,2,3 - flags for acroform
-            sigflagsft: int             default:132 - flags for annotation widget
+            sigflagsft: int             default:132 - flags for annotation widget from pdf 12.5.3
             sigpage: int                default:0 - page on which signature should appear
             sigbutton: bool             default:False
             sigfield: string            default:Signature1
