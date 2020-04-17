@@ -254,11 +254,8 @@ class SignedData(pdf.PdfFileWriter):
                 if not udct.get('sigbutton', False):
                     obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
             else:
-                from PIL import Image as PILImage
-
-                image = PILImage.open(udct['signature_img'])
                 ap = Appearance()
-                ap.image = image
+                ap.image = udct['signature_img']
                 annotation = Image(Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), ap)
                 if not udct.get('sigbutton', False):
                     names = (
@@ -464,6 +461,41 @@ class SignedData(pdf.PdfFileWriter):
         return datas
 
 
-def sign(datau, udct, key, cert, othercerts, algomd, hsm=None, timestampurl=None):
+def sign(datau, udct, key, cert, othercerts, algomd='sha1', hsm=None, timestampurl=None):
+    '''
+    parameters:
+        datau: pdf bytes being signed
+        udct: dictionary with sining parameters
+            aligned: int                if 0 then precompute size of signature, but first fake data will be signed
+                                        !=0 number of hexbytes (00) reserved for signature,
+                                            must be equal or greather than hex representation of signature
+                                            probably 16384 will be sufficient ....
+            sigflags: int               default:3 1,2,3 - flags for acroform
+            sigflagsft: int             default:132 - flags for annotation widget
+            sigpage: int                default:0 - page on which signature should appear
+            sigbutton: bool             default:False
+            sigfield: string            default:Signature1
+            signaturebox: box|None      default:None - where to put signature image/string on selected page
+            signature: string                   if box is not None then it should be latin1 encodable string
+            signature_img: string|pil_image     if box is not None and string is None then it should be
+                                                    pil image instance or
+                                                    image file name or
+                                                    byte array of image
+            contact: string             required info about the person signing the document
+            location:string             required info about location of the person signing the document
+            signingdate: string         required info about signing time eg: now.strftime('D:%Y%m%d%H%M%S+00\'00\'')
+            reason: string              required info about reason for signing the document
+            password: string            required if the document is password protected, signing it also requires that password
+        key: cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey - private key used to sign the document
+        cert: cryptography.x509.Certificate - certificate associated with the key
+        othercerts: list of cryptography.x509.Certificate to be saved with the signed document,
+            e.g.: a list of intermediate certificates used to confirm the authenticity of the certificate used in the signature
+        algomd:string                   default: sha1 - name of the hashing algorithm used to calculate
+                                            the hash of the document being signed e.g.: sha1, sha256, sha384, sha512, ripemd160
+        hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
+        timestamputl: timestamp server URL or None
+
+    returns: bytes ready for writing after unsigned pdf document containing its electronic signature
+    '''
     cls = SignedData()
     return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm, timestampurl)
