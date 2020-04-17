@@ -75,13 +75,13 @@ def main():
     tspurl = "http://time.certum.pl"
     tspurl = "http://public-qlts.certum.pl/qts-17"
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
-    date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
+    date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
     dct = {
-        b'sigflags': 3,
-        b'contact': b'mak@trisoft.com.pl',
-        b'location': b'Szczecin',
-        b'signingdate': date.encode(),
-        b'reason': b'Dokument podpisany cyfrowo',
+        'sigflags': 3,
+        'contact': 'mak@trisoft.com.pl',
+        'location': 'Szczecin',
+        'signingdate': date.encode(),
+        'reason': 'Dokument podpisany cyfrowo',
     }
     clshsm = Signer(dllpath)
     fname = 'pdf.pdf'
