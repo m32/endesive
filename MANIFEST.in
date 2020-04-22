@@ -1,0 +1,4 @@
+include LICENSE.pyfpdf
+include LICENSE.pypdf2
+include LICENSE.pdf-annotate
+include changelog.md
