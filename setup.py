@@ -38,6 +38,6 @@ setup(
     packages=find_packages(exclude=['examples', 'tests']),
     include_package_data=True,
     platforms=["all"],
-    install_requires=['cryptography', 'asn1crypto', 'oscrypto', 'lxml', 'pykcs11', 'Pillow', 'pytz', 'requests','paramiko', 'pyopenssl'],
+    install_requires=['cryptography', 'asn1crypto', 'oscrypto', 'lxml', 'pykcs11', 'Pillow', 'pytz', 'requests','paramiko', 'pyopenssl', 'attrs', 'fonttools'],
     test_suite="tests",
 )
