@@ -160,7 +160,7 @@ class SignedData(pdf.PdfFileWriter):
             d = {"__streamdata__": stream, "/Length": len(stream)}
             d.update(obj)
             dct = pdf.StreamObject.initializeFromDictionary(d)
-            if "/Filter" in obj:
+            if "/Filter" in obj and obj["/Filter"] == "/FlatDecode":
                 del dct["/Filter"]
                 dct = dct.flateEncode()
         else:
