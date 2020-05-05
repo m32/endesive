@@ -1,5 +1,8 @@
 # changelog
 
+## 1.5.5
+ - stream compression improved, signatures in images work again
+
 ## 1.5.4
  - removed dependency on fonttools
  - added an internal class to support ttf
