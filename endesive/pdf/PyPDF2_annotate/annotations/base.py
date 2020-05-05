@@ -7,7 +7,7 @@
     :copyright: Copyright 2019 Autodesk, Inc.
     :license: MIT, see LICENSE for details.
 """
-from ..pdfrw import PdfDict, PdfName
+from ..pdfrw import PdfDict, PdfArray, PdfName, IndirectPdfDict
 
 from ..config.constants import GRAPHICS_STATE_NAME
 from ..config.metadata import serialize_value
@@ -15,7 +15,7 @@ from ..util.geometry import transform_rect
 from ..util.geometry import translate
 
 
-ALL_VERSIONS = ('1.3', '1.4', '1.5', '1.6', '1.7')
+ALL_VERSIONS = ("1.3", "1.4", "1.5", "1.6", "1.7")
 
 
 class Annotation(object):
@@ -38,6 +38,7 @@ class Annotation(object):
     former allows Acrobat or BB to regenerate the appearance stream during
     editing.
     """
+
     versions = ALL_VERSIONS
 
     def __init__(self, location, appearance, metadata=None):
@@ -60,13 +61,10 @@ class Annotation(object):
         :returns PdfDict: the annotation object to be inserted into the PDF
         """
         bounding_box = transform_rect(self.make_rect(), transform)
-        appearance_stream = self._make_appearance_stream_dict(
-            bounding_box,
-            transform,
-        )
+        appearance_stream = self._make_appearance_stream_dict(bounding_box, transform)
 
         obj = PdfDict(
-            Type=PdfName('Annot'),
+            Type=PdfName("Annot"),
             Subtype=PdfName(self.subtype),
             Rect=bounding_box,
             AP=appearance_stream,
@@ -99,7 +97,7 @@ class Annotation(object):
         Implement add_additional_resources to add additional entries -
         fonts, XObjects, graphics state - to the Resources dictionary.
         """
-        resources = PdfDict(ProcSet=PdfName('PDF'))
+        resources = IndirectPdfDict(ProcSet=PdfArray([PdfName("PDF")]))
         self._add_graphics_state_resources(resources, self._appearance)
         self._add_xobject_resources(resources, self._appearance)
         self._add_font_resources(resources, self._appearance)
@@ -109,7 +107,7 @@ class Annotation(object):
     @staticmethod
     def _add_font_resources(resources, A):
         if A.fonts:
-            resources.Font = PdfDict()
+            resources.Font = IndirectPdfDict()
             for font_name, font in A.fonts.items():
                 resources.Font[PdfName(font_name)] = font
 
@@ -120,7 +118,7 @@ class Annotation(object):
         appearance stream and they want to include, say, an image.
         """
         if A.xobjects:
-            resources.XObject = PdfDict()
+            resources.XObject = IndirectPdfDict()
             for xobject_name, xobject in A.xobjects.items():
                 resources.XObject[PdfName(xobject_name)] = xobject
 
@@ -161,7 +159,6 @@ class Annotation(object):
         return None
 
     def _make_appearance_stream_dict(self, bounding_box, transform):
-        resources = self._make_ap_resources()
 
         # Either use user-specified content stream or generate content stream
         # based on annotation type.
@@ -169,16 +166,18 @@ class Annotation(object):
         if stream is None:
             stream = self.make_appearance_stream()
 
+        resources = self._make_ap_resources()
+
         # Transform the appearance stream into PDF space and turn it into a str
         appearance_stream = stream.transform(transform).resolve()
 
-        normal_appearance = PdfDict(
+        normal_appearance = IndirectPdfDict(
             stream=appearance_stream,
             BBox=bounding_box,
             Resources=resources,
             Matrix=translate(-bounding_box[0], -bounding_box[1]),
-            Type=PdfName('XObject'),
-            Subtype=PdfName('Form'),
+            Type=PdfName("XObject"),
+            Subtype=PdfName("Form"),
             FormType=1,
         )
         return PdfDict(N=normal_appearance)
@@ -209,17 +208,13 @@ def make_border_dict(appearance):
 
 
 def _make_border_dict(width, style, dash_array=None):
-    border = PdfDict(
-        Type=PdfName('Border'),
-        W=width,
-        S=PdfName(style),
-    )
+    border = PdfDict(Type=PdfName("Border"), W=width, S=PdfName(style))
     if dash_array:
-        if style != 'D':
-            raise ValueError('Dash array only applies to dashed borders!')
+        if style != "D":
+            raise ValueError("Dash array only applies to dashed borders!")
         border.D = dash_array
     return border
 
 
 class Stamp(object):
-    subtype = 'Stamp'
+    subtype = "Stamp"

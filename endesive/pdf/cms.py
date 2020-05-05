@@ -35,7 +35,6 @@ class WNumberObject(po.NumberObject):
 
 
 class SignedData(pdf.PdfFileWriter):
-
     def encrypt(self, prev, password, rc):
         encrypt = prev.trailer["/Encrypt"].getObject()
         if encrypt["/V"] == 2:
@@ -157,10 +156,13 @@ class SignedData(pdf.PdfFileWriter):
     def _extend(self, obj):
         stream = getattr(obj, "stream", None)
         if stream is not None:
-            #stream = stream.encode("utf-16be")
+            # stream = stream.encode("utf-16be")
             d = {"__streamdata__": stream, "/Length": len(stream)}
             d.update(obj)
             dct = pdf.StreamObject.initializeFromDictionary(d)
+            if "/Filter" in obj:
+                del dct["/Filter"]
+                dct = dct.flateEncode()
         else:
             dct = pdf.DictionaryObject()
         for k, v in obj.items():
@@ -171,7 +173,16 @@ class SignedData(pdf.PdfFileWriter):
                 else:
                     v = self._extend(v)
             elif isinstance(v, list):
-                v = pdf.ArrayObject(v)
+                result = pdf.ArrayObject()
+                for va in v:
+                    if isinstance(va, pdf.DictionaryObject):
+                        if va.indirect:
+                            va = self._extend(va)
+                            va = self._addObject(va)
+                        else:
+                            va = self._extend(va)
+                    result.append(va)
+                v = result
             dct[k] = v
         return dct
 
@@ -179,7 +190,7 @@ class SignedData(pdf.PdfFileWriter):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].getObject()
-        page0ref = pages["/Kids"][udct.get('sigpage', 0)]
+        page0ref = pages["/Kids"][udct.get("sigpage", 0)]
 
         while len(self._objects) < size - 1:
             self._objects.append(None)
@@ -194,10 +205,10 @@ class SignedData(pdf.PdfFileWriter):
                 po.NameObject("/Type"): po.NameObject("/Sig"),
                 po.NameObject("/Filter"): po.NameObject("/Adobe.PPKLite"),
                 po.NameObject("/SubFilter"): po.NameObject("/adbe.pkcs7.detached"),
-                po.NameObject("/Name"): po.createStringObject(udct['contact']),
-                po.NameObject("/Location"): po.createStringObject(udct['location']),
-                po.NameObject("/Reason"): po.createStringObject(udct['reason']),
-                po.NameObject("/M"): po.createStringObject(udct['signingdate']),
+                po.NameObject("/Name"): po.createStringObject(udct["contact"]),
+                po.NameObject("/Location"): po.createStringObject(udct["location"]),
+                po.NameObject("/Reason"): po.createStringObject(udct["reason"]),
+                po.NameObject("/M"): po.createStringObject(udct["signingdate"]),
                 po.NameObject("/Contents"): UnencryptedBytes(zeros),
                 po.NameObject("/ByteRange"): po.ArrayObject(
                     [
@@ -214,8 +225,8 @@ class SignedData(pdf.PdfFileWriter):
                 po.NameObject("/FT"): po.NameObject("/Sig"),
                 po.NameObject("/Type"): po.NameObject("/Annot"),
                 po.NameObject("/Subtype"): po.NameObject("/Widget"),
-                po.NameObject("/F"): po.NumberObject(udct.get('sigflagsft', 132)),
-                po.NameObject("/T"): EncodedString(udct.get('sigfield', "Signature1")),
+                po.NameObject("/F"): po.NumberObject(udct.get("sigflagsft", 132)),
+                po.NameObject("/T"): EncodedString(udct.get("sigfield", "Signature1")),
                 po.NameObject("/V"): obj12ref,
                 po.NameObject("/P"): page0ref,
                 po.NameObject("/Rect"): po.ArrayObject(
@@ -229,7 +240,7 @@ class SignedData(pdf.PdfFileWriter):
             }
         )
 
-        box = udct.get('signaturebox', None)
+        box = udct.get("signaturebox", None)
         if box is not None:
             from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
             from endesive.pdf.PyPDF2_annotate.annotations.image import Image
@@ -237,7 +248,7 @@ class SignedData(pdf.PdfFileWriter):
             from endesive.pdf.PyPDF2_annotate.config.location import Location
             from endesive.pdf.PyPDF2_annotate.util.geometry import identity
 
-            annotationtext = udct.get('signature', None)
+            annotationtext = udct.get("signature", None)
             x1, y1, x2, y2 = box
             if annotationtext is not None:
                 annotation = FreeText(
@@ -251,13 +262,13 @@ class SignedData(pdf.PdfFileWriter):
                     ),
                 )
                 names = ("BS", "C", "Contents", "DA")
-                if not udct.get('sigbutton', False):
+                if not udct.get("sigbutton", False):
                     obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
             else:
                 ap = Appearance()
-                ap.image = udct['signature_img']
+                ap.image = udct["signature_img"]
                 annotation = Image(Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), ap)
-                if not udct.get('sigbutton', False):
+                if not udct.get("sigbutton", False):
                     names = (
                         #
                         "Subtype",
@@ -334,7 +345,9 @@ class SignedData(pdf.PdfFileWriter):
             form.update(
                 {
                     po.NameObject("/Fields"): fields,
-                    po.NameObject("/SigFlags"): po.NumberObject(udct.get('sigflags', 3)),
+                    po.NameObject("/SigFlags"): po.NumberObject(
+                        udct.get("sigflags", 3)
+                    ),
                 }
             )
             formref = catalog.raw_get("/AcroForm")
@@ -346,7 +359,9 @@ class SignedData(pdf.PdfFileWriter):
             form.update(
                 {
                     po.NameObject("/Fields"): po.ArrayObject([obj13ref]),
-                    po.NameObject("/SigFlags"): po.NumberObject(udct.get('sigflags', 3)),
+                    po.NameObject("/SigFlags"): po.NumberObject(
+                        udct.get("sigflags", 3)
+                    ),
                 }
             )
         catalog[po.NameObject("/AcroForm")] = form
@@ -367,7 +382,7 @@ class SignedData(pdf.PdfFileWriter):
         # read end decrypt
         prev = pdf.PdfFileReader(fi)
         if prev.isEncrypted:
-            rc = prev.decrypt(udct['password'])
+            rc = prev.decrypt(udct["password"])
         else:
             rc = 0
 
@@ -386,7 +401,7 @@ class SignedData(pdf.PdfFileWriter):
             algomd = obj["/DigestMethod"][1:].lower()
 
         # produce smaller signatures, but must be signed twice
-        aligned = udct.get('aligned', 0)
+        aligned = udct.get("aligned", 0)
         if aligned:
             zeros = b"00" * aligned
         else:
@@ -400,19 +415,21 @@ class SignedData(pdf.PdfFileWriter):
 
         # if document was encrypted, encrypt this version too
         if prev.isEncrypted:
-            self.encrypt(prev, udct['password'], rc)
+            self.encrypt(prev, udct["password"], rc)
         else:
             self._encrypt_key = None
 
         # ID[0] is used in password protection, must be unchanged
         ID = prev.trailer.get("/ID", None)
         if ID is None:
-            ID = po.ByteStringObject(hashlib.md5(repr(time.time()).encode()).digest())
+            ID = hashlib.md5(repr(time.time()).encode()).digest()
         else:
             ID = ID[0]
+            if isinstance(ID, str):
+                ID = ID.encode()
         self._ID = po.ArrayObject(
             [
-                ID,
+                po.ByteStringObject(ID),
                 po.ByteStringObject(
                     hashlib.md5(repr(random.random()).encode()).digest()
                 ),
@@ -461,8 +478,10 @@ class SignedData(pdf.PdfFileWriter):
         return datas
 
 
-def sign(datau, udct, key, cert, othercerts, algomd='sha1', hsm=None, timestampurl=None):
-    '''
+def sign(
+    datau, udct, key, cert, othercerts, algomd="sha1", hsm=None, timestampurl=None
+):
+    """
     parameters:
         datau: pdf bytes being signed
         udct: dictionary with sining parameters
@@ -496,6 +515,6 @@ def sign(datau, udct, key, cert, othercerts, algomd='sha1', hsm=None, timestampu
         timestamputl: timestamp server URL or None
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
-    '''
+    """
     cls = SignedData()
     return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm, timestampurl)

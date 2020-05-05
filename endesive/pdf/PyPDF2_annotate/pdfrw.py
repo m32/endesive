@@ -19,6 +19,7 @@ def makeObject(obj):
     if isinstance(obj, dict):
         result = PdfDict()
         for k, v in obj.items():
+            v = makeObject(v)
             result[k] = v
         return result
     raise ValueError("can`t convert to PdfObject")
@@ -36,7 +37,7 @@ class PdfDict(pdf.DictionaryObject):
     def __setitem__(self, k, v):
         if k == "stream":
             if isinstance(v, str):
-                v = v.encode()
+                v = v.encode("latin1")
             self.stream = v
             return
         if not isinstance(k, pdf.NameObject):
