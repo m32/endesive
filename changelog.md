@@ -1,5 +1,9 @@
 # changelog
 
+## 1.5.4
+ - removed dependency on fonttools
+ - added an internal class to support ttf
+
 ## 1.5.0
 
  - removed dependency on pdfminer.six - library does not allow saving password protected pdfs
