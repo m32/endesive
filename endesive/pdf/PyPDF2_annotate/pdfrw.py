@@ -22,7 +22,7 @@ def makeObject(obj):
             v = makeObject(v)
             result[k] = v
         return result
-    raise ValueError("can`t convert to PdfObject")
+    raise ValueError("can`t convert to PdfObject", obj)
 
 
 class PdfDict(pdf.DictionaryObject):
