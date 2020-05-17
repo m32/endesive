@@ -1,5 +1,8 @@
 # changelog
 
+## 1.5.6
+ - forgotten font compression
+
 ## 1.5.5
  - stream compression improved, signatures in images work again
 
