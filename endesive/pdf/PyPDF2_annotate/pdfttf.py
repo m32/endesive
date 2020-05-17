@@ -1,5 +1,6 @@
 import os
 import re
+import zlib
 
 from ..fpdf.ttfonts import TTFontFile
 from .pdfrw import PdfDict, PdfName, PdfString, PdfArray, IndirectPdfDict
@@ -120,6 +121,7 @@ class TTFFont:
         fontname = "MPDFAA" + "+" + font["name"]
         subset = font["subset"].difference(set([0]))
         ttfontstream = ttf.makeSubset(font["ttffile"], subset)
+        ttfontstream = zlib.compress(ttfontstream)
         codeToGlyph = ttf.codeToGlyph
         ##del codeToGlyph[0]
 
@@ -154,6 +156,7 @@ class TTFFont:
         cidtogidmap = "".join(cidtogidmap)
         # manage binary data as latin1 until PEP461-like function is implemented
         cidtogidmap = cidtogidmap.encode("latin1")
+        cidtogidmap = zlib.compress(cidtogidmap)
         CIDToGIDMap = IndirectPdfDict(stream=cidtogidmap, Filter=PdfName("FlateDecode"))
 
         # CIDFontType2
