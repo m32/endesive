@@ -55,8 +55,8 @@ class SignedData(pdf.PdfFileWriter):
 
     def write(self, stream, prev, startdata):
         stream.write(pdf.b_("\r\n"))
-        positions = {2: 0}
-        for i in range(2, len(self._objects)):
+        positions = {}
+        for i in range(len(self._objects)):
             idnum = i + 1
             obj = self._objects[i]
             if obj is None:
@@ -93,26 +93,26 @@ class SignedData(pdf.PdfFileWriter):
         )
         if prev.isEncrypted:
             trailer[po.NameObject("/Encrypt")] = prev.trailer.raw_get("/Encrypt")
+
         if not prev.xrefstream:
             stream.write(pdf.b_("xref\n"))
-            stream.write(pdf.b_("0 1\n"))
-            stream.write(pdf.b_("0000000000 65535 f \n"))
+            positions[0] = 1
             keys = sorted(positions.keys())
             i = 0
             while i < len(keys):
-                off = positions[keys[i]]
-                if off == 0:
-                    while i < len(keys) and positions[keys[i]] == 0:
-                        i += 1
-                    start = i
-                    while i < len(keys) and positions[keys[i]] != 0:
-                        i += 1
-                    stream.write(pdf.b_("%d %d \n" % (keys[start], i - start)))
-                    i = start
-                    continue
-                else:
-                    stream.write(pdf.b_("%010d %05d n \n" % (off, 0)))
-                i += 1
+                start = i
+                while i < len(keys) and positions[keys[i]] != 0:
+                    i += 1
+                stream.write(pdf.b_("%d %d \n" % (keys[start], i - start)))
+                i = start
+                while i < len(keys) and positions[keys[i]] != 0:
+                    if i == 0:
+                        stream.write(pdf.b_("0000000000 65535 f \n"))
+                    else:
+                        stream.write(pdf.b_("%010d %05d n \n" % (positions[keys[i]], 0)))
+                    i += 1
+                while i < len(keys) and positions[keys[i]] == 0:
+                    i += 1
 
             # trailer
             stream.write(pdf.b_("trailer\n"))
@@ -133,8 +133,7 @@ class SignedData(pdf.PdfFileWriter):
                     while i < len(keys) and positions[keys[i]] != 0:
                         dataxref.append(b"\x01" + pack(positions[keys[i]]))
                         i += 1
-                    stop = i
-                    dataindex.append("%d %d" % (keys[start], stop - start))
+                    dataindex.append("%d %d" % (keys[start], i - start))
                 else:
                     i += 1
             dataindex = " ".join(dataindex)
@@ -192,6 +191,7 @@ class SignedData(pdf.PdfFileWriter):
         pages = catalog["/Pages"].getObject()
         page0ref = pages["/Kids"][udct.get("sigpage", 0)]
 
+        self._objects = []
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
