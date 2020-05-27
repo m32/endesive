@@ -1,5 +1,8 @@
 # changelog
 
+## 1.5.7
+ - xref @1 was skipped when generating the uncompressed lookup table
+
 ## 1.5.6
  - forgotten font compression
 
