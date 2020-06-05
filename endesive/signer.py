@@ -191,6 +191,12 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
                 ]
                 datas['content']['signer_infos'][0]['unsigned_attrs'] = attrs
 
+            else:
+                raise ValueError("TimeStampResponse status is not granted")
+
+        else:
+            raise ValueError("TimeStampResponse has invalid content type")
+
     # signed_value_signature = core.OctetString(signed_value_signature)
     datas['content']['signer_infos'][0]['signature'] = signed_value_signature
 
