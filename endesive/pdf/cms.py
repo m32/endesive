@@ -309,7 +309,7 @@ class SignedData(pdf.PdfFileWriter):
             page0.update({po.NameObject("/Annots"): annots})
             self._objects[page0ref.idnum - 1] = page0
 
-        if "/Perms" not in catalog:
+        if udct.get("sigandcertify", False) and "/Perms" not in catalog:
             obj10 = po.DictionaryObject()
             obj10ref = self._addObject(obj10)
             obj11 = po.DictionaryObject()
@@ -494,6 +494,9 @@ def sign(
             sigpage: int                default:0 - page on which signature should appear
             sigbutton: bool             default:False
             sigfield: string            default:Signature1
+            sigandcertify: bool         default:False
+                                                False - sign only document
+                                                True  - sign and certify document
             signaturebox: box|None      default:None - where to put signature image/string on selected page
             signature: string                   if box is not None then it should be latin1 encodable string
             signature_img: string|pil_image     if box is not None and string is None then it should be
