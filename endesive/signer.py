@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import sys
 import hashlib
 import time
+from base64 import b64encode
 from datetime import datetime
 
 import requests
@@ -26,7 +27,7 @@ def cert2asn(cert, cert_bytes=True):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
 
-def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False, timestampurl=None):
+def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False, timestampurl=None, timestampcredentials=None):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
     signed_time = datetime.now(tz=util.timezone.utc)
@@ -173,6 +174,12 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
         tspreq = tspreq.dump()
 
         tspheaders = {"Content-Type": "application/timestamp-query"}
+        if timestampcredentials is not None:
+            username = timestampcredentials.get("username", None)
+            password = timestampcredentials.get("password", None)
+            if username and password:
+                auth_header_value = b64encode(bytes(username + ':' + password, "utf-8")).decode("ascii")
+                tspheaders["Authorization"] = f"Basic {auth_header_value}"
         tspresp = requests.post(timestampurl, data=tspreq, headers=tspheaders)
         if tspresp.headers.get('Content-Type', None) == 'application/timestamp-reply':
             tspresp = tsp.TimeStampResp.load(tspresp.content)

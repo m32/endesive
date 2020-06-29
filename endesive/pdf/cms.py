@@ -479,7 +479,7 @@ class SignedData(pdf.PdfFileWriter):
 
 
 def sign(
-    datau, udct, key, cert, othercerts, algomd="sha1", hsm=None, timestampurl=None
+    datau, udct, key, cert, othercerts, algomd="sha1", hsm=None, timestampurl=None, timestampcredentials=None
 ):
     """
     parameters:
@@ -515,7 +515,8 @@ def sign(
         algomd:string                   default: sha1 - name of the hashing algorithm used to calculate
                                             the hash of the document being signed e.g.: sha1, sha256, sha384, sha512, ripemd160
         hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
-        timestamputl: timestamp server URL or None
+        timestampurl: timestamp server URL or None
+        timestampcredentials:Dict username and password for authentication against timestamp server. Default: None
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
     """
