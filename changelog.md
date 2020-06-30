@@ -1,5 +1,8 @@
 # changelog
 
+## 1.5.10
+ - optional parameter timestampcredentials to sign
+
 ## 1.5.7
  - xref @1 was skipped when generating the uncompressed lookup table
 
