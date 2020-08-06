@@ -86,13 +86,16 @@ class SignedData(pdf.PdfFileWriter):
             {
                 po.NameObject("/Size"): po.NumberObject(len(self._objects) + 1),
                 po.NameObject("/Root"): self.x_root,
-                po.NameObject("/Info"): self.x_info,
                 po.NameObject("/Prev"): po.NumberObject(prev.startxref),
                 po.NameObject("/ID"): self._ID,
             }
         )
+
         if prev.isEncrypted:
             trailer[po.NameObject("/Encrypt")] = prev.trailer.raw_get("/Encrypt")
+
+        if self.x_info:
+            trailer[po.NameObject("/Info")] = self.x_info
 
         if not prev.xrefstream:
             stream.write(pdf.b_("xref\n"))
@@ -372,7 +375,7 @@ class SignedData(pdf.PdfFileWriter):
         x_root = prev.trailer.raw_get("/Root")
         self._objects[x_root.idnum - 1] = catalog
         self.x_root = po.IndirectObject(x_root.idnum, 0, self)
-        self.x_info = prev.trailer.raw_get("/Info")
+        self.x_info = prev.trailer.get("/Info")
 
     def sign(self, datau, udct, key, cert, othercerts, algomd, hsm, timestampurl, timestampcredentials=None):
         startdata = len(datau)
