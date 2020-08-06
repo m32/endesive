@@ -2,6 +2,7 @@ dist: xenial   # required for Python >= 3.7
 language: python
 python:
   - "3.6"
+  - "3.8"
 
 before_install:
   - sudo apt-get install -y python3-pip python3-lxml python3-setuptools python3-cffi
