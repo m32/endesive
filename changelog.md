@@ -1,5 +1,8 @@
 # changelog
 
+## 1.5.11
+ - Make /Info entry in trailer optional.
+
 ## 1.5.10
  - optional parameter timestampcredentials to sign
 
