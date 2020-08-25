@@ -323,7 +323,9 @@ class SignedData(pdf.PdfFileWriter):
             obj10.update(
                 {
                     po.NameObject("/Type"): po.NameObject("/TransformParams"),
-                    po.NameObject("/P"): po.NumberObject(2),
+                    po.NameObject("/P"): po.NumberObject(
+                        udct.get("sigflags", 3)
+                    ),
                     po.NameObject("/V"): po.NameObject("/1.2"),
                 }
             )
