@@ -1,5 +1,8 @@
 # changelog
 
+## 1.5.12
+ - Use sigflags within DocMDP for protecting PDFs.
+
 ## 1.5.11
  - Make /Info entry in trailer optional.
 
