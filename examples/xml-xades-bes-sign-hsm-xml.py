@@ -74,7 +74,7 @@ def main():
 
     data = open("xml.xml", "rb").read()
     cert = x509.load_der_x509_certificate(cert, backend=default_backend())
-    certcontent = cert.public_bytes(serialization.Encoding.PEM)
+    certcontent = cert.public_bytes(serialization.Encoding.DER)
 
     cls = xades.BES()
     doc = cls.build(
