@@ -12,16 +12,16 @@ def main():
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
-        b'sigflags': 3,
-        # b'sigpage': 0,
-        b'sigbutton': True,
-        b'signature_img': b'signature_test.png',
-        b'contact': b'mak@trisoft.com.pl',
-        b'location': b'Szczecin',
-        b'signingdate': date.encode(),
-        b'reason': b'Dokument podpisany cyfrowo',
-        b'signature': b'Dokument podpisany cyfrowo',
-        b'signaturebox': (470, 0, 570, 100),
+        'sigflags': 3,
+        # 'sigpage': 0,
+        'sigbutton': True,
+        'signature_img': 'signature_test.png',
+        'contact': 'mak@trisoft.com.pl',
+        'location': 'Szczecin',
+        'signingdate': date.encode(),
+        'reason': 'Dokument podpisany cyfrowo',
+        'signature': 'Dokument podpisany cyfrowo',
+        'signaturebox': (470, 0, 570, 100),
     }
     with open('demo2_user1.p12', 'rb') as f:
         key, cert, certe = keys.parse_pkcs12(f.read(), b'1234')

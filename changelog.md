@@ -1,5 +1,10 @@
 # changelog
 
+## 2.0.0
+ - XADES signing time info (XADES-T) from TSP provider
+ - XADES enveloping/enveloped format
+ - Added example for Google HSM
+
 ## 1.5.12
  - Use sigflags within DocMDP for protecting PDFs.
 

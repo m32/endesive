@@ -61,15 +61,15 @@ def main():
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
-        b'sigflags': 3,
-        b'sigpage': 0,
-        b'sigbutton': True,
-        b'contact': b'mak@trisoft.com.pl',
-        b'location': b'Szczecin',
-        b'signingdate': date.encode(),
-        b'reason': b'Dokument podpisany cyfrowo',
-        b'signature': b'Dokument podpisany cyfrowo',
-        b'signaturebox': (0, 0, 100, 100),
+        'sigflags': 3,
+        'sigpage': 0,
+        'sigbutton': True,
+        'contact': 'mak@trisoft.com.pl',
+        'location': 'Szczecin',
+        'signingdate': date.encode(),
+        'reason': 'Dokument podpisany cyfrowo',
+        'signature': 'Dokument podpisany cyfrowo',
+        'signaturebox': (0, 0, 100, 100),
     }
     clshsm = Signer(dllpath)
     fname = 'pdf.pdf'

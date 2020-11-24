@@ -1,1 +1,1 @@
-./pdf-sign-cms-pfx.py -d pdf-signed-cms-pfx.pdf ~/Dokumenty/m32/ssl/cert.pfx J4hHA7HxeZ87 pdf.pdf
+./pdf-sign-cms-pfx.py -d pdf-signed-cms-pfx.pdf ~/Dokumenty/m32/ssl/cert.pfx FHm6P1J92ZR9 pdf.pdf

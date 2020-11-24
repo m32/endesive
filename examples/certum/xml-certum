@@ -1,0 +1,5 @@
+#!/bin/bash
+/devel/bin/proCertumSmartSign-8.1.15/proCertumSmartSign.sh \
+$*
+#--configuration $1.config \
+#--sign $1 \

@@ -104,16 +104,16 @@ def run():
         date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
         signature = signature_string(names['CN'], date, names['C'])
         dct = {
-          b'sigflags': 3,
-          b'sigpage': page - 1,
-          b'contact': b'finacctind@endurance.com',
-          #b'location': subject.C.encode(),
-          b'location': b'Szczecin',
-          b'signingdate': date.encode(),
-          b'signingdate': b'20191122082642+02\'00\'',
-          b'reason': b'Signed by endurance',
-          b'signature': signature.encode(),
-          b'signaturebox': tuple(coords[:4]),
+            'sigflags': 3,
+            'sigpage': page - 1,
+            'contact': 'finacctind@endurance.com',
+            #'location': subject.C.encode(),
+            'location': 'Szczecin',
+            'signingdate': date,
+            'signingdate': '20201119195200+02\'00\'',
+            'reason': 'Signed by endurance',
+            'signature': signature,
+            'signaturebox': tuple(coords[:4]),
         }
 
         input_file = args.src

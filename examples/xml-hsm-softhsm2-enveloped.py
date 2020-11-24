@@ -77,19 +77,10 @@ def main():
     certcontent = cert.public_bytes(serialization.Encoding.DER)
 
     cls = xades.BES()
-    doc = cls.build(
-        "dokument.xml",
-        data,
-        "application/xml",
-        cert,
-        certcontent,
-        signproc,
-        False,
-        True,
-    )
-    data = etree.tostring(doc, encoding="UTF-8", xml_declaration=True, standalone=False)
+    doc = cls.enveloped(data, cert, certcontent, signproc, None, None)
 
-    open("xml-xades-bes-xml.xml", "wb").write(data)
+    data = etree.tostring(doc, encoding="UTF-8", xml_declaration=True, standalone=False)
+    open("xml-hsm-softhsm2-enveloped.xml", "wb").write(data)
 
 
 if __name__ == "__main__":

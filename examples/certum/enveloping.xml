@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="Signature_a75f9636-7e90-4224-ac06-11d3596b2f76_11"><ds:SignedInfo Id="SignedInfo_a75f9636-7e90-4224-ac06-11d3596b2f76_49"><ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference Id="Reference1_a75f9636-7e90-4224-ac06-11d3596b2f76_2f" URI="#Object1_a75f9636-7e90-4224-ac06-11d3596b2f76"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>Hu0jm34cGsI0O+z4YPy5a2q3gwEDsa0XxjjdnQfcOr4=</ds:DigestValue></ds:Reference><ds:Reference Id="SignedProperties-Reference_a75f9636-7e90-4224-ac06-11d3596b2f76_20" Type="http://uri.etsi.org/01903#SignedProperties" URI="#SignedProperties_a75f9636-7e90-4224-ac06-11d3596b2f76_46"><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>kL5NhTGi+ACI2nqHO1j0jskjmCxHfMctla3YPfieNRk=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue Id="SignatureValue_a75f9636-7e90-4224-ac06-11d3596b2f76_5a">OdmzU2pouhW+3sPv1F/rhf66XBnu1p7vb0W2a+tBQOBAiYq27PFqHcytAUxtQbqG
+X3sF2cj812TE8uPt1jatToNrP8Ow3OWYAllEyJ784agLf35Q+aAuNALBU7p4iz7y
+sSwLbCU7tSSVtfaEzC4fNkdWoVEFBVpvMbkI+ywZPPc2qBTZ4xFJDjKVpQ6tp2eQ
+y7N6CYViMNXLSoR/jgIwCbxDAGm2JmYOju6igyWD7Nq3BPTEoYmsLkmigSX7ELRI
+lXmb7H6VbL5YQbfitDj0QIfT4ZFHWhZ9jC6I/mrosS4zC+bAMuYNo+L4x/01vumR
+k7BfnNgxA8twXZ0e5g3iPA==</ds:SignatureValue><ds:KeyInfo Id="KeyInfo_a75f9636-7e90-4224-ac06-11d3596b2f76_2c"><ds:X509Data><ds:X509Certificate>MIIHeTCCBWGgAwIBAgIQP6Zj23WXXaawMu8t3MSN6DANBgkqhkiG9w0BAQsFADBl
+MQswCQYDVQQGEwJQTDEhMB8GA1UECgwYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEu
+MRgwFgYDVQQDDA9DZXJ0dW0gUUNBIDIwMTcxGTAXBgNVBGEMEFZBVFBMLTUxNzAz
+NTk0NTgwHhcNMTkwMjIxMDYwMDAwWhcNMjEwMjIwMDYwMDAwWjBpMRkwFwYDVQQD
+DBBEYXJpdXN6IE1hamV3c2tpMRAwDgYDVQQqDAdEYXJpdXN6MREwDwYDVQQEDAhN
+YWpld3NraTEaMBgGA1UEBRMRUE5PUEwtNjIwMjE2MDQ2MTYxCzAJBgNVBAYTAlBM
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzUt3RBeGDmhzz53Lzvcf
+zuT3dNiwZZrwPGVBfyXKjdHRrM0yegoegB/2z/5EJy7oMLB6X73BYElYJHINq6HH
+gFECckdombrEoyFyfCFEGp+6SkJS6KzICxTYrC/NcigAqC+LcoYJb3bdeRq12c8/
+KjF3aU1pfa+sFUSTKVEpCPOTHYLkH/j3/yP4b72smAH+FNkZqzws0CMWFK37CrRw
+fpap5rsSCWqa8mQD/kYjEoP4DWE9QBxa/f3ay5QgyLnQ6Wjb/+CiiaXgySmzeoTE
+JlaajOrJ/25K2H6EpIKMaCnWBJ7/Vvii9Pb1QIHBr5fJf68aNbQLtRctAfLsm7V2
+8QIDAQABo4IDHzCCAxswDAYDVR0TAQH/BAIwADA2BgNVHR8ELzAtMCugKaAnhiVo
+dHRwOi8vcWNhLmNybC5jZXJ0dW0ucGwvcWNhXzIwMTcuY3JsMHIGCCsGAQUFBwEB
+BGYwZDAsBggrBgEFBQcwAYYgaHR0cDovL3FjYS0yMDE3LnFvY3NwLWNlcnR1bS5j
+b20wNAYIKwYBBQUHMAKGKGh0dHA6Ly9yZXBvc2l0b3J5LmNlcnR1bS5wbC9xY2Ff
+MjAxNy5jZXIwHwYDVR0jBBgwFoAUJ/HYTmBQaLZh/mgbKGxt5AtzCU0wHQYDVR0O
+BBYEFKdCzxALmtKNEeOdaLS/Uh7WevmAMA4GA1UdDwEB/wQEAwIGwDCCAUgGA1Ud
+IASCAT8wggE7MAkGBwQAi+xAAQIwggEsBgwqhGgBhvZ3AgQBDAEwggEaMC0GCCsG
+AQUFBwIBFiFodHRwOi8vd3d3LmNlcnR1bS5wbC9yZXBvenl0b3JpdW0wgegGCCsG
+AQUFBwICMIHbMB8WGEFzc2VjbyBEYXRhIFN5c3RlbXMgUy5BLjADAgEBDIG3Q2Vy
+dGlmaWNhdGUgUG9saWN5IGFuZCBDZXJ0aWZpY2F0aW9uIFByYWN0aWNlIFN0YXRl
+bWVudCBvZiBDZXJ0dW0ncyBRdWFsaWZpZWQgQ2VydGlmaWNhdGlvbiBTZXJ2aWNl
+cy4gTW9yZSBpbmZvcm1hdGlvbiBjYW4gYmUgZm91bmQgaW4gdGhlIENlcnRpZmlj
+YXRlIFBvbGljeSBvbiBodHRwczovL3d3dy5jZXJ0dW0uZXUuMIHCBggrBgEFBQcB
+AwSBtTCBsjAIBgYEAI5GAQEwCAYGBACORgEEMIGGBgYEAI5GAQUwfDA8FjZodHRw
+czovL3JlcG9zaXRvcnkuY2VydHVtLnBsL1BEUy9DZXJ0dW1fUUNBLVBEU19FTi5w
+ZGYTAmVuMDwWNmh0dHBzOi8vcmVwb3NpdG9yeS5jZXJ0dW0ucGwvUERTL0NlcnR1
+bV9RQ0EtUERTX1BMLnBkZhMCcGwwEwYGBACORgEGMAkGBwQAjkYBBgEwDQYJKoZI
+hvcNAQELBQADggIBAGXD5An9jvqtjPhvGreSGBBU/QWe8zOmEIDt1k6xlEbmbWnC
+WGKFOP+UMtSuKaQLyViBZASB0cYvXByriBn6XuUKba9zAQIhisfiqd4rFbDihSaj
+xn4ub4s1lr4JeZmbbRjg7LmdxY5zbjjOoLRCA8LJojflrkSZOX9fRaTSzLX47IS/
+i/c4GuI03Y9DwUzRAtHOre60r/dmG3Unwvl1+LbYLzwvaIye8n/o91CRA4+mc6eK
+M1yBiQRCJbtShy8V8yrJPb9d1s4VO3EptY5PIWFIIIUz9sg2SsOWRxTv3Zl35GJ0
+IT4xsMDhCmmpfoCOK4jZSjZclG+A95PN4d0737EosQxojcFQOMMQNsPQ34axqu6D
+cHAVqWiHvQvnDFvsROtlzWcOxdwcnemfmdN4qOEndOPYInkcAJ5Nmzxp5SiH/EHz
+8FphyIi87kc6PmW0ancHHoxZB59CiJiAuxFp3ULryxH8RGt/IIjN4WqOPdq2y7f6
+OJ3T6UbWX5wdhsIVQl7ZMFsuG5S6MjbRJLWoCWPgV49yTz149hf142saG5PWi7Tz
+ams9vAIwfNvIpismhKdN3+IrpK9UCvf9vSqP1JnlRxUo7qb2VyX8qN+PqtixWfs7
+uPb7NtsAmbMZJFWwotHMCq6d/CwTWm1oJPCh3HLQIujuCYRr4JmPbFvQfiyv</ds:X509Certificate></ds:X509Data></ds:KeyInfo><ds:Object><xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" Id="QualifyingProperties_a75f9636-7e90-4224-ac06-11d3596b2f76_4b" Target="#Signature_a75f9636-7e90-4224-ac06-11d3596b2f76_11"><xades:SignedProperties Id="SignedProperties_a75f9636-7e90-4224-ac06-11d3596b2f76_46"><xades:SignedSignatureProperties Id="SignedSignatureProperties_a75f9636-7e90-4224-ac06-11d3596b2f76_02"><xades:SigningTime>2020-11-24T00:24:21Z</xades:SigningTime><xades:SigningCertificate><xades:Cert><xades:CertDigest><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>wnJg+5guQblWVpTXg+djFHlCdB/NAcI4Ts21xCGR6jE=</ds:DigestValue></xades:CertDigest><xades:IssuerSerial><ds:X509IssuerName>2.5.4.97=#0C10564154504C2D35313730333539343538,CN=Certum QCA 2017,O=Asseco Data Systems S.A.,C=PL</ds:X509IssuerName><ds:X509SerialNumber>84605310358877569721335889391052426728</ds:X509SerialNumber></xades:IssuerSerial></xades:Cert></xades:SigningCertificate></xades:SignedSignatureProperties><xades:SignedDataObjectProperties Id="SignedDataObjectProperties_a75f9636-7e90-4224-ac06-11d3596b2f76_43"><xades:DataObjectFormat ObjectReference="#Reference1_a75f9636-7e90-4224-ac06-11d3596b2f76_2f"><xades:Description>MIME-Version: 1.0
+Content-Type: text/xml
+Content-Transfer-Encoding: binary
+Content-Disposition: filename="xml-certum-enveloped-bes.xml"</xades:Description><xades:ObjectIdentifier><xades:Identifier Qualifier="OIDAsURI">http://www.certum.pl/OIDAsURI/signedFile/1.2.616.1.113527.3.1.1.3.1</xades:Identifier><xades:Description>Opis formatu dokumentu oraz jego pełna nazwa</xades:Description><xades:DocumentationReferences><xades:DocumentationReference>http://www.certum.pl/OIDAsURI/signedFile.pdf</xades:DocumentationReference></xades:DocumentationReferences></xades:ObjectIdentifier><xades:MimeType>text/xml</xades:MimeType></xades:DataObjectFormat></xades:SignedDataObjectProperties></xades:SignedProperties><xades:UnsignedProperties Id="UnsignedProperties_a75f9636-7e90-4224-ac06-11d3596b2f76_5d"/></xades:QualifyingProperties></ds:Object><ds:Object Id="Object1_a75f9636-7e90-4224-ac06-11d3596b2f76" MimeType="text/xml"><Deklaracja xmlns="http://crd.gov.pl/wzor/2016/08/05/3412/" xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2016/01/25/eD/DefinicjeTypy/">
+    <Naglowek>
+        <KodFormularza kodPodatku="VAT" kodSystemowy="VAT-7 (17)" rodzajZobowiazania="Z" wersjaSchemy="1-0E">VAT-7</KodFormularza>
+        <WariantFormularza>17</WariantFormularza>
+        <CelZlozenia poz="P_7">1</CelZlozenia>
+        <Rok>2017</Rok>
+        <Miesiac>2</Miesiac>
+        <KodUrzedu>3215</KodUrzedu>
+    </Naglowek>
+    <Podmiot1 rola="Podatnik">
+        <etd:OsobaNiefizyczna>
+            <etd:NIP>7791011327</etd:NIP>
+            <etd:PelnaNazwa>Nazwa firmy</etd:PelnaNazwa>
+            <etd:REGON>630303023</etd:REGON>
+        </etd:OsobaNiefizyczna>
+    </Podmiot1>
+    <PozycjeSzczegolowe>
+        <P_10>0</P_10>
+        <P_11>3108</P_11>
+        <P_12>3108</P_12>
+        <P_13>0</P_13>
+        <P_14>0</P_14>
+        <P_15>998293</P_15>
+        <P_16>49915</P_16>
+        <P_17>901697</P_17>
+        <P_18>72135</P_18>
+        <P_19>3334214</P_19>
+        <P_20>766869</P_20>
+        <P_21>3177289</P_21>
+        <P_22>187401</P_22>
+        <P_23>44326</P_23>
+        <P_24>8864</P_24>
+        <P_25>0</P_25>
+        <P_26>0</P_26>
+        <P_27>0</P_27>
+        <P_28>0</P_28>
+        <P_29>66801</P_29>
+        <P_30>15364</P_30>
+        <P_31>0</P_31>
+        <P_32>0</P_32>
+        <P_33>0</P_33>
+        <P_34>0</P_34>
+        <P_35>0</P_35>
+        <P_36>0</P_36>
+        <P_37>0</P_37>
+        <P_38>0</P_38>
+        <P_39>0</P_39>
+        <P_40>8713129</P_40>
+        <P_41>913147</P_41>
+        <P_42>512089</P_42>
+        <P_43>54480</P_43>
+        <P_44>12531</P_44>
+        <P_45>8152972</P_45>
+        <P_46>1279013</P_46>
+        <P_47>0</P_47>
+        <P_48>0</P_48>
+        <P_49>-138</P_49>
+        <P_50>1380</P_50>
+        <P_51>1804875</P_51>
+        <P_52>0</P_52>
+        <P_53>0</P_53>
+        <P_54>0</P_54>
+        <P_55>0</P_55>
+        <P_56>891728</P_56>
+        <P_57>0</P_57>
+        <P_58>0</P_58>
+        <P_59>0</P_59>
+        <P_60>0</P_60>
+        <P_61>891728</P_61>
+        <P_66>2</P_66>
+        <P_67>2</P_67>
+        <P_68>2</P_68>
+        <P_73>914842496</P_73>
+        <P_74>2017-05-09</P_74>
+    </PozycjeSzczegolowe>
+    <Pouczenia>1</Pouczenia>
+</Deklaracja></ds:Object></ds:Signature>

@@ -15,16 +15,16 @@ def main():
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     img = Image.open('signature_test.png')
     dct = {
-        b'sigflags': 3,
-        # b'sigpage': 0,
-        b'sigbutton': True,
-        b'signature_img': img,
-        b'contact': b'mak@trisoft.com.pl',
-        b'location': b'Szczecin',
-        b'signingdate': date.encode(),
-        b'reason': b'Dokument podpisany cyfrowo',
-        b'signature': b'Dokument podpisany cyfrowo',
-        b'signaturebox': (470, 0, 570, 100),
+        'sigflags': 3,
+        # 'sigpage': 0,
+        'sigbutton': True,
+        'signature_img': img,
+        'contact': 'mak@trisoft.com.pl',
+        'location': 'Szczecin',
+        'signingdate': date.encode(),
+        'reason': 'Dokument podpisany cyfrowo',
+        'signature': 'Dokument podpisany cyfrowo',
+        'signaturebox': (470, 0, 570, 100),
     }
     with open('demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
