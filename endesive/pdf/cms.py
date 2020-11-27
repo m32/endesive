@@ -379,7 +379,7 @@ class SignedData(pdf.PdfFileWriter):
         self.x_root = po.IndirectObject(x_root.idnum, 0, self)
         self.x_info = prev.trailer.get("/Info")
 
-    def sign(self, datau, udct, key, cert, othercerts, algomd, hsm, timestampurl, timestampcredentials=None):
+    def sign(self, datau, udct, key, cert, othercerts, algomd, hsm, timestampurl, timestampcredentials=None, timestamp_req_options=None):
         startdata = len(datau)
 
         fi = io.BytesIO(datau)
@@ -412,7 +412,7 @@ class SignedData(pdf.PdfFileWriter):
         else:
             md = getattr(hashlib, algomd)().digest()
             contents = signer.sign(
-                None, key, cert, othercerts, algomd, True, md, hsm, False, timestampurl, timestampcredentials
+                None, key, cert, othercerts, algomd, True, md, hsm, False, timestampurl, timestampcredentials, timestamp_req_options,
             )
             zeros = contents.hex().encode("utf-8")
 
@@ -470,7 +470,7 @@ class SignedData(pdf.PdfFileWriter):
         md = md.digest()
 
         contents = signer.sign(
-            None, key, cert, othercerts, algomd, True, md, hsm, False, timestampurl, timestampcredentials
+            None, key, cert, othercerts, algomd, True, md, hsm, False, timestampurl, timestampcredentials, timestamp_req_options,
         )
         contents = contents.hex().encode("utf-8")
         if aligned:
@@ -485,7 +485,7 @@ class SignedData(pdf.PdfFileWriter):
 
 def sign(
         datau, udct, key, cert, othercerts, algomd="sha1", hsm=None, timestampurl=None,
-        timestampcredentials=None
+        timestampcredentials=None, timestamp_req_options=None
 ):
     """
     parameters:
@@ -523,8 +523,9 @@ def sign(
         hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
         timestampurl: timestamp server URL or None
         timestampcredentials:Dict username and password for authentication against timestamp server. Default: None
+        timestamp_req_options: Dict to set options to the POST http call against the timestamp server. Default: None
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
     """
     cls = SignedData()
-    return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm, timestampurl, timestampcredentials)
+    return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm, timestampurl, timestampcredentials, timestamp_req_options)
