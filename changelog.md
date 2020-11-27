@@ -1,5 +1,9 @@
 # changelog
 
+## 2.0.1
+ - fix #74 accessing pages in big documents
+ - Pass request options when performing the HTTP POST call against the timestamp server.
+
 ## 2.0.0
  - XADES signing time info (XADES-T) from TSP provider
  - XADES enveloping/enveloped format
