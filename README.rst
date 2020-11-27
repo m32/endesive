@@ -97,14 +97,14 @@ smime-verify.py
 
 xml-make.py
     Create simple xml file for use in following examples.
-xml-xades-bes-sign-b64.py
-    Create xml file with base64 encoded embedded source file inside own content.
-xml-xades-bes-sign-xml.py
-    Create xml file with not encoded but still embedded source file inside own content.
-xml-xades-bes-sign-xml-detached.py
-    Create xml file with signature in detached mode.
-xml-xades-bes-read.py
-    Decode generated xml signatures and extract their content.
+xml-hsm-certum-enveloped.py
+    XADES enveloped mode with real certificate (BES/T).
+xml-hsm-certum-enveloping.py
+    XADES enveloping mode with real certificate (BES/T).
+xml-hsm-softhsm2-enveloped.py
+    XADES enveloped mode with SoftHSM certificate (BES).
+xml-hsm-softhsm2-enveloping.py
+    XADES enveloping mode with SoftHSM certificate (BES).
 
 Tools
 =====
