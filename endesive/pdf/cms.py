@@ -112,7 +112,9 @@ class SignedData(pdf.PdfFileWriter):
                     if i == 0:
                         stream.write(pdf.b_("0000000000 65535 f \n"))
                     else:
-                        stream.write(pdf.b_("%010d %05d n \n" % (positions[keys[i]], 0)))
+                        stream.write(
+                            pdf.b_("%010d %05d n \n" % (positions[keys[i]], 0))
+                        )
                     i += 1
                 while i < len(keys) and positions[keys[i]] == 0:
                     i += 1
@@ -192,7 +194,7 @@ class SignedData(pdf.PdfFileWriter):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].getObject()
-        page0ref = pages["/Kids"][udct.get("sigpage", 0)]
+        page0ref = prev.getPage(udct.get("sigpage", 0)).indirectRef
 
         self._objects = []
         while len(self._objects) < size - 1:
@@ -284,8 +286,8 @@ class SignedData(pdf.PdfFileWriter):
             objapnref = self._addObject(objapn)
 
             for name in names + (
-                    "Rect",
-                    # "Subtype",
+                "Rect",
+                # "Subtype",
             ):
                 key = po.NameObject("/" + name)
                 v = pdfa[key]
@@ -323,9 +325,7 @@ class SignedData(pdf.PdfFileWriter):
             obj10.update(
                 {
                     po.NameObject("/Type"): po.NameObject("/TransformParams"),
-                    po.NameObject("/P"): po.NumberObject(
-                        udct.get("sigflags", 3)
-                    ),
+                    po.NameObject("/P"): po.NumberObject(udct.get("sigflags", 3)),
                     po.NameObject("/V"): po.NameObject("/1.2"),
                 }
             )
@@ -379,7 +379,19 @@ class SignedData(pdf.PdfFileWriter):
         self.x_root = po.IndirectObject(x_root.idnum, 0, self)
         self.x_info = prev.trailer.get("/Info")
 
-    def sign(self, datau, udct, key, cert, othercerts, algomd, hsm, timestampurl, timestampcredentials=None, timestamp_req_options=None):
+    def sign(
+        self,
+        datau,
+        udct,
+        key,
+        cert,
+        othercerts,
+        algomd,
+        hsm,
+        timestampurl,
+        timestampcredentials=None,
+        timestamp_req_options=None,
+    ):
         startdata = len(datau)
 
         fi = io.BytesIO(datau)
@@ -412,7 +424,18 @@ class SignedData(pdf.PdfFileWriter):
         else:
             md = getattr(hashlib, algomd)().digest()
             contents = signer.sign(
-                None, key, cert, othercerts, algomd, True, md, hsm, False, timestampurl, timestampcredentials, timestamp_req_options,
+                None,
+                key,
+                cert,
+                othercerts,
+                algomd,
+                True,
+                md,
+                hsm,
+                False,
+                timestampurl,
+                timestampcredentials,
+                timestamp_req_options,
             )
             zeros = contents.hex().encode("utf-8")
 
@@ -464,13 +487,24 @@ class SignedData(pdf.PdfFileWriter):
         md = getattr(hashlib, algomd)()
         md.update(datau)
         b1 = datas[: br[1] - startdata]
-        b2 = datas[br[2] - startdata:]
+        b2 = datas[br[2] - startdata :]
         md.update(b1)
         md.update(b2)
         md = md.digest()
 
         contents = signer.sign(
-            None, key, cert, othercerts, algomd, True, md, hsm, False, timestampurl, timestampcredentials, timestamp_req_options,
+            None,
+            key,
+            cert,
+            othercerts,
+            algomd,
+            True,
+            md,
+            hsm,
+            False,
+            timestampurl,
+            timestampcredentials,
+            timestamp_req_options,
         )
         contents = contents.hex().encode("utf-8")
         if aligned:
@@ -484,8 +518,16 @@ class SignedData(pdf.PdfFileWriter):
 
 
 def sign(
-        datau, udct, key, cert, othercerts, algomd="sha1", hsm=None, timestampurl=None,
-        timestampcredentials=None, timestamp_req_options=None
+    datau,
+    udct,
+    key,
+    cert,
+    othercerts,
+    algomd="sha1",
+    hsm=None,
+    timestampurl=None,
+    timestampcredentials=None,
+    timestamp_req_options=None,
 ):
     """
     parameters:
@@ -528,4 +570,16 @@ def sign(
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
     """
     cls = SignedData()
-    return cls.sign(datau, udct, key, cert, othercerts, algomd, hsm, timestampurl, timestampcredentials, timestamp_req_options)
+    return cls.sign(
+        datau,
+        udct,
+        key,
+        cert,
+        othercerts,
+        algomd,
+        hsm,
+        timestampurl,
+        timestampcredentials,
+        timestamp_req_options,
+    )
+
