@@ -111,7 +111,9 @@ Tools
 
 Online pdf validator `pdfvalidator`_ or `verapdf`_.
 Offline Apache `pdfbox`_ java based validator.
+
 Free S/MIME certificates (usable for documents signing) can be obtained from `actalis`_.
+
 Validate electronic signatures: `ec_europa`_.
 
 .. _cryptography: https://github.com/pyca/cryptography
