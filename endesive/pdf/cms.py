@@ -262,7 +262,7 @@ class SignedData(pdf.PdfFileWriter):
                         fill=[0, 0, 0],
                         stroke_width=1,
                         wrap_text=True,
-                        font_size=12,
+                        font_size=udct.get("fontsize", None),
                         content=annotationtext,
                     ),
                 )
@@ -537,6 +537,7 @@ def sign(
                                         !=0 number of hexbytes (00) reserved for signature,
                                             must be equal or greather than hex representation of signature
                                             probably 16384 will be sufficient ....
+            fontsize: int               default:12
             sigflags: int               default:3 1,2,3 - flags for acroform
             sigflagsft: int             default:132 - flags for annotation widget from pdf 12.5.3
             sigpage: int                default:0 - page on which signature should appear
