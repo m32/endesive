@@ -24,6 +24,9 @@ def main():
         'reason': 'Dokument podpisany cyfrowo',
         'signature': 'Dokument podpisany cyfrowo',
         'signaturebox': (0, 0, 100, 100),
+        'text': {
+            'fontsize': 10,
+        }
     }
     with open('/home/mak/Dokumenty/m32/ssl/cert.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())

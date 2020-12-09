@@ -1,5 +1,8 @@
 # changelog
 
+## 2.0.2
+ - Text attributes for signature appearance
+
 ## 2.0.1
  - fix #74 accessing pages in big documents
  - Pass request options when performing the HTTP POST call against the timestamp server.
