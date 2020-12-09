@@ -261,8 +261,10 @@ class SignedData(pdf.PdfFileWriter):
                     Appearance(
                         fill=[0, 0, 0],
                         stroke_width=1,
-                        wrap_text=True,
-                        font_size=12,
+                        wrap_text=udct.get('text', {}).get('wraptext', True),
+                        font_size=udct.get('text', {}).get('fontsize', 12),
+                        text_align=udct.get('text', {}).get('textalign', 'left'),
+                        line_spacing=udct.get('text', {}).get('linespacing', 1.2),
                         content=annotationtext,
                     ),
                 )
@@ -532,7 +534,7 @@ def sign(
     """
     parameters:
         datau: pdf bytes being signed
-        udct: dictionary with sining parameters
+        udct: dictionary with signing parameters
             aligned: int                if 0 then precompute size of signature, but first fake data will be signed
                                         !=0 number of hexbytes (00) reserved for signature,
                                             must be equal or greather than hex representation of signature
@@ -556,6 +558,8 @@ def sign(
             signingdate: string         required info about signing time eg: now.strftime('D:%Y%m%d%H%M%S+00\'00\'')
             reason: string              required info about reason for signing the document
             password: string            required if the document is password protected, signing it also requires that password
+            text: dict                  text attributes
+                                            wraptext=True, fontsize:12, textalign:'left', linespacing:1.2
         key: cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey - private key used to sign the document
         cert: cryptography.x509.Certificate - certificate associated with the key
         othercerts: list of cryptography.x509.Certificate to be saved with the signed document,
