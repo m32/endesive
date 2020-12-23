@@ -256,7 +256,8 @@ class SignedData(pdf.PdfFileWriter):
             annotationtext = udct.get("signature", None)
             x1, y1, x2, y2 = box
             if annotationtext is not None:
-                annotation = FreeText(
+
+                annotation_text = FreeText(
                     Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
                     Appearance(
                         fill=[0, 0, 0],
@@ -271,10 +272,17 @@ class SignedData(pdf.PdfFileWriter):
                 names = ("BS", "C", "Contents", "DA")
                 if not udct.get("sigbutton", False):
                     obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
-            else:
+                pdfa = annotation_text.as_pdf_object(identity(), page=page0ref)
+                objapn = self._extend(pdfa["/AP"]["/N"])
+                objapnref = self._addObject(objapn)
+
+            annotationimage = udct.get("signature_img", None)
+            if annotationimage is not None:
+
                 ap = Appearance()
                 ap.image = udct["signature_img"]
-                annotation = Image(Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), ap)
+                annotation_image = Image(
+                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), ap)
                 if not udct.get("sigbutton", False):
                     names = (
                         #
@@ -282,10 +290,10 @@ class SignedData(pdf.PdfFileWriter):
                     )
                 else:
                     names = ()
-
-            pdfa = annotation.as_pdf_object(identity(), page=page0ref)
-            objapn = self._extend(pdfa["/AP"]["/N"])
-            objapnref = self._addObject(objapn)
+                pdfa = annotation_image.as_pdf_object(
+                    identity(), page=page0ref)
+                objapn = self._extend(pdfa["/AP"]["/N"])
+                objapnref = self._addObject(objapn)
 
             for name in names + (
                 "Rect",
@@ -586,4 +594,3 @@ def sign(
         timestampcredentials,
         timestamp_req_options,
     )
-
