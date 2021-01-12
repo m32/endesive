@@ -1,15 +1,10 @@
 #!/usr/bin/env vpython3
-import sys
 import time
 import random
 import io
 import struct
-import datetime
 import hashlib
 import codecs
-import struct
-from cryptography.hazmat import backends
-from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import signer
 from endesive.pdf.PyPDF2 import pdf, generic as po
 
