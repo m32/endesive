@@ -1,6 +1,8 @@
 *.crt
 *.der
-softhsm2.conf
-softhsm2/
 *.class
 tweaks/
+softhsm2.conf
+softhsm2/
+cert-hsm-ca.pem
+cert-hsm-user1.pem
