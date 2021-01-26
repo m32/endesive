@@ -77,6 +77,7 @@ class PLAINTests(unittest.TestCase):
             '-CAfile', fixture('demo2_ca.crt.pem'),
             '-in', fixture('plain-unsigned.txt'), '-out', fixture('plain-ssl-signed-attr.txt'), '-outform', 'der',
             '-inkey', fixture('demo2_user1.key.pem'),
+            '-passin', 'pass:1234',
             '-signer', fixture('demo2_user1.crt.pem'),
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -101,6 +102,7 @@ class PLAINTests(unittest.TestCase):
             '-CAfile', fixture('demo2_ca.crt.pem'),
             '-in', fixture('plain-unsigned.txt'), '-out', fixture('plain-ssl-signed-noattr.txt'), '-outform', 'der',
             '-inkey', fixture('demo2_user1.key.pem'),
+            '-passin', 'pass:1234',
             '-signer', fixture('demo2_user1.crt.pem'),
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)

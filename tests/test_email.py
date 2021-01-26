@@ -129,7 +129,7 @@ class EMAILTests(unittest.TestCase):
             fh.write(datae)
 
         with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
-            key = load_pem_private_key(fh.read(), None, backends.default_backend())
+            key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
         with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
@@ -152,7 +152,9 @@ class EMAILTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-decrypt',
-            '-recip', fixture('demo2_user1.crt.pem'), '-inkey', fixture('demo2_user1.key.pem'),
+            '-recip', fixture('demo2_user1.crt.pem'),
+            '-inkey', fixture('demo2_user1.key.pem'),
+            '-passin', 'pass:1234',
             '-in', fname,
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -176,7 +178,7 @@ class EMAILTests(unittest.TestCase):
         assert stdout == b''
 
         with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
-            key = load_pem_private_key(fh.read(), None, backends.default_backend())
+            key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
         with io.open(fixture('smime-ssl-encrypted.txt'), 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
