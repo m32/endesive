@@ -1,5 +1,8 @@
 # changelog
 
+## 2.0.3
+ - fix #84, incorrect struct.pack format when creating password for pdf file
+
 ## 2.0.2
  - Text attributes for signature appearance
 
