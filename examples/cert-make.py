@@ -118,7 +118,7 @@ class Main(object):
             f.write(p12.export(password.encode('utf-8')))
 
     def pk12_load(self, fname, password):
-        with open(fname, 'rb') as f:
+        with open(fname, 'rb') as fp:
             return pkcs12.load_key_and_certificates(fp.read(), password.encode('utf-8'), default_backend())
 
     def ca_create(self, key):
