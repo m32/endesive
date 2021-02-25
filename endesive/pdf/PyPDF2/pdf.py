@@ -2945,7 +2945,10 @@ def _alg32(password, rev, keylen, owner_entry, p_entry, id1_entry, metadata_encr
     m.update(owner_entry.original_bytes)
     # 4. Treat the value of the /P entry as an unsigned 4-byte integer and pass
     # these bytes to the MD5 hash function, low-order byte first.
-    p_entry = struct.pack('<I', p_entry)
+    if p_entry < 0:
+        p_entry = struct.pack('<i', p_entry)
+    else:
+        p_entry = struct.pack('<I', p_entry)
     m.update(p_entry)
     # 5. Pass the first element of the file's file identifier array to the MD5
     # hash function.
