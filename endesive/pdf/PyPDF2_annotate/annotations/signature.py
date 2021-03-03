@@ -47,7 +47,7 @@ class SignatureAnnotation(Annotation):
     subtype = 'Widget'
 
     def __init__(self, location, appearance, metadata=None):
-        super(SigAnnotation, self).__init__(location, appearance, metadata)
+        super(SignatureAnnotation, self).__init__(location, appearance, metadata)
         self._images = {}
         #self._fonts = {PDF_ANNOTATOR_FONT: TTFFont(HELVETICA_PATH).get_font()}
         self._fonts = {PDF_ANNOTATOR_FONT:

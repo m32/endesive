@@ -273,9 +273,12 @@ class SignedData(pdf.PdfFileWriter):
                 if not udct.get("sigbutton", False):
                     obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
             elif 'signature_img' in udct:
-                ap = Appearance()
-                ap.image = udct["signature_img"]
-                annotation = Image(Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), ap)
+                annotation = SignatureAnnotation(
+                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+                    Appearance(),
+                    )
+                annotation.add_image(udct["signature_img"], "Image")
+                annotation.set_signature_appearance(['image', "Image", 0, 0, x2-x1, y2-y1])
                 if not udct.get("sigbutton", False):
                     names = (
                         #
