@@ -346,8 +346,25 @@ class SignedData(pdf.PdfFileWriter):
             form = catalog["/AcroForm"].getObject()
             if "/Fields" in form:
                 fields = form["/Fields"]
+                old_field_names = [f.getObject()['/T'] for f in fields]
             else:
                 fields = po.ArrayObject()
+                old_field_names = []
+            if udct.get('auto_sigfield', False) and obj13['/T'] in old_field_names:
+                name_base = udct.get('sigfield', 'Signature1')
+                checklist = [f[len(name_base):] for f in old_field_names if f.startswith(name_base)]
+                for i in range(1, len(checklist)+1):
+                    suffix = '_{}'.format(i)
+                    if suffix in checklist:
+                        next
+
+                    new_name = '{}{}'.format(name_base, suffix)
+                    obj13.update(
+                        {
+                            po.NameObject("/T"): EncodedString(new_name)
+                        }
+                    )
+                    break
             fields.append(obj13ref)
             form.update(
                 {
@@ -544,6 +561,10 @@ def sign(
             sigpage: int                default:0 - page on which signature should appear
             sigbutton: bool             default:False
             sigfield: string            default:Signature1
+            auto_sigfield: bool         default:False
+                                                False - do not check for sigfield name conflicts
+                                                True  - append and increment suffix to sigfield when a field
+                                                        by the name of sigfield already exists in AcroForm
             sigandcertify: bool         default:False
                                                 False - sign only document
                                                 True  - sign and certify document
