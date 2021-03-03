@@ -39,7 +39,7 @@ from ..graphics import CTM, XObject
 
 HELVETICA_PATH = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'Helvetica.ttf')
 
-class SigAnnotation(Annotation):
+class SignatureAnnotation(Annotation):
     """Abstract annotation that defines its location on the document with a
     width and a height.
     """
