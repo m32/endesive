@@ -39,9 +39,11 @@ from ..graphics import CTM, XObject
 
 HELVETICA_PATH = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'Helvetica.ttf')
 
-class SignatureAnnotation(Annotation):
-    """Abstract annotation that defines its location on the document with a
-    width and a height.
+class Signature(Annotation):
+    """Signatur annotation that defines its location on the document with a
+    width and a height.  Internal structure follows that which is documented
+    by Adobe, with /frm referencing a blank /n0 layer with all the appearance
+    in the stream of the /n2 layer.
     """
 
     subtype = 'Widget'

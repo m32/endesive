@@ -248,8 +248,7 @@ class SignedData(pdf.PdfFileWriter):
         box = udct.get("signaturebox", None)
         if box is not None:
             from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
-            from endesive.pdf.PyPDF2_annotate.annotations.image import Image
-            from endesive.pdf.PyPDF2_annotate.annotations.signature import SignatureAnnotation
+            from endesive.pdf.PyPDF2_annotate.annotations.signature import Signature
             from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
             from endesive.pdf.PyPDF2_annotate.config.location import Location
             from endesive.pdf.PyPDF2_annotate.util.geometry import identity
@@ -273,7 +272,7 @@ class SignedData(pdf.PdfFileWriter):
                 if not udct.get("sigbutton", False):
                     obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
             elif 'signature_img' in udct:
-                annotation = SignatureAnnotation(
+                annotation = Signature(
                     Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
                     Appearance(),
                     )
@@ -287,7 +286,7 @@ class SignedData(pdf.PdfFileWriter):
                 else:
                     names = ()
             else:
-                annotation = SignatureAnnotation(
+                annotation = Signature(
                     Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
                     Appearance(),
                     )
