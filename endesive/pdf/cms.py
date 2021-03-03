@@ -249,7 +249,7 @@ class SignedData(pdf.PdfFileWriter):
         if box is not None:
             from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
             from endesive.pdf.PyPDF2_annotate.annotations.image import Image
-            from endesive.pdf.PyPDF2_annotate.annotations.signature import SigAnnotation
+            from endesive.pdf.PyPDF2_annotate.annotations.signature import SignatureAnnotation
             from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
             from endesive.pdf.PyPDF2_annotate.config.location import Location
             from endesive.pdf.PyPDF2_annotate.util.geometry import identity
@@ -284,7 +284,7 @@ class SignedData(pdf.PdfFileWriter):
                 else:
                     names = ()
             else:
-                annotation = SigAnnotation(
+                annotation = SignatureAnnotation(
                     Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
                     Appearance(),
                     )
