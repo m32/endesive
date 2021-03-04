@@ -391,13 +391,24 @@ class SignedData(pdf.PdfFileWriter):
                         }
                     )
                     break
+            
+            old_flags = int(form.get("/SigFlags", 0))
+            new_flags = int(form.get("/SigFlags", 0)) | udct.get("sigflags", 3)
             if new_13:
                 fields.append(obj13ref)
                 form.update(
                     {
                         po.NameObject("/Fields"): fields,
                         po.NameObject("/SigFlags"): po.NumberObject(
-                            udct.get("sigflags", 3)
+                            new_flags
+                        ),
+                    }
+                )
+            elif new_flags > old_flags:
+                form.update(
+                    {
+                        po.NameObject("/SigFlags"): po.NumberObject(
+                            new_flags
                         ),
                     }
                 )
