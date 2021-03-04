@@ -200,8 +200,6 @@ class SignedData(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
-        obj13 = po.DictionaryObject()
-        obj13ref = self._addObject(obj13)
         obj12 = po.DictionaryObject()
         obj12ref = self._addObject(obj12)
 
@@ -225,27 +223,52 @@ class SignedData(pdf.PdfFileWriter):
                 ),
             }
         )
-        obj13.update(
-            {
-                po.NameObject("/FT"): po.NameObject("/Sig"),
-                po.NameObject("/Type"): po.NameObject("/Annot"),
-                po.NameObject("/Subtype"): po.NameObject("/Widget"),
-                po.NameObject("/F"): po.NumberObject(udct.get("sigflagsft", 132)),
-                po.NameObject("/T"): EncodedString(udct.get("sigfield", "Signature1")),
-                po.NameObject("/V"): obj12ref,
-                po.NameObject("/P"): page0ref,
-                po.NameObject("/Rect"): po.ArrayObject(
-                    [
-                        po.FloatObject(0.0),
-                        po.FloatObject(0.0),
-                        po.FloatObject(0.0),
-                        po.FloatObject(0.0),
-                    ]
-                ),
-            }
-        )
+
+        new_13 = True
+        obj13 = po.DictionaryObject()
+        if udct.get('signform', False):
+            if "/AcroForm" in catalog:
+                form = catalog["/AcroForm"].getObject()
+                if "/Fields" in form:
+                    fields = form["/Fields"].getObject()
+                    obj13ref = [f for f in fields if f.getObject()['/T'] == udct.get('sigfield', 'Signature1')][0]
+                    obj13 = obj13ref.getObject()
+                    self._objects[obj13ref.idnum-1] = obj13
+                    new_13 = False
 
         box = udct.get("signaturebox", None)
+        if new_13:
+            obj13.update(
+                {
+                    po.NameObject("/FT"): po.NameObject("/Sig"),
+                    po.NameObject("/Type"): po.NameObject("/Annot"),
+                    po.NameObject("/Subtype"): po.NameObject("/Widget"),
+                    po.NameObject("/F"): po.NumberObject(udct.get("sigflagsft", 132)),
+                    po.NameObject("/T"): EncodedString(udct.get("sigfield", "Signature1")),
+                    po.NameObject("/V"): obj12ref,
+                    po.NameObject("/P"): page0ref,
+                    po.NameObject("/Rect"): po.ArrayObject(
+                        [
+                            po.FloatObject(0.0),
+                            po.FloatObject(0.0),
+                            po.FloatObject(0.0),
+                            po.FloatObject(0.0),
+                        ]
+                    ),
+                }
+            )
+            obj13ref = self._addObject(obj13)
+        else:
+            # original obj13 is a merged SigField/SigAnnot
+            obj13.update(
+                {
+                    po.NameObject("/V"): obj12ref,
+                }
+            )
+            # fill signature field annotation
+            if "/Rect" in obj13:
+                box = [float(f) for f in obj13["/Rect"]]
+
         if box is not None:
             from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
             from endesive.pdf.PyPDF2_annotate.annotations.image import Image
@@ -305,14 +328,17 @@ class SignedData(pdf.PdfFileWriter):
             )
 
             page0 = page0ref.getObject()
-            annots = po.ArrayObject([obj13ref])
-            if "/Annots" in page0:
-                page0annots = page0["/Annots"]
-                if isinstance(page0annots, po.IndirectObject):
-                    annots.insert(0, page0annots)
-                elif isinstance(page0annots, po.ArrayObject):
-                    annots = page0annots
-                    annots.append(obj13ref)
+            if new_13:
+                annots = po.ArrayObject([obj13ref])
+                if "/Annots" in page0:
+                    page0annots = page0["/Annots"]
+                    if isinstance(page0annots, po.IndirectObject):
+                        annots.insert(0, page0annots)
+                    elif isinstance(page0annots, po.ArrayObject):
+                        annots = page0annots
+                        annots.append(obj13ref)
+            else:
+                annots = page0["/Annots"]
             page0.update({po.NameObject("/Annots"): annots})
             self._objects[page0ref.idnum - 1] = page0
 
@@ -365,15 +391,16 @@ class SignedData(pdf.PdfFileWriter):
                         }
                     )
                     break
-            fields.append(obj13ref)
-            form.update(
-                {
-                    po.NameObject("/Fields"): fields,
-                    po.NameObject("/SigFlags"): po.NumberObject(
-                        udct.get("sigflags", 3)
-                    ),
-                }
-            )
+            if new_13:
+                fields.append(obj13ref)
+                form.update(
+                    {
+                        po.NameObject("/Fields"): fields,
+                        po.NameObject("/SigFlags"): po.NumberObject(
+                            udct.get("sigflags", 3)
+                        ),
+                    }
+                )
             formref = catalog.raw_get("/AcroForm")
             if isinstance(formref, po.IndirectObject):
                 self._objects[formref.idnum - 1] = form
@@ -565,6 +592,12 @@ def sign(
                                                 False - do not check for sigfield name conflicts
                                                 True  - append and increment suffix to sigfield when a field
                                                         by the name of sigfield already exists in AcroForm
+            signform: bool              default:False
+                                                False - do not fill in an existing form's signature field
+                                                True  - attach signature to the pre-existing Sig field by the
+                                                        the name provided by sigfield in AcroForm.  Use with
+                                                        signature or signature_img, will fill the signature
+                                                        field's widget, ignoring signaturebox.
             sigandcertify: bool         default:False
                                                 False - sign only document
                                                 True  - sign and certify document
