@@ -750,6 +750,8 @@ def sign(
     images.  The full list of directives can be seen in the template dict
     in endesive.pdf.PyPDF2_annotate.annotations.signatureaSignatureAppearance
 
+    Coordinates are based off of the lower-left corner of the annotation
+
     manual_images is a dict of images that will be included in the annotation
     The keys are strings, and are the names to use when referring to the them
     in 'image' directives.
