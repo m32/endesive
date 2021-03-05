@@ -308,6 +308,19 @@ class SignedData(pdf.PdfFileWriter):
                     )
                 else:
                     names = ()
+            elif 'signature_appearance' in udct:
+                annotation = Signature(
+                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+                    Appearance(),
+                    )
+                annotation.simple_signature(udct['signature_appearance'])
+                if not udct.get("sigbutton", False):
+                    names = (
+                        #
+                        "Subtype",
+                    )
+                else:
+                    names = ()
             else:
                 annotation = Signature(
                     Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
@@ -316,6 +329,7 @@ class SignedData(pdf.PdfFileWriter):
                 if 'annot_images' in udct:
                     for name, img in udct['annot_images'].items():
                         annotation.add_image(img, name=name)
+                annotation.add_default_font()
                 annotation.set_signature_appearance(*udct['signature_annot'])
                 if not udct.get("sigbutton", False):
                     names = (

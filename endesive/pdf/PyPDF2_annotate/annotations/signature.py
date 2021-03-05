@@ -13,6 +13,7 @@ from ..pdfrw import PdfArray, PdfName, IndirectPdfDict, PdfDict
 from ..pdfttf import TTFFont
 
 from .image import Image
+from .text import get_text_commands
 from .base import Annotation
 from .base import make_border_dict
 from ..util.geometry import transform_rect
@@ -37,7 +38,7 @@ from ..graphics import Font
 from ..graphics import FillColor, StrokeColor, Stroke, StrokeWidth, Fill
 from ..graphics import CTM, XObject
 
-HELVETICA_PATH = os.path.join(os.path.dirname(__file__), '..', 'fonts', 'Helvetica.ttf')
+HELVETICA_PATH = os.path.join(os.path.dirname(__file__), "..", "fonts", "Helvetica.ttf")
 
 class Signature(Annotation):
     """Signatur annotation that defines its location on the document with a
@@ -51,22 +52,126 @@ class Signature(Annotation):
     def __init__(self, location, appearance, metadata=None):
         super(Signature, self).__init__(location, appearance, metadata)
         self._images = {}
-        #self._fonts = {PDF_ANNOTATOR_FONT: TTFFont(HELVETICA_PATH).get_font()}
-        self._fonts = {PDF_ANNOTATOR_FONT:
-            PdfDict(
-                Type = PdfName('Font'),
-                Subtype = PdfName('Type1'),
-                Name = PdfName(PDF_ANNOTATOR_FONT),
-                BaseFont = PdfName('Helvetica'),
-                Encoding = PdfName('WinAnsiEncoding'),
-            )
-        }
+        self._ttf = {}
+        self._type1 = {}
 
-    def set_signature_appearance(self, *template):
-        processor = SignatureTemplate(self._internal_location(), self._appearance)
+    def simple_signature(self, signature):
+        """
+            simple_signature(self, signature)
+
+            A simple signature annotation whose appearance is inspired by
+            the signatures from Adobe's appearances.  The text is output
+            using the default font, and no calls to add_image or add_font
+            are needed to use this.
+
+            signature = dict(
+                background = Image with alpha / None,
+                icon = Image with alpha / None,
+                labels = bool,
+                CN = str,
+                DN = str,
+                date = str,
+                reason = str,
+                location = str,
+                software = str,
+                outline = [R, G, B],
+                border = int,
+                )
+        """
+        bbox = self._internal_location()
+        processor = SignatureAppearance(bbox, self._appearance)
+        height = bbox[3] - bbox[1]
+        width = bbox[2] - bbox[0]
+        t_left = 5
+        t_right = bbox[2]
+        border = signature.get('border', 0)
+
+        if signature.get('labels', False):
+            labels = dict(
+                DN = 'DN: ',
+                CN = 'Digitally signed by ',
+                date = 'Date: ',
+                reason = 'Reason: ',
+                location = 'Location: ',
+                software = 'Signing software: ',
+                )
+        else:
+            labels = {}
+
+        block = []
+        for i in ('CN', 'DN', 'date', 'reason', 'location', 'software'):
+            if i not in signature:
+                continue
+            block.append('{}{}'.format(labels.get(i, ''), signature[i]))
 
         cs = ContentStream([Save()])
-        for x in template:
+        if 'background' in signature:
+            if 'bg' not in self._images:
+                self.add_image(signature['background'], 'Bg')
+            cs.extend(processor.image('Bg', *bbox))
+
+        cs.extend(processor.fill_colour(*signature.get('outline', [0, 0, 0])))
+        cs.extend(processor.stroke_colour(*signature.get('outline', [0, 0, 0])))
+        if border:
+            cs.extend(processor.border(border))
+        if 'icon' in signature:
+            if 'icon' not in self._images:
+                self.add_image(signature['icon'], 'Icon')
+            i_w = self._images['Icon']['/Width']
+            i_h = self._images['Icon']['/Height']
+
+            if block:
+                factor = 2.0
+            else:
+                factor = 1.0
+
+            if i_h <= height and i_w <= width/factor:
+                # image smaller than alloted half of box
+                # vertically centre icon and expand text region
+                t_left += i_w + 5
+                dist = (height - i_h)/2
+                if block:
+                    i_box = [bbox[0], bbox[1]+dist, i_w+bbox[0], bbox[3]-dist]
+                else:
+                    dist2 = (width - i_w)/2
+                    i_box = [bbox[0]+dist2, bbox[1]+dist, bbox[2]-dist2, bbox[3]-dist]
+            elif (i_w/i_h) > ((width/factor)/height):
+                # too wide
+                t_left += (width/factor) + 5
+                scale = (width/factor)/i_w
+                dist = (height - i_h*scale)/2
+                i_box = [bbox[0], bbox[1]+dist, width/factor, bbox[3]-dist]
+            else:
+                # too tall
+                scale = height/i_h
+                t_left += (i_w*scale) + 5
+                if block:
+                    i_box = [bbox[0], bbox[1], bbox[0]+i_w*scale, bbox[3]]
+                else:
+                    # centre if only the icon
+                    dist = (width - i_w*scale)/2
+                    i_box = [bbox[0]+dist, bbox[1], bbox[2]-dist, bbox[3]]
+            cs.extend(processor.image('Icon', *i_box))
+
+        if block:
+            font = self.get_default_font()
+            cs.extend(processor.text_box('\n'.join(block), font, t_left, 5, (bbox[2]-5)-t_left, height-5))
+
+        cs.add(Restore())
+        self._n2_layer = cs
+
+    def set_signature_appearance(self, *directives):
+        """
+            set_signature_apperance(self, *directives)
+
+            Use the provided list of lists to compute a signature appearance
+            using calls to the SignatureAppearance processor.  Note that the
+            text_box directive can only be used with a TTF font.
+        """
+        processor = SignatureAppearance(self._internal_location(), self._appearance)
+
+        cs = ContentStream([Save()])
+        for x in directives:
             if x[0] in processor.template:
                 directives = processor.template[x[0]](processor, *x[1:])
                 if type(directives) != list:
@@ -85,8 +190,34 @@ class Signature(Annotation):
             L.y2 + stroke_width,
         ]
 
-    def add_font(self, path, name="Font"):
-        self._fonts[name] = TTFFont(path).getfont()
+    def add_default_font(self):
+        self.add_ttf_font(HELVETICA_PATH, PDF_ANNOTATOR_FONT)
+
+    def get_default_font(self):
+        if PDF_ANNOTATOR_FONT not in self._ttf:
+            self.add_ttf_font(HELVETICA_PATH, PDF_ANNOTATOR_FONT)
+        return self._ttf[PDF_ANNOTATOR_FONT]
+
+    def add_type1_font(self, base_font, name="Font", encoding='WinAnsiEncoding'):
+        type1 = (
+            'Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique',
+            'Courier', 'Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique',
+            'Times-Roman', 'Times-Bold', 'Times-Italic', 'Times-BoldItalic',
+            'Symbol', 'ZapfDingbats',
+            )
+        if base_font in ('Symbol', 'ZapfDingbats'):
+            encoding = base_font
+        self._type1[name] = PdfDict(
+            Type = PdfName('Font'),
+            Subtype = PdfName('Type1'),
+            Name = PdfName(name),
+            BaseFont = PdfName(base_font),
+            Encoding = PdfName(encoding),
+            )
+
+    def add_ttf_font(self, path, name="Font"):
+        font = TTFFont(path)
+        self._ttf[name] = font
 
     def add_image(self, obj, name="Image"):
         self._images[name] = Image.make_image_xobject(obj)
@@ -171,8 +302,15 @@ class Signature(Annotation):
         resources = dict(
                 ProcSet = PdfArray([PdfName('PDF'), PdfName('Text'), PdfName('ImageC')])
         )
-        if self._fonts:
-            resources[PdfName('Font')] = self._fonts
+        fonts = PdfDict()
+        if self._ttf:
+            for name, font in self._ttf.items():
+                fonts[name] = font.get_font()
+        if self._type1:
+            for name, font in self._type1.items():
+                fonts[name] = font
+        if fonts:
+            resources[PdfName('Font')] = fonts
         if self._images:
             resources[PdfName('XObject')] = self._images
         self._n2 = IndirectPdfDict(
@@ -185,7 +323,7 @@ class Signature(Annotation):
             )
         self._n2['stream'] = self._n2_layer.resolve()
 
-class SignatureTemplate():
+class SignatureAppearance():
     def __init__(self, box, appearance):
         self._in_text = False
         self._reset_font = True
@@ -263,7 +401,7 @@ class SignatureTemplate():
         self._cur_tm[4] = x
         self._cur_tm[5] = y
         if self._in_text:
-            return [ TextMatrix(self._cur_tm.copy()) ]
+            return [TextMatrix(self._cur_tm.copy())]
         self._reset_tm = True
         return []
 
@@ -273,9 +411,18 @@ class SignatureTemplate():
 
         self._cur_font = (name, size)
         if self._in_text:
-            return [ Font(name, size), TextLeading(size*1.2) ]
+            return [Font(name, size), TextLeading(size*1.2)]
         self._reset_font = True
         return []
+
+    def text_box(self, text, ttf_font, x, y, width, height, font_size=8, wrap_text=True, align='left', baseline='middle', line_spacing=1.2):
+        commands = []
+        if not self._in_text:
+            commands.extend([BeginText(), Font(self._cur_font[0], font_size)])
+        commands.extend(get_text_commands(x, y, x+width, y+height, text, font_size, wrap_text, align, baseline, line_spacing, ttf_font))
+        if not self._in_text:
+            commands.append(EndText())
+        return commands
 
     def text(self, text):
         commands = []
