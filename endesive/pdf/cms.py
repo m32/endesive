@@ -366,14 +366,14 @@ class SignedData(pdf.PdfFileWriter):
                 #
                 # Make your own appearance with an arbitrary number of
                 # images and fonts
-                if 'annot_images' in udct:
-                    for name, img in udct['annot_images'].items():
+                if 'manual_images' in udct:
+                    for name, img in udct['manual_images'].items():
                         annotation.add_image(img, name=name)
-                if 'annot_fonts' in udct:
-                    for name, path in udct['annot_fonts'].items():
+                if 'manual_fonts' in udct:
+                    for name, path in udct['manual_fonts'].items():
                         annotation.add_ttf_font(path, name=name)
                 annotation.add_default_font()
-                annotation.set_signature_appearance(*udct['signature_annot'])
+                annotation.set_signature_appearance(*udct['signature_manual'])
 
             pdfa = annotation.as_pdf_object(identity(), page=page0ref)
             objapn = self._extend(pdfa["/AP"]["/N"])
@@ -460,7 +460,7 @@ class SignedData(pdf.PdfFileWriter):
                         }
                     )
                     break
-            
+
             old_flags = int(form.get("/SigFlags", 0))
             new_flags = int(form.get("/SigFlags", 0)) | udct.get("sigflags", 3)
             if new_13:
@@ -686,6 +686,12 @@ def sign(
                                                     pil image instance or
                                                     image file name or
                                                     byte array of image
+            signature_appearance: dict  if box is not None then render a signature appearance that is
+                                            configured by the dict.  See below for configuration
+            signature_manual: list      if box is not None then render a manually-created signature
+                                        apperance using the directives contained in this list
+            manual_fonts: dict          fonts required by the manual signature appearance
+            manual_images: dict         images required by the manual signature appearance
             contact: string             required info about the person signing the document
             location:string             required info about location of the person signing the document
             signingdate: string         required info about signing time eg: now.strftime('D:%Y%m%d%H%M%S+00\'00\'')
@@ -705,6 +711,55 @@ def sign(
         timestamp_req_options: Dict to set options to the POST http call against the timestamp server. Default: None
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
+
+    Signature appearance:
+
+    Adobe-inspired signature with text and images Parameters are contained
+    in udct['signature_appearance']
+
+    If a field is included in the display list, that field will be included
+    in the annotation.  Its value is based upon what is in udct and the cert.
+    Text and border are the colour specified by outline, and border is the
+    the inset distance from the outer edge of the annotation.  The R G B
+    values range between 0 and 1.
+
+    Icon is an image to display above the background and border at the
+    left-hand side of the anntoation.  If there is no text, it is centred.
+
+    The text block is left-aligned to the right of the icon image.  If there
+    is no image, the text is left-aliged with the left-hand border of the
+    annotation
+
+    display fields:
+        CN, DN, date, contact, reason, location
+
+    Dict format:
+      appearance = dict(
+          background = Image with alpha / None,
+          icon = Image with alpha / None,
+          labels = bool,
+          display = list,
+          software = str,
+          outline = [R, G, B],
+          border = int,
+          )
+
+    Signature manual:
+
+    Manually set up your own signature appearance with arbitrary fonts and
+    images.  The full list of directives can be seen in the template dict
+    in endesive.pdf.PyPDF2_annotate.annotations.signatureaSignatureAppearance
+
+    manual_images is a dict of images that will be included in the annotation
+    The keys are strings, and are the names to use when referring to the them
+    in 'image' directives.
+
+    manual_fonts is a dict of TrueType fonts that will be included in the
+    annotation.  The keys are strings, and are the names to use when referring
+    to the them in 'image' directives.  The values are the paths to the font
+    files.  Do not use the name 'default' in this dict; it is treated
+    specially.
+
     """
     cls = SignedData()
     return cls.sign(
