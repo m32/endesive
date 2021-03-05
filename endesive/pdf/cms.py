@@ -190,7 +190,7 @@ class SignedData(pdf.PdfFileWriter):
             dct[k] = v
         return dct
 
-    def makepdf(self, prev, udct, algomd, zeros):
+    def makepdf(self, prev, udct, algomd, zeros, cert):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].getObject()
@@ -200,6 +200,7 @@ class SignedData(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
+        # obj12 is the digital signature
         obj12 = po.DictionaryObject()
         obj12ref = self._addObject(obj12)
 
@@ -224,9 +225,11 @@ class SignedData(pdf.PdfFileWriter):
             }
         )
 
+        # obj13 is a combined AcroForm Sig field with Widget annotation
         new_13 = True
         obj13 = po.DictionaryObject()
         if udct.get('signform', False):
+            # Attaching signature to existing field in AcroForm
             if "/AcroForm" in catalog:
                 form = catalog["/AcroForm"].getObject()
                 if "/Fields" in form:
@@ -236,6 +239,7 @@ class SignedData(pdf.PdfFileWriter):
                     self._objects[obj13ref.idnum-1] = obj13
                     new_13 = False
 
+        # box is coordinates of the annotation to fill
         box = udct.get("signaturebox", None)
         if new_13:
             obj13.update(
@@ -247,6 +251,9 @@ class SignedData(pdf.PdfFileWriter):
                     po.NameObject("/T"): EncodedString(udct.get("sigfield", "Signature1")),
                     po.NameObject("/V"): obj12ref,
                     po.NameObject("/P"): page0ref,
+
+                    # For an invisible signature, /Rect should be a size 0 box
+                    # Defaulting to that
                     po.NameObject("/Rect"): po.ArrayObject(
                         [
                             po.FloatObject(0.0),
@@ -260,101 +267,130 @@ class SignedData(pdf.PdfFileWriter):
             obj13ref = self._addObject(obj13)
         else:
             # original obj13 is a merged SigField/SigAnnot
+            # Setting /V on the AcroForm field sets the signature
+            # for the field
             obj13.update(
                 {
                     po.NameObject("/V"): obj12ref,
                 }
             )
-            # fill signature field annotation
+            # fill the existing signature field annotation,
+            # ignore any other location
             if "/Rect" in obj13:
                 box = [float(f) for f in obj13["/Rect"]]
 
+        # add an annotation if there is a field to fill
         if box is not None:
-            from endesive.pdf.PyPDF2_annotate.annotations.text import FreeText
             from endesive.pdf.PyPDF2_annotate.annotations.signature import Signature
             from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
             from endesive.pdf.PyPDF2_annotate.config.location import Location
             from endesive.pdf.PyPDF2_annotate.util.geometry import identity
 
-            annotationtext = udct.get("signature", None)
             x1, y1, x2, y2 = box
-            if annotationtext is not None:
-                annotation = FreeText(
-                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-                    Appearance(
-                        fill=[0, 0, 0],
-                        stroke_width=1,
-                        wrap_text=udct.get('text', {}).get('wraptext', True),
-                        font_size=udct.get('text', {}).get('fontsize', 12),
-                        text_align=udct.get('text', {}).get('textalign', 'left'),
-                        line_spacing=udct.get('text', {}).get('linespacing', 1.2),
-                        content=annotationtext,
-                    ),
+            annotation = Signature(
+                Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
+                Appearance(),
                 )
-                names = ("BS", "C", "Contents", "DA")
-                if not udct.get("sigbutton", False):
-                    obj13[po.NameObject("/Subtype")] = po.NameObject("/FreeText")
-            elif 'signature_img' in udct:
-                annotation = Signature(
-                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-                    Appearance(),
+            if 'signature' in udct:
+                # Plain text signature with the default font
+                # text to render is contained in udct['signature']
+                # font parameters are in udct['signature']['text']
+                annotationtext = udct["signature"]
+                wrap_text = udct.get('text', {}).get('wraptext', True)
+                font_size = udct.get('text', {}).get('fontsize', 12)
+                text_align = udct.get('text', {}).get('textalign', 'left')
+                line_spacing = udct.get('text', {}).get('linespacing', 1.2)
+
+                annotation.add_default_font()
+                annotation.set_signature_appearance(
+                    ['fill_colour', 0, 0, 0],
+                    ['font', 'default', font_size],
+                    ['text_box', annotationtext, 'default', 0, 0, x2-x1, y2-y1, font_size, wrap_text, text_align, 'middle', line_spacing]
                     )
+            elif 'signature_img' in udct:
+                # Simple image signature, stretches to fit the box
+                # image to render is contained in udct['signature_image']
                 annotation.add_image(udct["signature_img"], "Image")
                 annotation.set_signature_appearance(['image', "Image", 0, 0, x2-x1, y2-y1])
-                if not udct.get("sigbutton", False):
-                    names = (
-                        #
-                        "Subtype",
-                    )
-                else:
-                    names = ()
             elif 'signature_appearance' in udct:
-                annotation = Signature(
-                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-                    Appearance(),
-                    )
-                annotation.simple_signature(udct['signature_appearance'])
-                if not udct.get("sigbutton", False):
-                    names = (
-                        #
-                        "Subtype",
-                    )
-                else:
-                    names = ()
+                # Adobe-inspired signature with text and images
+                # Parameters are contained in udct['signature_appearance']
+                # If a field is included in the display list, that field
+                # will be contained in the annotation.
+                #
+                # Text and border are the colour specified by outline,
+                # and border is the the inset distance from the outer
+                # edge of the annotation.  The R G B values range between
+                # 0 and 1.
+                #
+                # Icon is an image to display above the background and
+                # border at the left-hand side of the anntoation.  If
+                # there is no text, it is centred.
+                #
+                # The text block is left-aligned to the right of the icon
+                # image.  If there is no image, the text is left-aliged
+                # with the left-hand border of the annotation
+                #
+                # display fields:
+                #   CN, DN, date, contact, reason, location
+                #
+                # Dict format:
+                #   appearance = dict(
+                #       background = Image with alpha / None,
+                #       icon = Image with alpha / None,
+                #       labels = bool,
+                #       display = list,
+                #       software = str,
+                #       outline = [R, G, B],
+                #       border = int,
+                #       )
+                sig = {}
+                for f in ('background', 'icon', 'labels', 'border', 'outline'):
+                    if f in udct['signature_appearance']:
+                        sig[f] = udct['signature_appearance'][f]
+
+                toggles = udct['signature_appearance'].get('display', [])
+                for f in ('contact', 'reason', 'location', 'contact', 'signingdate'):
+                    if f in toggles:
+                        sig[f] = udct.get(f, '{} unknown'.format(f))
+                if 'date' in toggles:
+                    sig['date'] = udct['signingdate']
+                if 'CN' in toggles:
+                    from cryptography.x509 import ObjectIdentifier
+                    sig['CN'] = cert.subject.get_attributes_for_oid(ObjectIdentifier('2.5.4.3'))[0].value
+                if 'DN' in toggles:
+                    sig['DN'] = cert.subject.rfc4514_string()
+                annotation.simple_signature(sig)
             else:
-                annotation = Signature(
-                    Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-                    Appearance(),
-                    )
+                # Manual signature annotation creation
+                #
+                # Make your own appearance with an arbitrary number of
+                # images and fonts
                 if 'annot_images' in udct:
                     for name, img in udct['annot_images'].items():
                         annotation.add_image(img, name=name)
+                if 'annot_fonts' in udct:
+                    for name, path in udct['annot_fonts'].items():
+                        annotation.add_ttf_font(path, name=name)
                 annotation.add_default_font()
                 annotation.set_signature_appearance(*udct['signature_annot'])
-                if not udct.get("sigbutton", False):
-                    names = (
-                        #
-                        "Subtype",
-                    )
-                else:
-                    names = ()
 
             pdfa = annotation.as_pdf_object(identity(), page=page0ref)
             objapn = self._extend(pdfa["/AP"]["/N"])
             objapnref = self._addObject(objapn)
 
-            for name in names + (
-                "Rect",
-                # "Subtype",
-            ):
-                key = po.NameObject("/" + name)
-                v = pdfa[key]
-                obj13[key] = v
-
             objap = po.DictionaryObject()
             objap[po.NameObject("/N")] = objapnref
             obj13.update(
                 {
+                    po.NameObject("/Rect"): po.ArrayObject(
+                        [
+                            po.FloatObject(x1),
+                            po.FloatObject(y1),
+                            po.FloatObject(x2),
+                            po.FloatObject(y2),
+                        ]
+                    ),
                     po.NameObject("/AP"): objap,
                     #po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
                 }
@@ -529,7 +565,7 @@ class SignedData(pdf.PdfFileWriter):
             )
             zeros = contents.hex().encode("utf-8")
 
-        self.makepdf(prev, udct, algomd, zeros)
+        self.makepdf(prev, udct, algomd, zeros, cert)
 
         # if document was encrypted, encrypt this version too
         if prev.isEncrypted:
@@ -630,7 +666,6 @@ def sign(
             sigflags: int               default:3 1,2,3 - flags for acroform
             sigflagsft: int             default:132 - flags for annotation widget from pdf 12.5.3
             sigpage: int                default:0 - page on which signature should appear
-            sigbutton: bool             default:False
             sigfield: string            default:Signature1
             auto_sigfield: bool         default:False
                                                 False - do not check for sigfield name conflicts

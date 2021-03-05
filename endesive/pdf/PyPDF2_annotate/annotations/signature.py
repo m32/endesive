@@ -71,6 +71,7 @@ class Signature(Annotation):
                 CN = str,
                 DN = str,
                 date = str,
+                contact = str,
                 reason = str,
                 location = str,
                 software = str,
@@ -79,7 +80,7 @@ class Signature(Annotation):
                 )
         """
         bbox = self._internal_location()
-        processor = SignatureAppearance(bbox, self._appearance)
+        processor = SignatureAppearance(bbox, self._appearance, self._ttf)
         height = bbox[3] - bbox[1]
         width = bbox[2] - bbox[0]
         t_left = 5
@@ -91,6 +92,7 @@ class Signature(Annotation):
                 DN = 'DN: ',
                 CN = 'Digitally signed by ',
                 date = 'Date: ',
+                contact = 'Contact: ',
                 reason = 'Reason: ',
                 location = 'Location: ',
                 software = 'Signing software: ',
@@ -99,16 +101,20 @@ class Signature(Annotation):
             labels = {}
 
         block = []
-        for i in ('CN', 'DN', 'date', 'reason', 'location', 'software'):
+        for i in ('CN', 'DN', 'date', 'reason', 'contact', 'location', 'software'):
             if i not in signature:
                 continue
             block.append('{}{}'.format(labels.get(i, ''), signature[i]))
 
         cs = ContentStream([Save()])
         if 'background' in signature:
-            if 'bg' not in self._images:
-                self.add_image(signature['background'], 'Bg')
-            cs.extend(processor.image('Bg', *bbox))
+            if type(signature['background']) == list:
+                cs.extend(processor.fill_colour(*signature['background']))
+                cs.extend(processor.rect_fill(*bbox))
+            else:
+                if 'bg' not in self._images:
+                    self.add_image(signature['background'], 'Bg')
+                cs.extend(processor.image('Bg', *bbox))
 
         cs.extend(processor.fill_colour(*signature.get('outline', [0, 0, 0])))
         cs.extend(processor.stroke_colour(*signature.get('outline', [0, 0, 0])))
@@ -168,7 +174,7 @@ class Signature(Annotation):
             using calls to the SignatureAppearance processor.  Note that the
             text_box directive can only be used with a TTF font.
         """
-        processor = SignatureAppearance(self._internal_location(), self._appearance)
+        processor = SignatureAppearance(self._internal_location(), self._appearance, self._ttf)
 
         cs = ContentStream([Save()])
         for x in directives:
@@ -324,7 +330,7 @@ class Signature(Annotation):
         self._n2['stream'] = self._n2_layer.resolve()
 
 class SignatureAppearance():
-    def __init__(self, box, appearance):
+    def __init__(self, box, appearance, ttf):
         self._in_text = False
         self._reset_font = True
         self._reset_tm = False
@@ -333,6 +339,7 @@ class SignatureAppearance():
         self._sc = [0, 0, 0]
         self._fc = [0, 0, 0]
         self._bounds = box
+        self._ttf = ttf
 
     def fill_colour(self, *colour):
         self._fc = colour
@@ -416,6 +423,11 @@ class SignatureAppearance():
         return []
 
     def text_box(self, text, ttf_font, x, y, width, height, font_size=8, wrap_text=True, align='left', baseline='middle', line_spacing=1.2):
+        if type(ttf_font) == str:
+            ttf_font = self._ttf.get(ttf_font, self._ttf[PDF_ANNOTATOR_FONT])
+        ttf_font.set_size(font_size)
+        ttf_font.set_text(text)
+
         commands = []
         if not self._in_text:
             commands.extend([BeginText(), Font(self._cur_font[0], font_size)])
@@ -425,6 +437,11 @@ class SignatureAppearance():
         return commands
 
     def text(self, text):
+        if self._cur_font[0] in self._ttf:
+            ttf_font = self._ttf[self._cur_font[0]]
+            ttf_font.set_size(self._cur_font[1])
+            ttf_font.set_text(text)
+            text = text.encode("utf-16be").decode("latin1")
         commands = []
         if not self._in_text:
             commands.append(BeginText())
@@ -459,6 +476,7 @@ class SignatureAppearance():
         border = border,
         font = font,
         text = text,
+        text_box = text_box,
         text_position = text_position,
         new_line = new_line,
         done = done,
