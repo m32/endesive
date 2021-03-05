@@ -23,6 +23,7 @@ def main():
         "sigpage": 0,
         "sigbutton": True,
         "sigfield": "Signature1",
+        "auto_sigfield": True,
         "sigandcertify": True,
         "signaturebox": (470, 840, 570, 640),
         "signature": "Dokument podpisany cyfrowo ąćęłńóśżź",
