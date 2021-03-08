@@ -36,8 +36,8 @@ def main():
             #                  R    G    B
             ['stroke_colour', 0.8, 0.8, 0.8],
 
-            #          key  *[bounding box]
-            ['image', 'sig0', 0, 0, 59, 15],
+            #          key  *[bounding box]  distort centred
+            ['image', 'sig0', 0, 0, 270, 18,  False, False],
 
             #        inset
             ['border', 2],

@@ -29,6 +29,8 @@ def main():
         #                PIL Image object or path to image file
         #                Image will be resized to fit bounding box
         "signature_img": '../signature_test.png',
+        "signature_img_distort": False, # default True
+        "signature_img_centred": False, # default True
 
         "contact": "mak@trisoft.com.pl",
         "location": "Szczecin",
