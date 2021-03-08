@@ -80,7 +80,7 @@ class Signature(Annotation):
                 )
         """
         bbox = self._internal_location()
-        processor = SignatureAppearance(bbox, self._appearance, self._ttf)
+        processor = SignatureAppearance(bbox, self._appearance, self._ttf, self._images)
         height = bbox[3] - bbox[1]
         width = bbox[2] - bbox[0]
         t_left = 5
@@ -174,7 +174,7 @@ class Signature(Annotation):
             using calls to the SignatureAppearance processor.  Note that the
             text_box directive can only be used with a TTF font.
         """
-        processor = SignatureAppearance(self._internal_location(), self._appearance, self._ttf)
+        processor = SignatureAppearance(self._internal_location(), self._appearance, self._ttf, self._images)
 
         cs = ContentStream([Save()])
         for x in directives:
@@ -330,7 +330,7 @@ class Signature(Annotation):
         self._n2['stream'] = self._n2_layer.resolve()
 
 class SignatureAppearance():
-    def __init__(self, box, appearance, ttf):
+    def __init__(self, box, appearance, ttf, images):
         self._in_text = False
         self._reset_font = True
         self._reset_tm = False
@@ -340,6 +340,7 @@ class SignatureAppearance():
         self._fc = [0, 0, 0]
         self._bounds = box
         self._ttf = ttf
+        self._images = images
 
     def fill_colour(self, *colour):
         self._fc = colour
@@ -356,10 +357,32 @@ class SignatureAppearance():
             Stroke()
             ]
 
-    def image(self, image_name, x1, y1, x2, y2):
+    def image(self, image_name, x1, y1, x2, y2, distort=True, centred=True):
+        if distort:
+            scale_x = x2-x1
+            scale_y = y2-y1
+        else:
+            max_w = x2-x1
+            max_h = y2-y1
+            i_w = self._images[image_name]['/Width']
+            i_h = self._images[image_name]['/Height']
+
+            if i_w/i_h >= max_w/max_h:
+                # image proportionally wider than box
+                scale_x = x2-x1
+                scale_y = scale_x*(i_h/i_w)
+                if centred: # centre vertically
+                    dist = (max_h-scale_y)/2.0
+                    y1 += dist
+            elif i_w/i_h < max_w/max_h:
+                # image proportionally narrower than box
+                scale_y = y2-y1
+                scale_x = scale_y*(i_w/i_h)
+                if centred: # centre horizontally
+                    dist = (max_w-scale_x)/2.0
+                    x1 += dist
+
         commands = []
-        scale_x = x2-x1
-        scale_y = y2-y1
         if self._in_text:
             commands.append(EndText())
             self._reset_font = True

@@ -311,7 +311,12 @@ class SignedData(pdf.PdfFileWriter):
                 # Simple image signature, stretches to fit the box
                 # image to render is contained in udct['signature_image']
                 annotation.add_image(udct["signature_img"], "Image")
-                annotation.set_signature_appearance(['image', "Image", 0, 0, x2-x1, y2-y1])
+                annotation.set_signature_appearance(
+                    ['image', "Image", 0, 0, x2-x1, y2-y1,
+                        udct.get('signature_img_distort', True),
+                        udct.get('signature_img_centred', False),
+                        ]
+                    )
             elif 'signature_appearance' in udct:
                 # Adobe-inspired signature with text and images
                 # Parameters are contained in udct['signature_appearance']
@@ -686,6 +691,19 @@ def sign(
                                                     pil image instance or
                                                     image file name or
                                                     byte array of image
+            signature_img_distort: bool default:True
+                                                True  - do not maintain image aspect ratio, fill the
+                                                        entire bounding box, distorting the image.
+                                                        This is set to True to match the behaviour
+                                                        of previous versions of endesive
+                                                False - maintain image aspect ratio when fitting
+                                                        image into the bounding box
+            signature_img_centred: bool default:True
+                                                True  - centre images within the bounding box when
+                                                        image aspect ratio does not match that of
+                                                        the bounding box
+                                                False - do not centre image, position it at the
+                                                        lower-left of the bounding box
             signature_appearance: dict  if box is not None then render a signature appearance that is
                                             configured by the dict.  See below for configuration
             signature_manual: list      if box is not None then render a manually-created signature
