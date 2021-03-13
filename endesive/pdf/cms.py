@@ -190,6 +190,23 @@ class SignedData(pdf.PdfFileWriter):
             dct[k] = v
         return dct
 
+    def _make_signature(self, Contents=None, Type=None, SubFilter=None):
+        sig = po.DictionaryObject()
+        sig_ref = self._addObject(sig)
+        sig.update({
+            po.NameObject("/Type"): Type,
+            po.NameObject("/Filter"): po.NameObject("/Adobe.PPKLite"),
+            po.NameObject("/SubFilter"): SubFilter,
+            po.NameObject("/ByteRange"): po.ArrayObject([
+                WNumberObject(0),
+                WNumberObject(0),
+                WNumberObject(0),
+                WNumberObject(0),
+                ]),
+            po.NameObject("/Contents"): Contents,
+            })
+        return sig, sig_ref
+
     def _make_sig_annotation(self, F=None, Vref=None, T=None, Pref=None):
         annot = po.DictionaryObject()
         annot_ref = self._addObject(annot)
@@ -224,26 +241,17 @@ class SignedData(pdf.PdfFileWriter):
             self._objects.append(None)
 
         # obj12 is the digital signature
-        obj12 = po.DictionaryObject()
-        obj12ref = self._addObject(obj12)
+        obj12, obj12ref = self._make_signature(
+            Type = po.NameObject("/Sig"),
+            SubFilter = po.NameObject("/adbe.pkcs7.detached"),
+            Contents = UnencryptedBytes(zeros),
+            )
 
         obj12.update(
             {
-                po.NameObject("/Type"): po.NameObject("/Sig"),
-                po.NameObject("/Filter"): po.NameObject("/Adobe.PPKLite"),
-                po.NameObject("/SubFilter"): po.NameObject("/adbe.pkcs7.detached"),
                 po.NameObject("/Name"): po.createStringObject(udct["contact"]),
                 po.NameObject("/Location"): po.createStringObject(udct["location"]),
                 po.NameObject("/Reason"): po.createStringObject(udct["reason"]),
-                po.NameObject("/Contents"): UnencryptedBytes(zeros),
-                po.NameObject("/ByteRange"): po.ArrayObject(
-                    [
-                        WNumberObject(0),
-                        WNumberObject(0),
-                        WNumberObject(0),
-                        WNumberObject(0),
-                    ]
-                ),
             }
         )
         if params.get('use_signingdate'):
