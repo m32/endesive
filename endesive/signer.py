@@ -27,6 +27,53 @@ def cert2asn(cert, cert_bytes=True):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
 
+def timestamp(data, hashalgo, url, credentials, req_options):
+    hashed_value = getattr(hashlib, hashalgo)(data).digest()
+    tspreq = tsp.TimeStampReq({
+        "version": 1,
+        "message_imprint": tsp.MessageImprint({
+            "hash_algorithm": algos.DigestAlgorithm({'algorithm': hashalgo}),
+            "hashed_message": hashed_value,
+            }),
+        #'req_policy', ObjectIdentifier, {'optional': True}),
+        "nonce": int(time.time()*1000),
+        "cert_req": True,
+        #'extensions': tsp.Extensions()
+        })
+    tspreq = tspreq.dump()
+
+    tspheaders = {"Content-Type": "application/timestamp-query"}
+    if credentials is not None:
+        username = credentials.get("username", None)
+        password = credentials.get("password", None)
+        if username and password:
+            auth_header_value = b64encode(bytes(username + ':' + password, "utf-8")).decode("ascii")
+            tspheaders["Authorization"] = f"Basic {auth_header_value}"
+    if req_options is None:
+        req_options = {}
+
+    tspresp = requests.post(url, data=tspreq, headers=tspheaders, **req_options)
+    if tspresp.headers.get('Content-Type', None) == 'application/timestamp-reply':
+        tspresp = tsp.TimeStampResp.load(tspresp.content)
+
+        if tspresp['status']['status'].native == 'granted':
+            attrs = [
+                cms.CMSAttribute({
+                    'type': cms.CMSAttributeType('signature_time_stamp_token'),
+                    'values': cms.SetOfContentInfo([
+                        cms.ContentInfo({
+                            'content_type': cms.ContentType('signed_data'),
+                            'content': tspresp["time_stamp_token"]["content"],
+                            })
+                        ])
+                    })
+                ]
+            return attrs
+        else:
+            raise ValueError("TimeStampResponse status is not granted")
+    else:
+        raise ValueError("TimeStampResponse has invalid content type")
+
 def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False, timestampurl=None, timestampcredentials=None, timestamp_req_options=None):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
@@ -159,52 +206,13 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
             )
 
     if timestampurl is not None:
-        signed_value = getattr(hashlib, hashalgo)(signed_value_signature).digest()
-        tspreq = tsp.TimeStampReq({
-            "version": 1,
-            "message_imprint": tsp.MessageImprint({
-                "hash_algorithm": algos.DigestAlgorithm({'algorithm': hashalgo}),
-                "hashed_message": signed_value,
-            }),
-            #'req_policy', ObjectIdentifier, {'optional': True}),
-            "nonce": int(time.time()*1000),
-            "cert_req": True,
-            #'extensions': tsp.Extensions()
-        })
-        tspreq = tspreq.dump()
-
-        tspheaders = {"Content-Type": "application/timestamp-query"}
-        if timestampcredentials is not None:
-            username = timestampcredentials.get("username", None)
-            password = timestampcredentials.get("password", None)
-            if username and password:
-                auth_header_value = b64encode(bytes(username + ':' + password, "utf-8")).decode("ascii")
-                tspheaders["Authorization"] = f"Basic {auth_header_value}"
-        if timestamp_req_options is None:
-            timestamp_req_options = {}
-        tspresp = requests.post(timestampurl, data=tspreq, headers=tspheaders, **timestamp_req_options)
-        if tspresp.headers.get('Content-Type', None) == 'application/timestamp-reply':
-            tspresp = tsp.TimeStampResp.load(tspresp.content)
-
-            if tspresp['status']['status'].native == 'granted':
-                attrs = [
-                    cms.CMSAttribute({
-                        'type': cms.CMSAttributeType('signature_time_stamp_token'),
-                        'values': cms.SetOfContentInfo([
-                            cms.ContentInfo({
-                                'content_type': cms.ContentType('signed_data'),
-                                'content': tspresp["time_stamp_token"]["content"],
-                            })
-                        ])
-                    })
-                ]
-                datas['content']['signer_infos'][0]['unsigned_attrs'] = attrs
-
-            else:
-                raise ValueError("TimeStampResponse status is not granted")
-
-        else:
-            raise ValueError("TimeStampResponse has invalid content type")
+        datas['content']['signer_infos'][0]['unsigned_attrs'] = timestamp(
+            signed_value_signature,
+            hashalgo,
+            timestampurl,
+            timestampcredentials,
+            timestamp_req_options,
+            )
 
     # signed_value_signature = core.OctetString(signed_value_signature)
     datas['content']['signer_infos'][0]['signature'] = signed_value_signature
