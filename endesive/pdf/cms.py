@@ -190,6 +190,29 @@ class SignedData(pdf.PdfFileWriter):
             dct[k] = v
         return dct
 
+    def _make_sig_annotation(self, F=None, Vref=None, T=None, Pref=None):
+        annot = po.DictionaryObject()
+        annot_ref = self._addObject(annot)
+        annot.update({
+            po.NameObject("/FT"): po.NameObject("/Sig"),
+            po.NameObject("/Type"): po.NameObject("/Annot"),
+            po.NameObject("/Subtype"): po.NameObject("/Widget"),
+            po.NameObject("/F"): F,
+            po.NameObject("/T"): T,
+            po.NameObject("/V"): Vref,
+            po.NameObject("/P"): Pref,
+
+            # For an invisible signature, /Rect should be a size 0 box
+            # Defaulting to that
+            po.NameObject("/Rect"): po.ArrayObject([
+                po.FloatObject(0.0),
+                po.FloatObject(0.0),
+                po.FloatObject(0.0),
+                po.FloatObject(0.0),
+                ]),
+            })
+        return annot, annot_ref
+
     def makepdf(self, prev, udct, algomd, zeros, cert, **params):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
@@ -223,15 +246,14 @@ class SignedData(pdf.PdfFileWriter):
                 ),
             }
         )
-        if params.get('use_signingdate')
+        if params.get('use_signingdate'):
             obj12.update({
                 po.NameObject("/M"): po.createStringObject(udct["signingdate"]),
             })
-        )
 
         # obj13 is a combined AcroForm Sig field with Widget annotation
         new_13 = True
-        obj13 = po.DictionaryObject()
+        #obj13 = po.DictionaryObject()
         if udct.get('signform', False):
             # Attaching signature to existing field in AcroForm
             if "/AcroForm" in catalog:
@@ -246,29 +268,12 @@ class SignedData(pdf.PdfFileWriter):
         # box is coordinates of the annotation to fill
         box = udct.get("signaturebox", None)
         if new_13:
-            obj13.update(
-                {
-                    po.NameObject("/FT"): po.NameObject("/Sig"),
-                    po.NameObject("/Type"): po.NameObject("/Annot"),
-                    po.NameObject("/Subtype"): po.NameObject("/Widget"),
-                    po.NameObject("/F"): po.NumberObject(udct.get("sigflagsft", 132)),
-                    po.NameObject("/T"): EncodedString(udct.get("sigfield", "Signature1")),
-                    po.NameObject("/V"): obj12ref,
-                    po.NameObject("/P"): page0ref,
-
-                    # For an invisible signature, /Rect should be a size 0 box
-                    # Defaulting to that
-                    po.NameObject("/Rect"): po.ArrayObject(
-                        [
-                            po.FloatObject(0.0),
-                            po.FloatObject(0.0),
-                            po.FloatObject(0.0),
-                            po.FloatObject(0.0),
-                        ]
-                    ),
-                }
-            )
-            obj13ref = self._addObject(obj13)
+            obj13, obj13ref = self._make_sig_annotation(
+                F = po.NumberObject(udct.get("sigflagsft", 132)),
+                T = EncodedString(udct.get("sigfield", "Signature1")),
+                Vref = obj12ref,
+                Pref = page0ref,
+                )
         else:
             # original obj13 is a merged SigField/SigAnnot
             # Setting /V on the AcroForm field sets the signature
