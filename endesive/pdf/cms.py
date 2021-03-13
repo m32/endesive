@@ -190,7 +190,7 @@ class SignedData(pdf.PdfFileWriter):
             dct[k] = v
         return dct
 
-    def makepdf(self, prev, udct, algomd, zeros, cert):
+    def makepdf(self, prev, udct, algomd, zeros, cert, **params):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].getObject()
@@ -212,7 +212,6 @@ class SignedData(pdf.PdfFileWriter):
                 po.NameObject("/Name"): po.createStringObject(udct["contact"]),
                 po.NameObject("/Location"): po.createStringObject(udct["location"]),
                 po.NameObject("/Reason"): po.createStringObject(udct["reason"]),
-                po.NameObject("/M"): po.createStringObject(udct["signingdate"]),
                 po.NameObject("/Contents"): UnencryptedBytes(zeros),
                 po.NameObject("/ByteRange"): po.ArrayObject(
                     [
@@ -223,6 +222,11 @@ class SignedData(pdf.PdfFileWriter):
                     ]
                 ),
             }
+        )
+        if params.get('use_signingdate')
+            obj12.update({
+                po.NameObject("/M"): po.createStringObject(udct["signingdate"]),
+            })
         )
 
         # obj13 is a combined AcroForm Sig field with Widget annotation
@@ -570,7 +574,11 @@ class SignedData(pdf.PdfFileWriter):
             )
             zeros = contents.hex().encode("utf-8")
 
-        self.makepdf(prev, udct, algomd, zeros, cert)
+        params = {}
+        if not timestampurl:
+            params['use_signingdate'] = True
+
+        self.makepdf(prev, udct, algomd, zeros, cert, **params)
 
         # if document was encrypted, encrypt this version too
         if prev.isEncrypted:
