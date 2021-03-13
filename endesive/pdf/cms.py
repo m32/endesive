@@ -240,6 +240,32 @@ class SignedData(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
+##        if params['mode'] == 'timestamp':
+##            # deal with extensions
+##            if '/Extensions' not in catalog:
+##                extensions = po.DictionaryObject()
+##            else:
+##                extensions = catalog['/Extensions']
+##
+##            if '/ESIC' not in extensions:
+##                extensions.update({
+##                    po.NameObject("/ESIC"): po.DictionaryObject({
+##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
+##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
+##                        })
+##                    })
+##            else:
+##                esic = extensions['/ESIC']
+##                major, minor = esic['/BaseVersion'].lstrip('/').split('.')
+##                if int(major) < 1 or int(minor) < 7:
+##                    esic.update({
+##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
+##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
+##                        })
+##            catalog.update({
+##                po.NameObject('/Extensions'): extensions
+##                })
+
         # obj12 is the digital signature
         obj12, obj12ref = self._make_signature(
             Type = po.NameObject("/Sig"),
@@ -247,17 +273,23 @@ class SignedData(pdf.PdfFileWriter):
             Contents = UnencryptedBytes(zeros),
             )
 
-        obj12.update(
-            {
+        if params['mode'] == 'timestamp':
+            # obj12 is a timestamp this time
+            obj12.update({
+                po.NameObject("/Type"): po.NameObject("/DocTimeStamp"),
+                po.NameObject("/SubFilter"): po.NameObject("/ETSI.RFC3161"),
+                po.NameObject("/V"): po.NumberObject(0),
+                })
+        else:
+            obj12.update({
                 po.NameObject("/Name"): po.createStringObject(udct["contact"]),
                 po.NameObject("/Location"): po.createStringObject(udct["location"]),
                 po.NameObject("/Reason"): po.createStringObject(udct["reason"]),
-            }
-        )
-        if params.get('use_signingdate'):
-            obj12.update({
-                po.NameObject("/M"): po.createStringObject(udct["signingdate"]),
-            })
+                })
+            if params.get('use_signingdate'):
+                obj12.update({
+                    po.NameObject("/M"): po.createStringObject(udct["signingdate"]),
+                    })
 
         # obj13 is a combined AcroForm Sig field with Widget annotation
         new_13 = True
@@ -275,6 +307,7 @@ class SignedData(pdf.PdfFileWriter):
 
         # box is coordinates of the annotation to fill
         box = udct.get("signaturebox", None)
+
         if new_13:
             obj13, obj13ref = self._make_sig_annotation(
                 F = po.NumberObject(udct.get("sigflagsft", 132)),
@@ -539,6 +572,7 @@ class SignedData(pdf.PdfFileWriter):
         timestampurl,
         timestampcredentials=None,
         timestamp_req_options=None,
+        mode='sign',
     ):
         startdata = len(datau)
 
@@ -571,23 +605,33 @@ class SignedData(pdf.PdfFileWriter):
             zeros = b"00" * aligned
         else:
             md = getattr(hashlib, algomd)().digest()
-            contents = signer.sign(
-                None,
-                key,
-                cert,
-                othercerts,
-                algomd,
-                True,
-                md,
-                hsm,
-                False,
-                timestampurl,
-                timestampcredentials,
-                timestamp_req_options,
-            )
+            if mode == 'timestamp':
+                contents = signer.timestamp(
+                    None,
+                    algomd,
+                    timestampurl,
+                    timestampcredentials,
+                    timestamp_req_options,
+                    prehashed=md,
+                    )[0]['values'][0].dump()
+            else:
+                contents = signer.sign(
+                    None,
+                    key,
+                    cert,
+                    othercerts,
+                    algomd,
+                    True,
+                    md,
+                    hsm,
+                    False,
+                    timestampurl,
+                    timestampcredentials,
+                    timestamp_req_options,
+                    )
             zeros = contents.hex().encode("utf-8")
 
-        params = {}
+        params = {'mode': mode}
         if not timestampurl:
             params['use_signingdate'] = True
 
@@ -644,20 +688,30 @@ class SignedData(pdf.PdfFileWriter):
         md.update(b2)
         md = md.digest()
 
-        contents = signer.sign(
-            None,
-            key,
-            cert,
-            othercerts,
-            algomd,
-            True,
-            md,
-            hsm,
-            False,
-            timestampurl,
-            timestampcredentials,
-            timestamp_req_options,
-        )
+        if mode == 'timestamp':
+            contents = signer.timestamp(
+                None,
+                algomd,
+                timestampurl,
+                timestampcredentials,
+                timestamp_req_options,
+                prehashed=md,
+                )[0]['values'][0].dump()
+        else:
+            contents = signer.sign(
+                None,
+                key,
+                cert,
+                othercerts,
+                algomd,
+                True,
+                md,
+                hsm,
+                False,
+                timestampurl,
+                timestampcredentials,
+                timestamp_req_options,
+                )
         contents = contents.hex().encode("utf-8")
         if aligned:
             nb = len(zeros) - len(contents)
@@ -668,6 +722,29 @@ class SignedData(pdf.PdfFileWriter):
 
         return datas
 
+
+def timestamp(
+    datau,
+    udct,
+    algomd="sha1",
+    timestampurl=None,
+    timestampcredentials=None,
+    timestamp_req_options=None,
+):
+    cls = SignedData()
+    return cls.sign(
+        datau,
+        udct,
+        None, #key,
+        None, #cert,
+        None, #othercerts,
+        algomd,
+        None, #hsm,
+        timestampurl,
+        timestampcredentials,
+        timestamp_req_options,
+        mode='timestamp',
+    )
 
 def sign(
     datau,

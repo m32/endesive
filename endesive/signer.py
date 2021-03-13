@@ -27,8 +27,11 @@ def cert2asn(cert, cert_bytes=True):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
 
-def timestamp(data, hashalgo, url, credentials, req_options):
-    hashed_value = getattr(hashlib, hashalgo)(data).digest()
+def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None):
+    if prehashed:
+        hashed_value = prehashed
+    else:
+        hashed_value = getattr(hashlib, hashalgo)(data).digest()
     tspreq = tsp.TimeStampReq({
         "version": 1,
         "message_imprint": tsp.MessageImprint({
