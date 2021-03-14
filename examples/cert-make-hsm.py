@@ -40,14 +40,14 @@ class HSM(hsm.HSM):
         cakeyID = bytes((0x1,))
         rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, cakeyID)])
         if len(rec) == 0:
-            label = 'hasm CA'
+            label = 'hsm CA'
             self.gen_privkey(label, cakeyID)
             self.ca_gen(label, cakeyID, 'hsm CA')
 
         keyID = bytes((0x66,0x66,0x90))
         rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, keyID)])
         if len(rec) == 0:
-            label = 'hasm USER 1'
+            label = 'hsm USER 1'
             self.gen_privkey(label, keyID)
             self.ca_sign(keyID, label, 0x666690, "hsm USER 1", 365, cakeyID)
 

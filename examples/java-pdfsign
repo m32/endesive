@@ -1,16 +1,14 @@
 #!/bin/bash
+cert=/home/mak/Dokumenty/m32/ssl/cert.p12
+#cert=demo2_user1.p12
 thisdir=`dirname $0`
 jars="$thisdir"
 addjar(){
 jars="$jars:$1"
 }
-for fname in $thisdir/pdfbox/*.jar; do
-    addjar $fname
-done
 for fname in $thisdir/java/*.jar; do
     addjar $fname
 done
 java -cp $jars \
 PDFSign \
--k demo2_user1.p12 1234 \
-$*
+-k $cert 1234 -i $1

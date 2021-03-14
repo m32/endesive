@@ -8,4 +8,5 @@ for fname in $thisdir/java/*.jar; do
     addjar $fname
 done
 java -cp $jars \
-PDFValidate $*
+org.apache.pdfbox.examples.signature.validation.AddValidationInformation \
+$*

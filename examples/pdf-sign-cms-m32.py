@@ -12,7 +12,7 @@ from endesive import pdf
 def main():
     tspurl = "http://time.certum.pl"
     tspurl = "http://public-qlts.certum.pl/qts-17"
-    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = datetime.datetime.utcnow() - datetime.timedelta()
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
         'sigflags': 3,
@@ -28,14 +28,16 @@ def main():
             'fontsize': 10,
         }
     }
-    with open('/home/mak/Dokumenty/m32/ssl/cert.p12', 'rb') as fp:
-        p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+    pk12fname = '/home/mak/Dokumenty/m32/ssl/unizeto1.p12'
+    pk12pass = sys.argv[1].encode()
+    with open(pk12fname, 'rb') as fp:
+        p12 = pkcs12.load_key_and_certificates(fp.read(), pk12pass, backends.default_backend())
     fname = 'pdf.pdf'
-    if len (sys.argv) > 1:
-        fname = sys.argv[1]
+    if len (sys.argv) > 2:
+        fname = sys.argv[2]
     datau = open(fname, 'rb').read()
     datas = pdf.cms.sign(datau, dct,
-        p12[0], p12[1], p12[2],
+        p12[0], p12[1], p12[2][:3],
         'sha256',
         None,
         tspurl,
