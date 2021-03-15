@@ -731,6 +731,44 @@ def timestamp(
     timestampcredentials=None,
     timestamp_req_options=None,
 ):
+    """
+    parameters:
+        datau: pdf bytes being timestamped
+        udct: dictionary with signing parameters
+            Same paramaters as the sign method.  The following parameters
+            should not be used as they are either unused or conflict with
+            normal timestamping:
+
+            - signform
+            - sigandcertify
+            - contact
+            - location
+            - signingdate
+            - reason
+
+            Timestamping also does not typically use signature appearances.
+            The following appearance options should probably be omitted,
+            but do not conflict with the normal timestamping operations.
+
+            - signaturebox
+            - signature
+            - signature_img
+            - signature_img_distort
+            - signature_img_centred
+            - signature_appearance
+            - signature_manual
+            - manual_fonts
+            - manual_images
+        algomd:string                   default: sha1 - name of the hashing algorithm used to calculate
+                                            the hash of the document being signed e.g.: sha1, sha256, sha384, sha512, ripemd160
+        hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
+        timestampurl: timestamp server URL or None
+        timestampcredentials:Dict username and password for authentication against timestamp server. Default: None
+        timestamp_req_options: Dict to set options to the POST http call against the timestamp server. Default: None
+
+    returns: bytes ready for writing after unsigned pdf document containing its electronic timestamp
+    """
+
     cls = SignedData()
     return cls.sign(
         datau,
