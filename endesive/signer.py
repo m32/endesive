@@ -31,7 +31,7 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
     if prehashed:
         hashed_value = prehashed
     else:
-        hashed_value = getattr(hashlib, hashalgo)(data).digest()
+        hashed_value = getattr(hashlib, hashalgo)(unhashed).digest()
     tspreq = tsp.TimeStampReq({
         "version": 1,
         "message_imprint": tsp.MessageImprint({
