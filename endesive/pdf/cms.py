@@ -39,18 +39,29 @@ class SignedData(pdf.PdfFileWriter):
         encrypt = prev.trailer["/Encrypt"].getObject()
         if encrypt["/V"] == 2:
             rev = 3
-            keylen = int(128 / 8)
+            keylen = 128 // 8
         else:
             rev = 2
-            keylen = int(40 / 8)
-        P = encrypt["/P"]
-        O = encrypt["/O"]
-        ID_1 = prev.trailer["/ID"][0]
+            keylen = 40 // 8
+        P = encrypt["/P"].getObject()
+        O = encrypt["/O"].getObject()
+        ID_1 = prev.trailer["/ID"].getObject()[0]
+        real_U = encrypt["/U"].getObject().original_bytes
         if rev == 2:
             U, key = pdf._alg34(password, O, P, ID_1)
         else:
             assert rev == 3
-            U, key = pdf._alg35(password, rev, keylen, O, P, ID_1, False)
+            U, key = pdf._alg35(
+                password,
+                rev,
+                keylen,
+                O,
+                P,
+                ID_1,
+                encrypt.get("/EncryptMetadata", pdf.BooleanObject(False)).getObject(),
+            )
+            U, real_U = U[:16], real_U[:16]
+        assert U == real_U
         self._encrypt_key = key
 
     def write(self, stream, prev, startdata):
@@ -193,41 +204,48 @@ class SignedData(pdf.PdfFileWriter):
     def _make_signature(self, Contents=None, Type=None, SubFilter=None):
         sig = po.DictionaryObject()
         sig_ref = self._addObject(sig)
-        sig.update({
-            po.NameObject("/Type"): Type,
-            po.NameObject("/Filter"): po.NameObject("/Adobe.PPKLite"),
-            po.NameObject("/SubFilter"): SubFilter,
-            po.NameObject("/ByteRange"): po.ArrayObject([
-                WNumberObject(0),
-                WNumberObject(0),
-                WNumberObject(0),
-                WNumberObject(0),
-                ]),
-            po.NameObject("/Contents"): Contents,
-            })
+        sig.update(
+            {
+                po.NameObject("/Type"): Type,
+                po.NameObject("/Filter"): po.NameObject("/Adobe.PPKLite"),
+                po.NameObject("/SubFilter"): SubFilter,
+                po.NameObject("/ByteRange"): po.ArrayObject(
+                    [
+                        WNumberObject(0),
+                        WNumberObject(0),
+                        WNumberObject(0),
+                        WNumberObject(0),
+                    ]
+                ),
+                po.NameObject("/Contents"): Contents,
+            }
+        )
         return sig, sig_ref
 
     def _make_sig_annotation(self, F=None, Vref=None, T=None, Pref=None):
         annot = po.DictionaryObject()
         annot_ref = self._addObject(annot)
-        annot.update({
-            po.NameObject("/FT"): po.NameObject("/Sig"),
-            po.NameObject("/Type"): po.NameObject("/Annot"),
-            po.NameObject("/Subtype"): po.NameObject("/Widget"),
-            po.NameObject("/F"): F,
-            po.NameObject("/T"): T,
-            po.NameObject("/V"): Vref,
-            po.NameObject("/P"): Pref,
-
-            # For an invisible signature, /Rect should be a size 0 box
-            # Defaulting to that
-            po.NameObject("/Rect"): po.ArrayObject([
-                po.FloatObject(0.0),
-                po.FloatObject(0.0),
-                po.FloatObject(0.0),
-                po.FloatObject(0.0),
-                ]),
-            })
+        annot.update(
+            {
+                po.NameObject("/FT"): po.NameObject("/Sig"),
+                po.NameObject("/Type"): po.NameObject("/Annot"),
+                po.NameObject("/Subtype"): po.NameObject("/Widget"),
+                po.NameObject("/F"): F,
+                po.NameObject("/T"): T,
+                po.NameObject("/V"): Vref,
+                po.NameObject("/P"): Pref,
+                # For an invisible signature, /Rect should be a size 0 box
+                # Defaulting to that
+                po.NameObject("/Rect"): po.ArrayObject(
+                    [
+                        po.FloatObject(0.0),
+                        po.FloatObject(0.0),
+                        po.FloatObject(0.0),
+                        po.FloatObject(0.0),
+                    ]
+                ),
+            }
+        )
         return annot, annot_ref
 
     def makepdf(self, prev, udct, algomd, zeros, cert, **params):
@@ -240,69 +258,77 @@ class SignedData(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
-##        if params['mode'] == 'timestamp':
-##            # deal with extensions
-##            if '/Extensions' not in catalog:
-##                extensions = po.DictionaryObject()
-##            else:
-##                extensions = catalog['/Extensions']
-##
-##            if '/ESIC' not in extensions:
-##                extensions.update({
-##                    po.NameObject("/ESIC"): po.DictionaryObject({
-##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
-##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
-##                        })
-##                    })
-##            else:
-##                esic = extensions['/ESIC']
-##                major, minor = esic['/BaseVersion'].lstrip('/').split('.')
-##                if int(major) < 1 or int(minor) < 7:
-##                    esic.update({
-##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
-##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
-##                        })
-##            catalog.update({
-##                po.NameObject('/Extensions'): extensions
-##                })
+        ##        if params['mode'] == 'timestamp':
+        ##            # deal with extensions
+        ##            if '/Extensions' not in catalog:
+        ##                extensions = po.DictionaryObject()
+        ##            else:
+        ##                extensions = catalog['/Extensions']
+        ##
+        ##            if '/ESIC' not in extensions:
+        ##                extensions.update({
+        ##                    po.NameObject("/ESIC"): po.DictionaryObject({
+        ##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
+        ##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
+        ##                        })
+        ##                    })
+        ##            else:
+        ##                esic = extensions['/ESIC']
+        ##                major, minor = esic['/BaseVersion'].lstrip('/').split('.')
+        ##                if int(major) < 1 or int(minor) < 7:
+        ##                    esic.update({
+        ##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
+        ##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
+        ##                        })
+        ##            catalog.update({
+        ##                po.NameObject('/Extensions'): extensions
+        ##                })
 
         # obj12 is the digital signature
         obj12, obj12ref = self._make_signature(
-            Type = po.NameObject("/Sig"),
-            SubFilter = po.NameObject("/adbe.pkcs7.detached"),
-            Contents = UnencryptedBytes(zeros),
-            )
+            Type=po.NameObject("/Sig"),
+            SubFilter=po.NameObject("/adbe.pkcs7.detached"),
+            Contents=UnencryptedBytes(zeros),
+        )
 
-        if params['mode'] == 'timestamp':
+        if params["mode"] == "timestamp":
             # obj12 is a timestamp this time
-            obj12.update({
-                po.NameObject("/Type"): po.NameObject("/DocTimeStamp"),
-                po.NameObject("/SubFilter"): po.NameObject("/ETSI.RFC3161"),
-                po.NameObject("/V"): po.NumberObject(0),
-                })
+            obj12.update(
+                {
+                    po.NameObject("/Type"): po.NameObject("/DocTimeStamp"),
+                    po.NameObject("/SubFilter"): po.NameObject("/ETSI.RFC3161"),
+                    po.NameObject("/V"): po.NumberObject(0),
+                }
+            )
         else:
-            obj12.update({
-                po.NameObject("/Name"): po.createStringObject(udct["contact"]),
-                po.NameObject("/Location"): po.createStringObject(udct["location"]),
-                po.NameObject("/Reason"): po.createStringObject(udct["reason"]),
-                })
-            if params.get('use_signingdate'):
-                obj12.update({
-                    po.NameObject("/M"): po.createStringObject(udct["signingdate"]),
-                    })
+            obj12.update(
+                {
+                    po.NameObject("/Name"): po.createStringObject(udct["contact"]),
+                    po.NameObject("/Location"): po.createStringObject(udct["location"]),
+                    po.NameObject("/Reason"): po.createStringObject(udct["reason"]),
+                }
+            )
+            if params.get("use_signingdate"):
+                obj12.update(
+                    {po.NameObject("/M"): po.createStringObject(udct["signingdate"])}
+                )
 
         # obj13 is a combined AcroForm Sig field with Widget annotation
         new_13 = True
-        #obj13 = po.DictionaryObject()
-        if udct.get('signform', False):
+        # obj13 = po.DictionaryObject()
+        if udct.get("signform", False):
             # Attaching signature to existing field in AcroForm
             if "/AcroForm" in catalog:
                 form = catalog["/AcroForm"].getObject()
                 if "/Fields" in form:
                     fields = form["/Fields"].getObject()
-                    obj13ref = [f for f in fields if f.getObject()['/T'] == udct.get('sigfield', 'Signature1')][0]
+                    obj13ref = [
+                        f
+                        for f in fields
+                        if f.getObject()["/T"] == udct.get("sigfield", "Signature1")
+                    ][0]
                     obj13 = obj13ref.getObject()
-                    self._objects[obj13ref.idnum-1] = obj13
+                    self._objects[obj13ref.idnum - 1] = obj13
                     new_13 = False
 
         # box is coordinates of the annotation to fill
@@ -310,20 +336,16 @@ class SignedData(pdf.PdfFileWriter):
 
         if new_13:
             obj13, obj13ref = self._make_sig_annotation(
-                F = po.NumberObject(udct.get("sigflagsft", 132)),
-                T = EncodedString(udct.get("sigfield", "Signature1")),
-                Vref = obj12ref,
-                Pref = page0ref,
-                )
+                F=po.NumberObject(udct.get("sigflagsft", 132)),
+                T=EncodedString(udct.get("sigfield", "Signature1")),
+                Vref=obj12ref,
+                Pref=page0ref,
+            )
         else:
             # original obj13 is a merged SigField/SigAnnot
             # Setting /V on the AcroForm field sets the signature
             # for the field
-            obj13.update(
-                {
-                    po.NameObject("/V"): obj12ref,
-                }
-            )
+            obj13.update({po.NameObject("/V"): obj12ref})
             # fill the existing signature field annotation,
             # ignore any other location
             if "/Rect" in obj13:
@@ -338,36 +360,54 @@ class SignedData(pdf.PdfFileWriter):
 
             x1, y1, x2, y2 = box
             annotation = Signature(
-                Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0),
-                Appearance(),
-                )
-            if 'signature' in udct:
+                Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), Appearance()
+            )
+            if "signature" in udct:
                 # Plain text signature with the default font
                 # text to render is contained in udct['signature']
                 # font parameters are in udct['signature']['text']
                 annotationtext = udct["signature"]
-                wrap_text = udct.get('text', {}).get('wraptext', True)
-                font_size = udct.get('text', {}).get('fontsize', 12)
-                text_align = udct.get('text', {}).get('textalign', 'left')
-                line_spacing = udct.get('text', {}).get('linespacing', 1.2)
+                wrap_text = udct.get("text", {}).get("wraptext", True)
+                font_size = udct.get("text", {}).get("fontsize", 12)
+                text_align = udct.get("text", {}).get("textalign", "left")
+                line_spacing = udct.get("text", {}).get("linespacing", 1.2)
 
                 annotation.add_default_font()
                 annotation.set_signature_appearance(
-                    ['fill_colour', 0, 0, 0],
-                    ['font', 'default', font_size],
-                    ['text_box', annotationtext, 'default', 0, 0, x2-x1, y2-y1, font_size, wrap_text, text_align, 'middle', line_spacing]
-                    )
-            elif 'signature_img' in udct:
+                    ["fill_colour", 0, 0, 0],
+                    ["font", "default", font_size],
+                    [
+                        "text_box",
+                        annotationtext,
+                        "default",
+                        0,
+                        0,
+                        x2 - x1,
+                        y2 - y1,
+                        font_size,
+                        wrap_text,
+                        text_align,
+                        "middle",
+                        line_spacing,
+                    ],
+                )
+            elif "signature_img" in udct:
                 # Simple image signature, stretches to fit the box
                 # image to render is contained in udct['signature_image']
                 annotation.add_image(udct["signature_img"], "Image")
                 annotation.set_signature_appearance(
-                    ['image', "Image", 0, 0, x2-x1, y2-y1,
-                        udct.get('signature_img_distort', True),
-                        udct.get('signature_img_centred', False),
-                        ]
-                    )
-            elif 'signature_appearance' in udct:
+                    [
+                        "image",
+                        "Image",
+                        0,
+                        0,
+                        x2 - x1,
+                        y2 - y1,
+                        udct.get("signature_img_distort", True),
+                        udct.get("signature_img_centred", False),
+                    ]
+                )
+            elif "signature_appearance" in udct:
                 # Adobe-inspired signature with text and images
                 # Parameters are contained in udct['signature_appearance']
                 # If a field is included in the display list, that field
@@ -400,35 +440,38 @@ class SignedData(pdf.PdfFileWriter):
                 #       border = int,
                 #       )
                 sig = {}
-                for f in ('background', 'icon', 'labels', 'border', 'outline'):
-                    if f in udct['signature_appearance']:
-                        sig[f] = udct['signature_appearance'][f]
+                for f in ("background", "icon", "labels", "border", "outline"):
+                    if f in udct["signature_appearance"]:
+                        sig[f] = udct["signature_appearance"][f]
 
-                toggles = udct['signature_appearance'].get('display', [])
-                for f in ('contact', 'reason', 'location', 'contact', 'signingdate'):
+                toggles = udct["signature_appearance"].get("display", [])
+                for f in ("contact", "reason", "location", "contact", "signingdate"):
                     if f in toggles:
-                        sig[f] = udct.get(f, '{} unknown'.format(f))
-                if 'date' in toggles:
-                    sig['date'] = udct['signingdate']
-                if 'CN' in toggles:
+                        sig[f] = udct.get(f, "{} unknown".format(f))
+                if "date" in toggles:
+                    sig["date"] = udct["signingdate"]
+                if "CN" in toggles:
                     from cryptography.x509 import ObjectIdentifier
-                    sig['CN'] = cert.subject.get_attributes_for_oid(ObjectIdentifier('2.5.4.3'))[0].value
-                if 'DN' in toggles:
-                    sig['DN'] = cert.subject.rfc4514_string()
+
+                    sig["CN"] = cert.subject.get_attributes_for_oid(
+                        ObjectIdentifier("2.5.4.3")
+                    )[0].value
+                if "DN" in toggles:
+                    sig["DN"] = cert.subject.rfc4514_string()
                 annotation.simple_signature(sig)
             else:
                 # Manual signature annotation creation
                 #
                 # Make your own appearance with an arbitrary number of
                 # images and fonts
-                if 'manual_images' in udct:
-                    for name, img in udct['manual_images'].items():
+                if "manual_images" in udct:
+                    for name, img in udct["manual_images"].items():
                         annotation.add_image(img, name=name)
-                if 'manual_fonts' in udct:
-                    for name, path in udct['manual_fonts'].items():
+                if "manual_fonts" in udct:
+                    for name, path in udct["manual_fonts"].items():
                         annotation.add_ttf_font(path, name=name)
                 annotation.add_default_font()
-                annotation.set_signature_appearance(*udct['signature_manual'])
+                annotation.set_signature_appearance(*udct["signature_manual"])
 
             pdfa = annotation.as_pdf_object(identity(), page=page0ref)
             objapn = self._extend(pdfa["/AP"]["/N"])
@@ -447,7 +490,7 @@ class SignedData(pdf.PdfFileWriter):
                         ]
                     ),
                     po.NameObject("/AP"): objap,
-                    #po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
+                    # po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
                 }
             )
 
@@ -496,24 +539,24 @@ class SignedData(pdf.PdfFileWriter):
             form = catalog["/AcroForm"].getObject()
             if "/Fields" in form:
                 fields = form["/Fields"]
-                old_field_names = [f.getObject()['/T'] for f in fields]
+                old_field_names = [f.getObject()["/T"] for f in fields]
             else:
                 fields = po.ArrayObject()
                 old_field_names = []
-            if udct.get('auto_sigfield', False) and obj13['/T'] in old_field_names:
-                name_base = udct.get('sigfield', 'Signature1')
-                checklist = [f[len(name_base):] for f in old_field_names if f.startswith(name_base)]
-                for i in range(1, len(checklist)+1):
-                    suffix = '_{}'.format(i)
+            if udct.get("auto_sigfield", False) and obj13["/T"] in old_field_names:
+                name_base = udct.get("sigfield", "Signature1")
+                checklist = [
+                    f[len(name_base) :]
+                    for f in old_field_names
+                    if f.startswith(name_base)
+                ]
+                for i in range(1, len(checklist) + 1):
+                    suffix = "_{}".format(i)
                     if suffix in checklist:
                         next
 
-                    new_name = '{}{}'.format(name_base, suffix)
-                    obj13.update(
-                        {
-                            po.NameObject("/T"): EncodedString(new_name)
-                        }
-                    )
+                    new_name = "{}{}".format(name_base, suffix)
+                    obj13.update({po.NameObject("/T"): EncodedString(new_name)})
                     break
 
             old_flags = int(form.get("/SigFlags", 0))
@@ -523,19 +566,11 @@ class SignedData(pdf.PdfFileWriter):
                 form.update(
                     {
                         po.NameObject("/Fields"): fields,
-                        po.NameObject("/SigFlags"): po.NumberObject(
-                            new_flags
-                        ),
+                        po.NameObject("/SigFlags"): po.NumberObject(new_flags),
                     }
                 )
             elif new_flags > old_flags:
-                form.update(
-                    {
-                        po.NameObject("/SigFlags"): po.NumberObject(
-                            new_flags
-                        ),
-                    }
-                )
+                form.update({po.NameObject("/SigFlags"): po.NumberObject(new_flags)})
             formref = catalog.raw_get("/AcroForm")
             if isinstance(formref, po.IndirectObject):
                 self._objects[formref.idnum - 1] = form
@@ -572,7 +607,7 @@ class SignedData(pdf.PdfFileWriter):
         timestampurl,
         timestampcredentials=None,
         timestamp_req_options=None,
-        mode='sign',
+        mode="sign",
     ):
         startdata = len(datau)
 
@@ -605,7 +640,7 @@ class SignedData(pdf.PdfFileWriter):
             zeros = b"00" * aligned
         else:
             md = getattr(hashlib, algomd)().digest()
-            if mode == 'timestamp':
+            if mode == "timestamp":
                 contents = signer.timestamp(
                     None,
                     algomd,
@@ -613,7 +648,7 @@ class SignedData(pdf.PdfFileWriter):
                     timestampcredentials,
                     timestamp_req_options,
                     prehashed=md,
-                    )[0]['values'][0].dump()
+                )[0]["values"][0].dump()
             else:
                 contents = signer.sign(
                     None,
@@ -628,12 +663,12 @@ class SignedData(pdf.PdfFileWriter):
                     timestampurl,
                     timestampcredentials,
                     timestamp_req_options,
-                    )
+                )
             zeros = contents.hex().encode("utf-8")
 
-        params = {'mode': mode}
+        params = {"mode": mode}
         if not timestampurl:
-            params['use_signingdate'] = True
+            params["use_signingdate"] = True
 
         self.makepdf(prev, udct, algomd, zeros, cert, **params)
 
@@ -648,9 +683,7 @@ class SignedData(pdf.PdfFileWriter):
         if ID is None:
             ID = hashlib.md5(repr(time.time()).encode()).digest()
         else:
-            ID = ID[0]
-            if isinstance(ID, str):
-                ID = ID.encode()
+            ID = ID.getObject()[0].original_bytes
         self._ID = po.ArrayObject(
             [
                 po.ByteStringObject(ID),
@@ -688,7 +721,7 @@ class SignedData(pdf.PdfFileWriter):
         md.update(b2)
         md = md.digest()
 
-        if mode == 'timestamp':
+        if mode == "timestamp":
             contents = signer.timestamp(
                 None,
                 algomd,
@@ -696,7 +729,7 @@ class SignedData(pdf.PdfFileWriter):
                 timestampcredentials,
                 timestamp_req_options,
                 prehashed=md,
-                )[0]['values'][0].dump()
+            )[0]["values"][0].dump()
         else:
             contents = signer.sign(
                 None,
@@ -711,7 +744,7 @@ class SignedData(pdf.PdfFileWriter):
                 timestampurl,
                 timestampcredentials,
                 timestamp_req_options,
-                )
+            )
         contents = contents.hex().encode("utf-8")
         if aligned:
             nb = len(zeros) - len(contents)
@@ -773,16 +806,17 @@ def timestamp(
     return cls.sign(
         datau,
         udct,
-        None, #key,
-        None, #cert,
-        None, #othercerts,
+        None,  # key,
+        None,  # cert,
+        None,  # othercerts,
         algomd,
-        None, #hsm,
+        None,  # hsm,
         timestampurl,
         timestampcredentials,
         timestamp_req_options,
-        mode='timestamp',
+        mode="timestamp",
     )
+
 
 def sign(
     datau,
