@@ -1,21 +1,14 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+from certum import dllpath
 from lxml import etree
+import PyKCS11 as PK11
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
 from endesive import xades, signer, hsm
 
-import os
-import sys
-
-if sys.platform == "win32":
-    dllpath = r"c:\windows\system32\cryptoCertum3PKCS.dll"
-else:
-    dllpath = "/devel/bin/proCertumSmartSign-8.1.15/libcryptoCertum3PKCS.so"
-
-import PyKCS11 as PK11
 
 
 class Signer(hsm.HSM):

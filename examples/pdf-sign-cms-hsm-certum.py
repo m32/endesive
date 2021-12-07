@@ -2,17 +2,10 @@
 # *-* coding: utf-8 *-*
 import sys
 import datetime
+from certum import dllpath
+import PyKCS11 as PK11
 from endesive import pdf, hsm
 
-import os
-import sys
-
-if sys.platform == 'win32':
-    dllpath = r'c:\windows\system32\cryptoCertum3PKCS.dll'
-else:
-    dllpath = '/devel/bin/proCertumSmartSign-8.1.15/libcryptoCertum3PKCS.so'
-
-import PyKCS11 as PK11
 
 class Signer(hsm.HSM):
     def certificate(self):
