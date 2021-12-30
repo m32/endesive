@@ -1,0 +1,11 @@
+cryptography
+asn1crypto
+oscrypto
+lxml
+pykcs11
+Pillow
+pytz
+requests
+paramiko
+pyopenssl
+attrs
