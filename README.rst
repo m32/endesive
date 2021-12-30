@@ -1,8 +1,8 @@
 .. image:: https://img.shields.io/pypi/v/endesive.svg
    :target: https://pypi.python.org/pypi/endesive
-.. image:: https://travis-ci.org/m32/endesive.svg?branch=master
-   :alt: endesive build status on Travis CI
-   :target: https://travis-ci.org/m32/endesive
+.. image:: https://circleci.com/gh/m32/endesive.svg?style=shield
+   :alt: endesive build status on Circle CI
+   :target: https://circleci.com/gh/m32/endesive
 
 Description
 ===========
