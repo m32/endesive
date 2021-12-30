@@ -608,6 +608,8 @@ class SignedData(pdf.PdfFileWriter):
         timestampcredentials=None,
         timestamp_req_options=None,
         mode="sign",
+        ocspurl=None,
+        ocspissuer=None,
     ):
         startdata = len(datau)
 
@@ -663,6 +665,8 @@ class SignedData(pdf.PdfFileWriter):
                     timestampurl,
                     timestampcredentials,
                     timestamp_req_options,
+                    ocspurl,
+                    ocspissuer,
                 )
             zeros = contents.hex().encode("utf-8")
 
@@ -744,6 +748,8 @@ class SignedData(pdf.PdfFileWriter):
                 timestampurl,
                 timestampcredentials,
                 timestamp_req_options,
+                ocspurl,
+                ocspissuer,
             )
         contents = contents.hex().encode("utf-8")
         if aligned:
@@ -829,6 +835,8 @@ def sign(
     timestampurl=None,
     timestampcredentials=None,
     timestamp_req_options=None,
+    ocspurl=None,
+    ocspissuer=None
 ):
     """
     parameters:
@@ -897,6 +905,8 @@ def sign(
         timestampurl: timestamp server URL or None
         timestampcredentials:Dict username and password for authentication against timestamp server. Default: None
         timestamp_req_options: Dict to set options to the POST http call against the timestamp server. Default: None
+        ocsppurl: ocsp server URL or None
+        ocspissuer: certificate of issuer or None
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
 
@@ -963,5 +973,8 @@ def sign(
         timestampurl,
         timestampcredentials,
         timestamp_req_options,
+        "sign",
+        ocspurl,
+        ocspissuer
     )
 

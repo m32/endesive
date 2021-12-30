@@ -3,6 +3,8 @@
 import sys
 import datetime
 from certum import dllpath
+from cryptography import x509
+from cryptography.hazmat import backends
 import PyKCS11 as PK11
 from endesive import pdf, hsm
 
@@ -64,6 +66,11 @@ def main():
         'signature': 'Dokument podpisany cyfrowo',
         'signaturebox': (0, 0, 100, 100),
     }
+
+    ocspurl = 'https://ocsp.certum.pl/'
+    ocspissuer = open('CertumDigitalIdentificationCASHA2.crt', 'rb').read()
+    ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+
     clshsm = Signer(dllpath)
     fname = 'pdf.pdf'
     if len (sys.argv) > 1:
@@ -75,6 +82,8 @@ def main():
         'sha256',
         clshsm,
         tspurl,
+        ocspurl=ocspurl,
+        ocspissuer=ocspissuer
     )
     fname = fname.replace('.pdf', '-signed-cms-hsm-certum.pdf')
     with open(fname, 'wb') as fp:

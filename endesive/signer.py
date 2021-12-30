@@ -9,7 +9,7 @@ from datetime import datetime
 
 import requests
 import pytz
-from asn1crypto import cms, algos, core, keys, pem, tsp, x509, util
+from asn1crypto import cms, algos, core, keys, pem, tsp, x509, ocsp, util
 from oscrypto import asymmetric
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
@@ -77,7 +77,7 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
     else:
         raise ValueError("TimeStampResponse has invalid content type")
 
-def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False, timestampurl=None, timestampcredentials=None, timestamp_req_options=None):
+def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False, timestampurl=None, timestampcredentials=None, timestamp_req_options=None, ocspurl=None, ocspissuer=None):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
     signed_time = datetime.now(tz=util.timezone.utc)
@@ -158,11 +158,37 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
             'content_type': 'data',
         },
         'certificates': certificates,
-        # 'crls': [],
         'signer_infos': [
             signer,
         ],
     }
+    if ocspurl and ocspissuer:
+        from cryptography.hazmat.backends.openssl.backend import backend
+        from cryptography.x509 import ocsp as cocsp
+        from cryptography import x509 as cx509
+
+        ocspuser = cert.dump()
+        ocspuser = cx509.load_der_x509_certificate(ocspuser, backend=backend)
+
+        builder = cocsp.OCSPRequestBuilder()
+        builder = builder.add_certificate(ocspuser, ocspissuer, hashes.SHA1())
+        req = builder.build()
+        data = req.public_bytes(serialization.Encoding.DER)
+
+        response = requests.post(
+            ocspurl,
+            headers={'Content-Type': 'application/ocsp-request'},
+            data=data,
+        )
+        data = ocsp.OCSPResponse.load(response.content)
+        other = cms.RevocationInfoChoice({
+            'other': cms.OtherRevocationInfoFormat({
+                'other_rev_info_format': 'ocsp_response',
+                'other_rev_info': data
+            })
+        })
+        config['crls'] = cms.RevocationInfoChoices([other])
+
     datas = cms.ContentInfo({
         'content_type': cms.ContentType('signed_data'),
         'content': cms.SignedData(config),

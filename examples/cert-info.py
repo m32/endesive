@@ -1,5 +1,7 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+import sys
+import pprint
 import binascii
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
@@ -15,8 +17,14 @@ def cert2asn(cert):
     return x509.Certificate.load(cert_bytes)
 
 def main():
-    with open('demo2_user1.p12', 'rb') as fp:
-        p12pk, p12pc, p12oc = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+    if len(sys.argv) == 2:
+        p12name = sys.argv[1]
+        p12pass = sys.argv[2]
+    else:
+        p12name = 'demo2_user1.p12'
+        p12pass = '1234'
+    with open(p12name, 'rb') as fp:
+        p12pk, p12pc, p12oc = pkcs12.load_key_and_certificates(fp.read(), p12pass.encode(), backends.default_backend())
     signature = p12pk.sign(
         b"message",
         padding.PKCS1v15(),
@@ -25,4 +33,5 @@ def main():
     cert = cert2asn(p12pc)
     print('issuer', cert.issuer.native)
     print('subject', cert.subject.native)
+    pprint.pprint(cert.native)
 main()
