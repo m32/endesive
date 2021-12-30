@@ -29,6 +29,7 @@ jobs:
     # CircleCI will report the results back to your VCS provider.
     steps:
       - checkout
+      - run: sudo apt-get update
       - run: sudo apt-get install -y swig
       - python/install-packages:
           pkg-manager: pip
