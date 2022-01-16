@@ -1,6 +1,7 @@
 *.crt
 *.der
 *.class
+*.json
 tweaks/
 softhsm2.conf
 softhsm2/

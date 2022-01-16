@@ -16,7 +16,7 @@ def main():
     date = datetime.datetime.utcnow() - datetime.timedelta()
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
-        'sigflags': 44,
+        'sigflags': 3,
         'sigpage': 0,
         'sigbutton': True,
         'contact': 'mak@trisoft.com.pl',

@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import sys
+import types
 import hashlib
 import time
 from base64 import b64encode
@@ -146,6 +147,8 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
                 }),
             ]
         else:
+            if isinstance(attrs, types.FunctionType):
+                attrs = attrs(signed_value)
             signer['signed_attrs'] = attrs
 
 

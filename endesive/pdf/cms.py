@@ -604,7 +604,7 @@ class SignedData(pdf.PdfFileWriter):
         othercerts,
         algomd,
         hsm,
-        timestampurl,
+        timestampurl=None,
         timestampcredentials=None,
         timestamp_req_options=None,
         mode="sign",
@@ -652,13 +652,14 @@ class SignedData(pdf.PdfFileWriter):
                     prehashed=md,
                 )[0]["values"][0].dump()
             else:
+                attrs = udct.get("attrs", True)
                 contents = signer.sign(
                     None,
                     key,
                     cert,
                     othercerts,
                     algomd,
-                    True,
+                    attrs,
                     md,
                     hsm,
                     False,
@@ -688,11 +689,12 @@ class SignedData(pdf.PdfFileWriter):
             ID = hashlib.md5(repr(time.time()).encode()).digest()
         else:
             ID = ID.getObject()[0].original_bytes
+        newID = udct.get("newid", repr(random.random()))
         self._ID = po.ArrayObject(
             [
                 po.ByteStringObject(ID),
                 po.ByteStringObject(
-                    hashlib.md5(repr(random.random()).encode()).digest()
+                    hashlib.md5(newID.encode()).digest()
                 ),
             ]
         )
@@ -735,13 +737,14 @@ class SignedData(pdf.PdfFileWriter):
                 prehashed=md,
             )[0]["values"][0].dump()
         else:
+            attrs = udct.get("attrs", True)
             contents = signer.sign(
                 None,
                 key,
                 cert,
                 othercerts,
                 algomd,
-                True,
+                attrs,
                 md,
                 hsm,
                 False,
@@ -836,7 +839,7 @@ def sign(
     timestampcredentials=None,
     timestamp_req_options=None,
     ocspurl=None,
-    ocspissuer=None
+    ocspissuer=None,
 ):
     """
     parameters:
@@ -975,6 +978,6 @@ def sign(
         timestamp_req_options,
         "sign",
         ocspurl,
-        ocspissuer
+        ocspissuer,
     )
 
