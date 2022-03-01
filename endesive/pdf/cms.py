@@ -553,7 +553,7 @@ class SignedData(pdf.PdfFileWriter):
                 for i in range(1, len(checklist) + 1):
                     suffix = "_{}".format(i)
                     if suffix in checklist:
-                        next
+                        continue
 
                     new_name = "{}{}".format(name_base, suffix)
                     obj13.update({po.NameObject("/T"): EncodedString(new_name)})
@@ -980,4 +980,3 @@ def sign(
         ocspurl,
         ocspissuer,
     )
-
