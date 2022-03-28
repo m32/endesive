@@ -42,7 +42,7 @@ class VerifyData(object):
         signed_data = cms.ContentInfo.load(datas)['content']
         # signed_data.debug()
 
-        signature = signed_data['signer_infos'][0].native['signature']
+        signature = signed_data['signer_infos'][0]['signature'].native
         algo = signed_data['digest_algorithms'][0]['algorithm'].native
         attrs = signed_data['signer_infos'][0]['signed_attrs']
         mdData = getattr(hashlib, algo)(datau).digest()
