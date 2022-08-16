@@ -139,7 +139,7 @@ class Main(object):
             # Our certificate will be valid for 10 years
             datetime.datetime.utcnow() + datetime.timedelta(days=10 * 365)
         ).add_extension(
-            extension=x509.BasicConstraints(ca=True, path_length=None),
+            x509.BasicConstraints(ca=True, path_length=None),
             critical=True
         ).sign(
             # Sign our certificate with our private key
