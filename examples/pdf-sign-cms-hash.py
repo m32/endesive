@@ -4,6 +4,7 @@ import sys
 import datetime
 import base64
 import json
+import hashlib
 from asn1crypto import cms, core, util
 from endesive import pdf
 
@@ -73,12 +74,15 @@ def main():
         config = open(pdfname + ".json", "rt").read()
         config = json.loads(config)
     except FileNotFoundError:
+        when = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         config = {
-            'when': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'when': when,
             'certificate': open("cert-hsm-user1.pem", "rt").read(),
             'signed_bytes': None,
             'tosign': None,
+            'id': hashlib.md5(when.encode()).hexdigest()
         }
+    dct['id'] = config['id'].encode()
     when = datetime.datetime.strptime(config['when'], "%Y-%m-%d %H:%M:%S")
     dct["signingdate"] = when.strftime("%Y%m%d%H%M%S+00'00'").encode()
     signed_time = datetime.datetime(

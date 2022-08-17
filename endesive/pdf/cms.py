@@ -686,7 +686,7 @@ class SignedData(pdf.PdfFileWriter):
         # ID[0] is used in password protection, must be unchanged
         ID = prev.trailer.get("/ID", None)
         if ID is None:
-            ID = hashlib.md5(repr(time.time()).encode()).digest()
+            ID = udct.get('id') or hashlib.md5(repr(time.time()).encode()).digest()
         else:
             ID = ID.getObject()[0].original_bytes
         newID = udct.get("newid", repr(random.random()))
