@@ -42,5 +42,6 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        (hashok, signatureok, certok) = pdf.verify(data, trusted_cert_pems)
-        assert signatureok and hashok and certok
+        results = pdf.verify(data, trusted_cert_pems)
+        for (hashok, signatureok, certok) in results:
+            assert signatureok and hashok and certok
