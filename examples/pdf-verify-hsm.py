@@ -43,16 +43,20 @@ class HSM(hsm.HSM):
         trusted_cert_pems = (ca_cert_pem,)
         for fname in (
             'pdf-signed-cms-hsm.pdf',
+            'pdf-signed-cms-hsm-signed-cms-hsm.pdf',
         ):
             print('*' * 20, fname)
             try:
                 data = open(fname, 'rb').read()
             except:
                 continue
-            (hashok, signatureok, certok) = pdf.verify(data, trusted_cert_pems)
-            print('signature ok?', signatureok)
-            print('hash ok?', hashok)
-            print('cert ok?', certok)
+            results = pdf.verify(data, trusted_cert_pems)
+            for i in range(len(results)):
+                print('*'*10, 'signature #{}'.format(i+1))
+                (hashok, signatureok, certok) = results[i]
+                print('signature ok?', signatureok)
+                print('hash ok?', hashok)
+                print('cert ok?', certok)
 
 def main():
     cls = HSM(dllpath)
