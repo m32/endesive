@@ -633,7 +633,7 @@ class SignedData(pdf.PdfFileWriter):
             else:
                 obj = None
                 break
-        if obj is not None:
+        if obj is not None and "/DigestMethod" in obj:
             algomd = obj["/DigestMethod"][1:].lower()
 
         # produce smaller signatures, but must be signed twice
