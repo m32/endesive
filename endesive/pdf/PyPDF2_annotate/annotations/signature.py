@@ -175,7 +175,6 @@ class Signature(Annotation):
             text_box directive can only be used with a TTF font.
         """
         processor = SignatureAppearance(self._internal_location(), self._appearance, self._ttf, self._images)
-
         cs = ContentStream([Save()])
         for x in directives:
             if x[0] in processor.template:
@@ -447,14 +446,22 @@ class SignatureAppearance():
 
     def text_box(self, text, ttf_font, x, y, width, height, font_size=8, wrap_text=True, align='left', baseline='middle', line_spacing=1.2):
         if type(ttf_font) == str:
-            ttf_font = self._ttf.get(ttf_font, self._ttf[PDF_ANNOTATOR_FONT])
-        ttf_font.set_size(font_size)
-        ttf_font.set_text(text)
+            font = self._ttf.get(ttf_font, None)
+            if font is None:
+                font = self._ttf[PDF_ANNOTATOR_FONT]
+                fontname = PDF_ANNOTATOR_FONT
+            else:
+                fontname = ttf_font
+        else:
+            font = ttf_font
+            fontname = ttf_font['name']
+        font.set_size(font_size)
+        font.set_text(text)
 
         commands = []
         if not self._in_text:
-            commands.extend([BeginText(), Font(self._cur_font[0], font_size)])
-        commands.extend(get_text_commands(x, y, x+width, y+height, text, font_size, wrap_text, align, baseline, line_spacing, ttf_font))
+            commands.extend([BeginText(), Font(fontname, font_size)])
+        commands.extend(get_text_commands(x, y, x+width, y+height, text, font_size, wrap_text, align, baseline, line_spacing, font))
         if not self._in_text:
             commands.append(EndText())
         return commands
