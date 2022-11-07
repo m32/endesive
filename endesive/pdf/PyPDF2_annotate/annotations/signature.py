@@ -454,7 +454,7 @@ class SignatureAppearance():
                 fontname = ttf_font
         else:
             font = ttf_font
-            fontname = ttf_font['name']
+            fontname = font.font["name"]
         font.set_size(font_size)
         font.set_text(text)
 
