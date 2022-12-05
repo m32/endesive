@@ -295,7 +295,7 @@ class SignedData(pdf.PdfFileWriter):
         obj12.update({
             po.NameObject("/Prop_Build"): pdf.DictionaryObject({
                 po.NameObject("/App"): pdf.DictionaryObject({
-                    po.NameObject("/Name"): po.NameObject("/endesive")
+                    po.NameObject("/Name"): po.NameObject("/"+udct.get("application", "endesive"))
                 }),
             }),
         })
@@ -906,6 +906,7 @@ def sign(
             password: string            required if the document is password protected, signing it also requires that password
             text: dict                  text attributes
                                             wraptext=True, fontsize:12, textalign:'left', linespacing:1.2
+            application: string         optional application name in advanced signature properties dialog in Acrobat Reader
         key: cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey - private key used to sign the document
         cert: cryptography.x509.Certificate - certificate associated with the key
         othercerts: list of cryptography.x509.Certificate to be saved with the signed document,
