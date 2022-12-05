@@ -204,6 +204,7 @@ class SignedData(pdf.PdfFileWriter):
     def _make_signature(self, Contents=None, Type=None, SubFilter=None):
         sig = po.DictionaryObject()
         sig_ref = self._addObject(sig)
+
         sig.update(
             {
                 po.NameObject("/Type"): Type,
@@ -291,6 +292,13 @@ class SignedData(pdf.PdfFileWriter):
             Contents=UnencryptedBytes(zeros),
         )
 
+        obj12.update({
+            po.NameObject("/Prop_Build"): pdf.DictionaryObject({
+                po.NameObject("/App"): pdf.DictionaryObject({
+                    po.NameObject("/Name"): po.NameObject("/endesive")
+                }),
+            }),
+        })
         if params["mode"] == "timestamp":
             # obj12 is a timestamp this time
             obj12.update(
