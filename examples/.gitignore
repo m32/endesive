@@ -1,9 +1,10 @@
+*.pem
 *.crt
 *.der
 *.class
 *.json
-tweaks/
-softhsm2.conf
+java-3.0.0-a3/
+java/pdfbox-2.0.14/
+java/tweaks/
 softhsm2/
-cert-hsm-ca.pem
-cert-hsm-user1.pem
+softhsm2.conf
