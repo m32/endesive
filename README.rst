@@ -13,8 +13,7 @@ PDF and XML documents.
 The ASN.1 implementation depends on `asn1crypto`_.
 Cryptographic routines depends on `cryptography`_ library.
 
-For certificate verification OpenSSL is used but I would not trust it,
-next version should switch to `cryptography`_.
+For certificate verification `CertValidator`_ is used.
 
 This library implements S/MIME handler which can encrypt and decrypt S/MIME messages
 using a public RSA key, in AES-128/192/256 CBC/OFB modes.
@@ -44,6 +43,7 @@ the top distribution directory for the full license text.
 * Python 3.*
 * `cryptography`_
 * `asn1crypto`_
+* `certvalidator`_
 * `lxml`_
 * `pykcs11`_
 * `Pillow`_
@@ -118,6 +118,7 @@ Validate electronic signatures: `ec_europa`_.
 
 .. _cryptography: https://github.com/pyca/cryptography
 .. _asn1crypto: https://github.com/wbond/asn1crypto
+.. _certvalidator: https://github.com/wbond/certvalidator
 .. _pyfpdf: https://github.com/reingart/pyfpdf
 .. _lxml: https://pypi.org/project/lxml/
 .. _pykcs11: https://pypi.org/project/pykcs11/
