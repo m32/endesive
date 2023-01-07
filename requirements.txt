@@ -1,11 +1,11 @@
 cryptography
 asn1crypto
 oscrypto
+certvalidator
 lxml
 pykcs11
 Pillow
 pytz
 requests
 paramiko
-pyopenssl
 attrs
