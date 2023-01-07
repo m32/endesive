@@ -186,7 +186,7 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
         data = ocsp.OCSPResponse.load(response.content)
         other = cms.RevocationInfoChoice({
             'other': cms.OtherRevocationInfoFormat({
-                'other_rev_info_format': 'ocsp_response',
+                'other_rev_info_format': cms.OtherRevInfoFormatId('ocsp_response'),
                 'other_rev_info': data
             })
         })
