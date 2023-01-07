@@ -1,6 +1,7 @@
 *.pem
 *.crt
 *.der
+*.p7s
 *.class
 *.json
 java-3.0.0-a3/
@@ -8,3 +9,4 @@ java/pdfbox-2.0.14/
 java/tweaks/
 softhsm2/
 softhsm2.conf
+signature_appearances/endesive/
