@@ -1,0 +1,11 @@
+#!/bin/bash
+thisdir=`dirname $0`
+jars="$thisdir"
+addjar(){
+jars="$jars:$1"
+}
+for fname in $thisdir/java/*.jar; do
+    addjar $fname
+done
+java -cp $jars \
+org.apache.pdfbox.debugger.PDFDebugger $*

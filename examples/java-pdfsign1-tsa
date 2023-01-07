@@ -1,0 +1,17 @@
+#!/bin/bash
+cert=/home/mak/Dokumenty/m32/ssl/cert.p12
+cert=demo2_user1.p12
+cert=cert-unizeto.p12
+certpass=1234
+thisdir=`dirname $0`
+jars="$thisdir"
+addjar(){
+jars="$jars:$1"
+}
+for fname in $thisdir/java/*.jar; do
+    addjar $fname
+done
+java -cp $jars \
+org.apache.pdfbox.examples.signature.CreateSignature \
+-tsa http://public-qlts.certum.pl/qts-17 \
+$cert $certpass $1
