@@ -13,7 +13,7 @@ else:
 data = open(fname, "rb").read()
 signed_root = etree.fromstring(data)
 verified_data = (
-    signxml.XMLVerifier().verify(signed_root, ca_pem_file="demo2_ca.crt.pem").signed_xml
+    signxml.XMLVerifier().verify(signed_root, ca_pem_file="ca/demo2_ca.crt.pem").signed_xml
 )
 
 xml = etree.tostring(

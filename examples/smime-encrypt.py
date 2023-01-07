@@ -12,7 +12,7 @@ def load_cert(relative_path):
 
 def main():
     certs = (
-        load_cert('demo2_user1.crt.pem'),
+        load_cert('ca/demo2_user1.crt.pem'),
     )
     datau = open('smime-unsigned.txt', 'rb').read()
     datae = email.encrypt(datau, certs, 'aes256_ofb')

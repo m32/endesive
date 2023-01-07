@@ -23,7 +23,7 @@ def main():
         'signature': 'Dokument podpisany cyfrowo',
         'signaturebox': (470, 0, 570, 100),
     }
-    with open('demo2_user1.p12', 'rb') as f:
+    with open('ca/demo2_user1.p12', 'rb') as f:
         key, cert, certe = keys.parse_pkcs12(f.read(), b'1234')
     fname = 'pdf.pdf'
     if len (sys.argv) > 1:

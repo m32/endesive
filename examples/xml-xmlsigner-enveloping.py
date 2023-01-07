@@ -3,8 +3,8 @@
 from lxml import etree
 import signxml
 
-cert = open("demo2_user1.crt.pem").read()
-key = open("demo2_user1.key.pem").read()
+cert = open("ca/demo2_user1.crt.pem").read()
+key = open("ca/demo2_user1.key.pem").read()
 data = open('xml.xml', 'rb').read()
 root = etree.fromstring(data)
 signed_root = signxml.XMLSigner(
@@ -18,7 +18,7 @@ signed_root = signxml.XMLSigner(
 verified_data = signxml.XMLVerifier(
 ).verify(
     signed_root,
-    ca_pem_file="demo2_ca.crt.pem"
+    ca_pem_file="ca/demo2_ca.crt.pem"
 ).signed_xml
 
 xml = etree.tostring(

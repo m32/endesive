@@ -1,11 +1,11 @@
 #!/bin/bash
 
 sign1() {
-    openssl smime -sign -CAfile demo2_ca.crt.pem -signer $1 -inkey $2 -outform SMIME -in $3 -out $4
+    openssl smime -sign -CAfile ca/demo2_ca.crt.pem -signer $1 -inkey $2 -outform SMIME -in $3 -out $4
 }
 
 sign2() {
-    openssl smime -sign -noattr -CAfile demo2_ca.crt.pem -signer $1 -inkey $2 -outform SMIME -in $3 -out $4
+    openssl smime -sign -noattr -CAfile ca/demo2_ca.crt.pem -signer $1 -inkey $2 -outform SMIME -in $3 -out $4
 }
 
 encrypt() {
@@ -17,7 +17,7 @@ decrypt() {
 }
 
 verify() {
-    openssl smime -verify -CAfile demo2_ca.crt.pem -in $1 -inform SMIME
+    openssl smime -verify -CAfile ca/demo2_ca.crt.pem -in $1 -inform SMIME
 }
 
 psssign(){
@@ -25,7 +25,7 @@ psssign(){
 }
 
 pssverify(){
-    openssl cms -verify -signer $1 -CAfile demo2_ca.crt.pem -in $2 -keyopt rsa_padding_mode:pss -md sha512
+    openssl cms -verify -signer $1 -CAfile ca/demo2_ca.crt.pem -in $2 -keyopt rsa_padding_mode:pss -md sha512
 }
 
 oaepencrypt(){
@@ -36,27 +36,38 @@ oaepdecrypt(){
     openssl cms -decrypt -recip $1 -inkey $2 -in $3
 }
 
+detached(){
+    openssl smime -sign -in $3 -signer $1 -inkey $2 -outform der -binary -out $4
+}
+
+detachedverify(){
+    openssl smime -verify -in $2 -inform der -content $1 -CAfile ca/demo2_ca.crt.pem
+}
+
 if [ -z "$1" ]; then
     echo "************************** attr"
-    sign1 demo2_user1.crt.pem demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-attr.txt
+    sign1 ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-attr.txt
     verify smime-ssl-signed-attr.txt
     echo "************************** noattr"
-    sign2 demo2_user1.crt.pem demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-noattr.txt
+    sign2 ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-noattr.txt
     verify smime-ssl-signed-noattr.txt
+    echo "************************** detached"
+    detached ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-detached.p7s
+    detachedverify smime-unsigned.txt smime-ssl-signed-detached.p7s
     echo "************************** encrypt"
-    encrypt demo2_user1.crt.pem smime-unsigned.txt smime-ssl-encrypted.txt
-    decrypt demo2_user1.crt.pem demo2_user1.key.pem smime-ssl-encrypted.txt
+    encrypt ca/demo2_user1.crt.pem smime-unsigned.txt smime-ssl-encrypted.txt
+    decrypt ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-ssl-encrypted.txt
     echo "************************** pss sign"
-    psssign demo2_user1.crt.pem demo2_user1.key.pem smime-unsigned.txt smime-ssl-pss-signed.txt
-    pssverify demo2_user1.crt.pem smime-ssl-pss-signed.txt
+    psssign ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-pss-signed.txt
+    pssverify ca/demo2_user1.crt.pem smime-ssl-pss-signed.txt
     echo "************************** oaep encrypt"
-    oaepencrypt demo2_user1.crt.pem smime-unsigned.txt smime-ssl-oaep-encrypted.txt
-    oaepdecrypt demo2_user1.crt.pem demo2_user1.key.pem smime-ssl-oaep-encrypted.txt
+    oaepencrypt ca/demo2_user1.crt.pem smime-unsigned.txt smime-ssl-oaep-encrypted.txt
+    oaepdecrypt ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-ssl-oaep-encrypted.txt
 else
     if [ -z "$2" ]; then
         echo "************************** $1"
         verify $1
     else
-        decrypt demo2_user1.crt.pem demo2_user1.key.pem $1
+        decrypt ca/demo2_user1.crt.pem ca/demo2_user1.key.pem $1
     fi
 fi

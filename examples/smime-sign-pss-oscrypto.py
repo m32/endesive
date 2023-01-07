@@ -5,7 +5,7 @@ from endesive import email
 
 
 def main():
-    with open('demo2_user1.p12', 'rb') as f:
+    with open('ca/demo2_user1.p12', 'rb') as f:
         key, cert, certe = keys.parse_pkcs12(f.read(), b'1234')
     datau = open('smime-unsigned.txt', 'rb').read()
     datas = email.sign(datau,

@@ -13,4 +13,4 @@ if [ -z "$fname" ]; then
     password=""
     fname=$1
 fi
-java -cp $jars: PDFShowSignature "$password" $fname
+java -cp $jars org.apache.pdfbox.examples.signature.ShowSignature "$password" $fname

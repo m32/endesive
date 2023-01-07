@@ -38,7 +38,7 @@ def main():
         "reason": "Dokument podpisany cyfrowo aą cć eę lł nń oó sś zż zź",
         "password": "1234",
     }
-    with open("../demo2_user1.p12", "rb") as fp:
+    with open("../ca/demo2_user1.p12", "rb") as fp:
         p12 = pkcs12.load_key_and_certificates(
             fp.read(), b"1234", backends.default_backend()
         )

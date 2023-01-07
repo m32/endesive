@@ -6,6 +6,8 @@ from endesive import pdf, hsm
 import os
 import sys
 import datetime
+from cryptography import x509
+from cryptography.hazmat import backends
 
 os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
 if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2.conf')):
@@ -74,6 +76,11 @@ class Signer(hsm.HSM):
 def main():
     tspurl = "http://time.certum.pl"
     tspurl = "http://public-qlts.certum.pl/qts-17"
+
+    ocspurl = 'https://ocsp.certum.pl/'
+    ocspissuer = open('CertumDigitalIdentificationCASHA2.crt', 'rb').read()
+    ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+
     date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
     date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
     dct = {
@@ -82,11 +89,15 @@ def main():
         'location': 'Szczecin',
         'signingdate': date.encode(),
         'reason': 'Dokument podpisany cyfrowo',
+        'application': 'app:xyz',
     }
+
     clshsm = Signer(dllpath)
+
     fname = 'pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]
+
     datau = open(fname, 'rb').read()
     datas = pdf.cms.sign(datau, dct,
         None, None,
@@ -94,6 +105,8 @@ def main():
         'sha256',
         clshsm,
         tspurl,
+        ocspurl=ocspurl,
+        ocspissuer=ocspissuer
     )
     fname = fname.replace('.pdf', '-signed-cms-hsm.pdf')
     with open(fname, 'wb') as fp:

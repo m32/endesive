@@ -61,7 +61,7 @@ def sign(datau, key, cert, othercerts, hashalgo, hsm):
 def main():
     # split certificate
     # we need the key as seperate file
-    with open('demo2_user1.p12', 'rb') as fp:
+    with open('ca/demo2_user1.p12', 'rb') as fp:
         key, cert, othercerts = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
 
     agent = SSHAgentHSM(cert)
@@ -82,7 +82,7 @@ def main():
 
         # we have to add the key to the ssh-agent
         # remove the key password, dump in traditional openssl so ssh-agent can add the key
-        keyfile = 'demo2_user1.key.nopass.pem'
+        keyfile = 'ca/demo2_user1.key.nopass.pem'
         with open(keyfile, 'wb') as fp:
             # dump the key
             fp.write(key.private_bytes(
@@ -93,7 +93,7 @@ def main():
         perms(keyfile)
 
         # pub file so ssh-add -d can be used
-        pubfile = 'demo2_user1.key.nopass.pem.pub'
+        pubfile = 'ca/demo2_user1.key.nopass.pem.pub'
         with open(pubfile, 'wb') as fp:
             # convert the public key of the certificate to ssh public key format
             fp.write(cert.public_key().public_bytes(

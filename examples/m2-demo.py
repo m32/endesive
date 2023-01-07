@@ -14,12 +14,12 @@ from M2Crypto import BIO, Rand, SMIME, X509
 
 randpool = '/tmp/randpool.dat'
 
-ca_cert = 'demo2_ca.crt.pem'
+ca_cert = 'ca/demo2_ca.crt.pem'
 # we need to have access to both keys
-signer_key  = 'demo2_user1.key.pem'
-signer_cert = 'demo2_user1.crt.pem'
-recipient_key  = 'demo2_user2.key.pem'
-recipient_cert = 'demo2_user2.crt.pem'
+signer_key  = 'ca/demo2_user1.key.pem'
+signer_cert = 'ca/demo2_user1.crt.pem'
+recipient_key  = 'ca/demo2_user2.key.pem'
+recipient_cert = 'ca/demo2_user2.crt.pem'
 
 def makebuf(text):
     return BIO.MemoryBuffer(text)

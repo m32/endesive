@@ -8,7 +8,7 @@ import hashlib
 from asn1crypto import cms, algos, core, pem, x509
 
 def main():
-    with open('demo2_user1.p12', 'rb') as fp:
+    with open('ca/demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
     datau = open('smime-unsigned.txt', 'rb').read()
 

@@ -6,25 +6,25 @@ sign1(){
     openssl smime -sign \
 -md sha256 \
 -binary \
--CAfile demo2_ca.crt.pem \
+-CAfile ca/demo2_ca.crt.pem \
 -in $1 -out $2 -outform der \
--inkey demo2_user1.key.pem \
--signer demo2_user1.crt.pem
+-inkey ca/demo2_user1.key.pem \
+-signer ca/demo2_user1.crt.pem
 }
 
 sign2(){
     openssl smime -sign \
 -md sha256 \
 -binary -noattr \
--CAfile demo2_ca.crt.pem \
+-CAfile ca/demo2_ca.crt.pem \
 -in $1 -out $2 -outform der \
--inkey demo2_user1.key.pem \
--signer demo2_user1.crt.pem
+-inkey ca/demo2_user1.key.pem \
+-signer ca/demo2_user1.crt.pem
 }
 
 verify(){
     openssl smime -verify \
--CAfile demo2_ca.crt.pem \
+-CAfile ca/demo2_ca.crt.pem \
 -content $1 \
 -in $2 -inform der
 }
