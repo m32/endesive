@@ -85,7 +85,7 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stdout
         assert b'' == stderr
 
-        with open(fixture('demo2_ca.crt.pem'), 'rt') as fh:
+        with open(fixture('demo2_ca.crt.pem'), 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -110,7 +110,7 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stdout
         assert b'' == stderr
 
-        with open(fixture('demo2_ca.crt.pem'), 'rt') as fh:
+        with open(fixture('demo2_ca.crt.pem'), 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()

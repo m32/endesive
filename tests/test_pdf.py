@@ -38,7 +38,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(fixture('demo2_ca.crt.pem'), 'rt') as fh:
+        with open(fixture('demo2_ca.crt.pem'), 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
