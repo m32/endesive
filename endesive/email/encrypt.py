@@ -25,7 +25,10 @@ class EncryptedData(object):
         return data
 
     def pad(self, s, block_size):
-        n = (block_size - len(s)) % block_size
+        n = block_size - len(s) % block_size
+        if n == 0:
+            n = block_size
+            #return s
         n = bytes([n] * n)
         return s + n
 
@@ -95,8 +98,7 @@ class EncryptedData(object):
             default_backend()
         )
 
-        if not oaep:
-            data = self.pad(data, block_size)
+        data = self.pad(data, block_size)
 
         encryptor = cipher.encryptor()
         data = encryptor.update(data) + encryptor.finalize()
