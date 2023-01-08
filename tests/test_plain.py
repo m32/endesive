@@ -10,6 +10,8 @@ from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import plain
 
+import test_cert
+
 tests_root = os.path.dirname(__file__)
 fixtures_dir = os.path.join(tests_root, 'fixtures')
 
@@ -20,8 +22,7 @@ def fixture(fname):
 
 class PLAINTests(unittest.TestCase):
     def test_plain_signed_attr(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fp:
-            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = plain.sign(datau,
@@ -35,9 +36,10 @@ class PLAINTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
+            '-CAfile', test_cert.ca_cert,
             '-content', fixture('plain-unsigned.txt'),
-            '-in', fname, '-inform', 'der',
+            '-in', fname,
+            '-inform', 'der',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
@@ -45,8 +47,7 @@ class PLAINTests(unittest.TestCase):
         assert datau == stdout
 
     def test_plain_signed_noattr(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fp:
-            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = plain.sign(datau,
@@ -60,9 +61,10 @@ class PLAINTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
+            '-CAfile', test_cert.ca_cert,
             '-content', fixture('plain-unsigned.txt'),
-            '-in', fname, '-inform', 'der',
+            '-in', fname,
+            '-inform', 'der',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
@@ -74,18 +76,20 @@ class PLAINTests(unittest.TestCase):
             'openssl', 'smime', '-sign',
             '-md', 'sha256',
             '-binary',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
-            '-in', fixture('plain-unsigned.txt'), '-out', fixture('plain-ssl-signed-attr.txt'), '-outform', 'der',
-            '-inkey', fixture('demo2_user1.key.pem'),
+            '-CAfile', test_cert.ca_cert,
+            '-in', fixture('plain-unsigned.txt'),
+            '-out', fixture('plain-ssl-signed-attr.txt'),
+            '-outform', 'der',
+            '-inkey', test_cert.cert1_key,
             '-passin', 'pass:1234',
-            '-signer', fixture('demo2_user1.crt.pem'),
+            '-signer', test_cert.cert1_cert,
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         assert b'' == stdout
         assert b'' == stderr
 
-        with open(fixture('demo2_ca.crt.pem'), 'rb') as fh:
+        with open(test_cert.ca_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -99,18 +103,20 @@ class PLAINTests(unittest.TestCase):
             'openssl', 'smime', '-sign',
             '-md', 'sha256',
             '-binary', '-noattr',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
-            '-in', fixture('plain-unsigned.txt'), '-out', fixture('plain-ssl-signed-noattr.txt'), '-outform', 'der',
-            '-inkey', fixture('demo2_user1.key.pem'),
+            '-CAfile', test_cert.ca_cert,
+            '-in', fixture('plain-unsigned.txt'),
+            '-out', fixture('plain-ssl-signed-noattr.txt'),
+            '-outform', 'der',
+            '-inkey', test_cert.cert1_key,
             '-passin', 'pass:1234',
-            '-signer', fixture('demo2_user1.crt.pem'),
+            '-signer', test_cert.cert1_cert,
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         assert b'' == stdout
         assert b'' == stderr
 
-        with open(fixture('demo2_ca.crt.pem'), 'rb') as fh:
+        with open(test_cert.ca_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()

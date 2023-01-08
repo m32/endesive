@@ -1,4 +1,11 @@
+cert-hsm-*
+demo2_*
+softhsm2/
+softhsm2.conf
 pdf-signed-cms.pdf
+pdf-encrypted-signed.pdf
+pdf-signed-appearance.pdf
+pdf-signed-cms-aligned.pdf
 plain-signed-attr.txt
 plain-signed-noattr.txt
 plain-ssl-signed-attr.txt
@@ -22,4 +29,5 @@ smime-encrypted-aes256-ofb-True.txt
 smime-ssl-encrypted-cms-None.txt
 smime-ssl-encrypted-cms-oaep.txt
 smime-ssl-encrypted-smime-aes256.txt
-
+smime-signed-attr-pss.txt
+smime-signed-hsm-ssh.txt

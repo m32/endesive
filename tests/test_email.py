@@ -15,6 +15,8 @@ from endesive import email
 import hashlib
 from asn1crypto import cms, algos, core, pem
 
+import test_cert
+
 tests_root = os.path.dirname(__file__)
 fixtures_dir = os.path.join(tests_root, 'fixtures')
 
@@ -25,8 +27,8 @@ def fixture(fname):
 
 class EMAILTests(unittest.TestCase):
     def test_email_signed_attr(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fp:
-            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = email.sign(datau,
@@ -38,14 +40,14 @@ class EMAILTests(unittest.TestCase):
         with open(fname, 'wb') as fh:
             fh.write(datas)
 
-        with open(fixture('demo2_user1.crt.pem'), 'rb') as f:
-            cert = f.read()
+        with open(test_cert.cert1_cert, 'rb') as fp:
+            cert = fp.read()
         (hashok, signatureok, certok) = email.verify(datas.decode('utf8'), [cert,])
         assert hashok and signatureok and certok
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
+            '-CAfile', test_cert.ca_cert,
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -55,8 +57,8 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_attr_pss(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fp:
-            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = email.sign(datau,
@@ -69,16 +71,16 @@ class EMAILTests(unittest.TestCase):
         with open(fname, 'wb') as fh:
             fh.write(datas)
 
-        with open(fixture('demo2_user1.crt.pem'), 'rb') as f:
-            cert = f.read()
+        with open(test_cert.cert1_cert, 'rb') as fp:
+            cert = fp.read()
         (hashok, signatureok, certok) = email.verify(datas.decode('utf8'), [cert,])
         assert hashok and signatureok and certok
 
         cmd = [
             'openssl', 'cms', '-verify',
-            '-signer', fixture('demo2_user1.crt.pem'),
+            '-signer', test_cert.cert1_cert,
             '-keyopt', 'rsa_padding_mode:pss', '-md', 'sha512',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
+            '-CAfile', test_cert.ca_cert,
             '-in', fname
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -88,8 +90,7 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_attr_custom(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fp:
-            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
 
@@ -118,7 +119,7 @@ class EMAILTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
+            '-CAfile', test_cert.ca_cert,
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -128,8 +129,7 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_noattr(self):
-        with open(fixture('demo2_user1.p12'), 'rb') as fp:
-            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = email.sign(datau,
@@ -143,7 +143,7 @@ class EMAILTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('demo2_ca.crt.pem'),
+            '-CAfile', test_cert.ca_cert,
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -153,11 +153,8 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_crypt(self):
-        def load_cert(relative_path):
-            with open(relative_path, 'rb') as f:
-                return x509.load_pem_x509_certificate(f.read(), backends.default_backend())
         certs = (
-            load_cert(fixture('demo2_user1.crt.pem')),
+            test_cert.CA().cert_load(test_cert.cert1_cert),
         )
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -166,8 +163,7 @@ class EMAILTests(unittest.TestCase):
         with open(fname, 'wt') as fh:
             fh.write(datae)
 
-        with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
-            key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
         with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
@@ -175,11 +171,8 @@ class EMAILTests(unittest.TestCase):
         assert datau == datad
 
     def _test_email_ssl_decrypt(self, algo, mode, oaep):
-        def load_cert(relative_path):
-            with open(relative_path, 'rb') as f:
-                return x509.load_pem_x509_certificate(f.read(), backends.default_backend())
         certs = (
-            load_cert(fixture('demo2_user1.crt.pem')),
+            test_cert.CA().cert_load(test_cert.cert1_cert),
         )
 
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
@@ -191,23 +184,22 @@ class EMAILTests(unittest.TestCase):
             fh.write(datae)
 
         if 0:
-            with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
-                key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
+            key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
             datau = email.decrypt(datae, key)
 
         if not oaep:
             cmd = [
                 'openssl', 'smime', '-decrypt',
-                '-recip', fixture('demo2_user1.crt.pem'),
-                '-inkey', fixture('demo2_user1.key.pem'),
+                '-recip', test_cert.cert1_cert,
+                '-inkey', test_cert.cert1_key,
                 '-passin', 'pass:1234',
                 '-in', fname,
             ]
         else:
             cmd = [
                 'openssl', 'cms', '-decrypt',
-                '-recip', fixture('demo2_user1.crt.pem'),
-                '-inkey', fixture('demo2_user1.key.pem'),
+                '-recip', test_cert.cert1_cert,
+                '-inkey', test_cert.cert1_key,
                 '-passin', 'pass:1234',
                 '-in', fname,
             ]
@@ -262,15 +254,14 @@ class EMAILTests(unittest.TestCase):
             'openssl', 'smime', '-encrypt', '-'+algo,
             '-in', fixture('smime-unsigned.txt'),
             '-out', fname,
-            fixture('demo2_user1.crt.pem'),
+            test_cert.cert1_cert,
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         assert stderr == b''
         assert stdout == b''
 
-        with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
-            key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
         with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
@@ -286,7 +277,7 @@ class EMAILTests(unittest.TestCase):
         fname = fixture('smime-ssl-encrypted-cms-{}.txt'.format(mode))
         cmd = [
             'openssl', 'cms', '-encrypt',
-            '-recip', fixture('demo2_user1.crt.pem'),
+            '-recip', test_cert.cert1_cert,
             '-in', fixture('smime-unsigned.txt'),
             '-out', fname,
             '-md', 'sha512'
@@ -300,8 +291,7 @@ class EMAILTests(unittest.TestCase):
         assert stderr == b''
         assert stdout == b''
 
-        with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
-            key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
         with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
