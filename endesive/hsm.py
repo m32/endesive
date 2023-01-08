@@ -328,8 +328,10 @@ class HSM(BaseHSM):
     def cert_export(self, fname, keyID):
         der_bytes = self.cert_load(keyID)
         pem_bytes = asn1pem.armor("CERTIFICATE", der_bytes)
-        open(fname + ".der", "wb").write(der_bytes)
-        open(fname + ".pem", "wb").write(pem_bytes)
+        with open(fname + ".der", "wb") as fp:
+            fp.write(der_bytes)
+        with open(fname + ".pem", "wb") as fp:
+            fp.write(pem_bytes)
 
 
 class SSHAgentHSM(BaseHSM):
