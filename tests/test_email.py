@@ -136,40 +136,94 @@ class EMAILTests(unittest.TestCase):
 
         assert datau == datad
 
-    def test_email_ssl_decrypt(self):
+    def _test_email_ssl_decrypt(self, algo, mode, oaep):
         def load_cert(relative_path):
             with open(relative_path, 'rb') as f:
                 return x509.load_pem_x509_certificate(f.read(), backends.default_backend())
         certs = (
             load_cert(fixture('demo2_user1.crt.pem')),
         )
+
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
-        datae = email.encrypt(datau, certs, 'aes256_ofb')
-        fname = fixture('smime-encrypted.txt')
+
+        datae = email.encrypt(datau, certs, algo+'_'+mode, oaep)
+        fname = fixture('smime-encrypted-{}-{}-{}.txt'.format(algo, mode, oaep))
         with open(fname, 'wt') as fh:
             fh.write(datae)
 
-        cmd = [
-            'openssl', 'smime', '-decrypt',
-            '-recip', fixture('demo2_user1.crt.pem'),
-            '-inkey', fixture('demo2_user1.key.pem'),
-            '-passin', 'pass:1234',
-            '-in', fname,
-        ]
+        if 0:
+            with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
+                key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
+            datau = email.decrypt(datae, key)
+
+        if not oaep:
+            cmd = [
+                'openssl', 'smime', '-decrypt',
+                '-recip', fixture('demo2_user1.crt.pem'),
+                '-inkey', fixture('demo2_user1.key.pem'),
+                '-passin', 'pass:1234',
+                '-in', fname,
+            ]
+        else:
+            cmd = [
+                'openssl', 'cms', '-decrypt',
+                '-recip', fixture('demo2_user1.crt.pem'),
+                '-inkey', fixture('demo2_user1.key.pem'),
+                '-passin', 'pass:1234',
+                '-in', fname,
+            ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
 
         assert stderr == b''
-        lastbyte = stdout[-1]
-        stdout = stdout[:len(stdout)-lastbyte]
+        if stdout != datau:
+            lastbyte = stdout[-1]
+            stdout = stdout[:len(stdout)-lastbyte]
         assert stdout == datau
 
-    def test_email_ssl_encrypt(self):
+    def test_email_ssl_decrypt_aes128_cbc_False(self):
+        self._test_email_ssl_decrypt('aes128', 'cbc', False)
+
+    def test_email_ssl_decrypt_aes192_cbc_False(self):
+        self._test_email_ssl_decrypt('aes192', 'cbc', False)
+
+    def test_email_ssl_decrypt_aes256_cbc_False(self):
+        self._test_email_ssl_decrypt('aes256', 'cbc', False)
+
+    def test_email_ssl_decrypt_aes128_ofb_False(self):
+        self._test_email_ssl_decrypt('aes128', 'ofb', False)
+
+    def test_email_ssl_decrypt_aes192_ofb_False(self):
+        self._test_email_ssl_decrypt('aes192', 'ofb', False)
+
+    def test_email_ssl_decrypt_aes256_ofb_False(self):
+        self._test_email_ssl_decrypt('aes256', 'ofb', False)
+
+    def test_email_ssl_decrypt_aes128_cbc_True(self):
+        self._test_email_ssl_decrypt('aes128', 'cbc', True)
+
+    def test_email_ssl_decrypt_aes192_cbc_True(self):
+        self._test_email_ssl_decrypt('aes192', 'cbc', True)
+
+    def test_email_ssl_decrypt_aes256_cbc_True(self):
+        self._test_email_ssl_decrypt('aes256', 'cbc', True)
+
+    def test_email_ssl_decrypt_aes128_ofb_True(self):
+        self._test_email_ssl_decrypt('aes128', 'ofb', True)
+
+    def test_email_ssl_decrypt_aes192_ofb_True(self):
+        self._test_email_ssl_decrypt('aes192', 'ofb', True)
+
+    def test_email_ssl_decrypt_aes256_ofb_True(self):
+        self._test_email_ssl_decrypt('aes256', 'ofb', True)
+
+    def _test_email_ssl_encrypt_smime(self, algo):
+        fname = fixture('smime-ssl-encrypted-smime-{}.txt'.format(algo))
         cmd = [
-            'openssl', 'smime', '-encrypt', '-aes256',
+            'openssl', 'smime', '-encrypt', '-'+algo,
             '-in', fixture('smime-unsigned.txt'),
-            '-out', fixture('smime-ssl-encrypted.txt'),
+            '-out', fname,
             fixture('demo2_user1.crt.pem'),
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -179,10 +233,47 @@ class EMAILTests(unittest.TestCase):
 
         with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
             key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
-        with io.open(fixture('smime-ssl-encrypted.txt'), 'rt', encoding='utf-8') as fh:
+        with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
 
         assert datau == datad.replace(b'\r\n', b'\n')
+
+    def test_email_ssl_encrypt_aes256(self):
+        self._test_email_ssl_encrypt_smime('aes256')
+
+    def _test_email_ssl_encrypt_cms(self, mode):
+        fname = fixture('smime-ssl-encrypted-cms-{}.txt'.format(mode))
+        cmd = [
+            'openssl', 'cms', '-encrypt',
+            '-recip', fixture('demo2_user1.crt.pem'),
+            '-in', fixture('smime-unsigned.txt'),
+            '-out', fname,
+            '-md', 'sha512'
+        ]
+        if mode is not None:
+            cmd.extend([
+                '-keyopt', 'rsa_padding_mode:{}'.format(mode),
+            ])
+        process = Popen(cmd, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        assert stderr == b''
+        assert stdout == b''
+
+        with open(fixture('demo2_user1.key.pem'), 'rb') as fh:
+            key = load_pem_private_key(fh.read(), b'1234', backends.default_backend())
+        with io.open(fname, 'rt', encoding='utf-8') as fh:
+            datae = fh.read()
+        datad = email.decrypt(datae, key)
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+
+        assert datau == datad.replace(b'\r\n', b'\n')
+
+    def test_email_ssl_encrypt_cms_oaep(self):
+        self._test_email_ssl_encrypt_cms('oaep')
+
+    def test_email_ssl_encrypt_cms(self):
+        self._test_email_ssl_encrypt_cms(None)
