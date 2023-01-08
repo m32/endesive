@@ -77,9 +77,9 @@ class DecryptedData(object):
 
         decryptor = cipher.decryptor()
         udata = decryptor.update(edata) + decryptor.finalize()
-        if keyalgo['algorithm'] != 'rsaes_oaep':
-            nb = ord(udata[-1]) if sys.version[0] < '3' else udata[-1]
-            udata = udata[:-nb]
+        #if keyalgo['algorithm'] != 'rsaes_oaep':
+        nb = ord(udata[-1]) if sys.version[0] < '3' else udata[-1]
+        udata = udata[:-nb]
         return udata
 
 
