@@ -338,6 +338,9 @@ class SSHAgentHSM(BaseHSM):
         self._a = paramiko.agent.Agent()
         self._cert = cert
 
+    def close(self):
+        self._a.close()
+
     def certificate(self):
         """
         callback for HSM
