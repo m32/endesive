@@ -38,10 +38,48 @@ class EMAILTests(unittest.TestCase):
         with open(fname, 'wb') as fh:
             fh.write(datas)
 
+        with open(fixture('demo2_user1.crt.pem'), 'rb') as f:
+            cert = f.read()
+        (hashok, signatureok, certok) = email.verify(datas.decode('utf8'), [cert,])
+        assert hashok and signatureok and certok
+
         cmd = [
             'openssl', 'smime', '-verify',
             '-CAfile', fixture('demo2_ca.crt.pem'),
             '-in', fname, '-inform', 'SMIME',
+        ]
+        process = Popen(cmd, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+
+        assert stderr == b'Verification successful\n'
+        assert datau.replace(b'\n', b'\r\n') == stdout
+
+    def test_email_signed_attr_pss(self):
+        with open(fixture('demo2_user1.p12'), 'rb') as fp:
+            p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        datas = email.sign(datau,
+            p12[0], p12[1], p12[2],
+            'sha512',
+            attrs=True,
+            pss=True
+        )
+        fname = fixture('smime-signed-attr-pss.txt')
+        with open(fname, 'wb') as fh:
+            fh.write(datas)
+
+        with open(fixture('demo2_user1.crt.pem'), 'rb') as f:
+            cert = f.read()
+        (hashok, signatureok, certok) = email.verify(datas.decode('utf8'), [cert,])
+        assert hashok and signatureok and certok
+
+        cmd = [
+            'openssl', 'cms', '-verify',
+            '-signer', fixture('demo2_user1.crt.pem'),
+            '-keyopt', 'rsa_padding_mode:pss', '-md', 'sha512',
+            '-CAfile', fixture('demo2_ca.crt.pem'),
+            '-in', fname
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
