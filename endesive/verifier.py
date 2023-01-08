@@ -24,16 +24,12 @@ class VerifyData(object):
                 certs.append(x509.Certificate.load(cert_bytes))
         if systemCertsPath is not None:
             for fname in glob.glob(os.path.join(systemCertsPath, "*.pem")):
-                cert_bytes = open(fname, "rb").read()
+                with open(fname, "rb") as fp:
+                    cert_bytes = fp.read()
                 if pem.detect(cert_bytes):
                     _, _, cert_bytes = pem.unarmor(cert_bytes)
                 certs.append(x509.Certificate.load(cert_bytes))
         self.context = ValidationContext(certs)
-
-    def verify_cert(self, cert):
-        validator = CertificateValidator(cert, validation_context=self.context)
-        path = validator.validate_usage(set(["digital_signature"]))
-        return path is not None
 
     def verify(self, datas, datau):
         signed_data = cms.ContentInfo.load(datas)["content"]
