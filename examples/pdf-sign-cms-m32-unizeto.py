@@ -14,22 +14,17 @@ from endesive import pdf
 def main():
     tspurl = "http://time.certum.pl"
     tspurl = "http://public-qlts.certum.pl/qts-17"
-    date = datetime.datetime.utcnow() - datetime.timedelta()
+    date = datetime.datetime.utcnow()
     date = date.strftime("%Y%m%d%H%M%S+00'00'")
     dct = {
         "sigflags": 3,
         "sigpage": 0,
-        "sigbutton": True,
+        "sigbutton": False,
         "contact": "mak@trisoft.com.pl",
         "location": "Szczecin",
         "signingdate": date.encode(),
         "reason": "Dokument podpisany cyfrowo",
-        "signature": "Dokument podpisany cyfrowo",
-        "signaturebox": (0, 0, 100, 100),
-        "sigandcertify": True,
-        "text": {
-            "fontsize": 10,
-        },
+        "sigandcertify": False,
     }
 
     pk12fname = "/home/mak/Dokumenty/m32/ssl/unizeto/unizeto.p12"
@@ -56,8 +51,8 @@ def main():
         "sha256",
         None,
         tspurl,
-        ocspurl=ocspurl,
-        ocspissuer=ocspissuer,
+        # ocspurl=ocspurl,
+        # ocspissuer=ocspissuer,
     )
     fname = fname.replace(".pdf", "-signed-cms-m32-unizeto.pdf")
     with open(fname, "wb") as fp:

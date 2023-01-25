@@ -14,21 +14,21 @@ from endesive.pdf import cms
 
 
 def main():
-    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = datetime.datetime.utcnow()
     date = date.strftime("D:%Y%m%d%H%M%S+00'00'")
     dct = {
-        "aligned": 0,
+        "aligned": 8192,
         "sigflags": 3,
         "sigflagsft": 132,
         "sigpage": 0,
-        "sigbutton": True,
-        "sigfield": "Signature1",
-        "auto_sigfield": True,
-        "sigandcertify": True,
-        "signaturebox": (470, 840, 570, 640),
+        # "sigbutton": True,
+        # "sigfield": "Signature1",
+        # "auto_sigfield": True,
+        # "sigandcertify": True,
+        # "signaturebox": (470, 840, 570, 640),
         "signature": "Dokument podpisany cyfrowo ąćęłńóśżź",
-#        "signature_img": "signature_test.png",
-        "contact": "mak@trisoft.com.pl",
+        # "signature_img": "signature_test.png",
+        "contact": "contact:mak@trisoft.com.pl",
         "location": "Szczecin",
         "signingdate": date,
         "reason": "Dokument podpisany cyfrowo aą cć eę lł nń oó sś zż zź",
