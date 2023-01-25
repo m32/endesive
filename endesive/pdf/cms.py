@@ -259,46 +259,58 @@ class SignedData(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
-        ##        if params['mode'] == 'timestamp':
-        ##            # deal with extensions
-        ##            if '/Extensions' not in catalog:
-        ##                extensions = po.DictionaryObject()
-        ##            else:
-        ##                extensions = catalog['/Extensions']
-        ##
-        ##            if '/ESIC' not in extensions:
-        ##                extensions.update({
-        ##                    po.NameObject("/ESIC"): po.DictionaryObject({
-        ##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
-        ##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
-        ##                        })
-        ##                    })
-        ##            else:
-        ##                esic = extensions['/ESIC']
-        ##                major, minor = esic['/BaseVersion'].lstrip('/').split('.')
-        ##                if int(major) < 1 or int(minor) < 7:
-        ##                    esic.update({
-        ##                        po.NameObject('/BaseVersion'): po.NameObject('/1.7'),
-        ##                        po.NameObject('/ExtensionLevel'): po.NumberObject(1),
-        ##                        })
-        ##            catalog.update({
-        ##                po.NameObject('/Extensions'): extensions
-        ##                })
+        # if params['mode'] == 'timestamp':
+        # deal with extensions
+        if "/Extensions" not in catalog:
+            extensions = po.DictionaryObject()
+        else:
+            extensions = catalog["/Extensions"]
+
+        if "/ESIC" not in extensions:
+            extensions.update(
+                {
+                    po.NameObject("/ESIC"): po.DictionaryObject(
+                        {
+                            po.NameObject("/BaseVersion"): po.NameObject("/1.7"),
+                            po.NameObject("/ExtensionLevel"): po.NumberObject(1),
+                        }
+                    )
+                }
+            )
+        else:
+            esic = extensions["/ESIC"]
+            major, minor = esic["/BaseVersion"].lstrip("/").split(".")
+            if int(major) < 1 or int(minor) < 7:
+                esic.update(
+                    {
+                        po.NameObject("/BaseVersion"): po.NameObject("/1.7"),
+                        po.NameObject("/ExtensionLevel"): po.NumberObject(1),
+                    }
+                )
+        catalog.update({po.NameObject("/Extensions"): extensions})
 
         # obj12 is the digital signature
         obj12, obj12ref = self._make_signature(
             Type=po.NameObject("/Sig"),
-            SubFilter=po.NameObject("/adbe.pkcs7.detached"),
+            SubFilter=po.NameObject("/ETSI.CAdES.detached"),
             Contents=UnencryptedBytes(zeros),
         )
 
-        obj12.update({
-            po.NameObject("/Prop_Build"): pdf.DictionaryObject({
-                po.NameObject("/App"): pdf.DictionaryObject({
-                    po.NameObject("/Name"): po.NameObject("/"+udct.get("application", "endesive"))
-                }),
-            }),
-        })
+        obj12.update(
+            {
+                po.NameObject("/Prop_Build"): pdf.DictionaryObject(
+                    {
+                        po.NameObject("/App"): pdf.DictionaryObject(
+                            {
+                                po.NameObject("/Name"): po.NameObject(
+                                    "/" + udct.get("application", "endesive")
+                                )
+                            }
+                        ),
+                    }
+                ),
+            }
+        )
         if params["mode"] == "timestamp":
             # obj12 is a timestamp this time
             obj12.update(
@@ -694,16 +706,14 @@ class SignedData(pdf.PdfFileWriter):
         # ID[0] is used in password protection, must be unchanged
         ID = prev.trailer.get("/ID", None)
         if ID is None:
-            ID = udct.get('id') or hashlib.md5(repr(time.time()).encode()).digest()
+            ID = udct.get("id") or hashlib.md5(repr(time.time()).encode()).digest()
         else:
             ID = ID.getObject()[0].original_bytes
         newID = udct.get("newid", repr(random.random()))
         self._ID = po.ArrayObject(
             [
                 po.ByteStringObject(ID),
-                po.ByteStringObject(
-                    hashlib.md5(newID.encode()).digest()
-                ),
+                po.ByteStringObject(hashlib.md5(newID.encode()).digest()),
             ]
         )
 
