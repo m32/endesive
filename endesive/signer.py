@@ -28,22 +28,27 @@ def cert2asn(cert, cert_bytes=True):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
 
+
 def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None):
     if prehashed:
         hashed_value = prehashed
     else:
         hashed_value = getattr(hashlib, hashalgo)(unhashed).digest()
-    tspreq = tsp.TimeStampReq({
-        "version": 1,
-        "message_imprint": tsp.MessageImprint({
-            "hash_algorithm": algos.DigestAlgorithm({'algorithm': hashalgo}),
-            "hashed_message": hashed_value,
-            }),
-        #'req_policy', ObjectIdentifier, {'optional': True}),
-        "nonce": int(time.time()*1000),
-        "cert_req": True,
-        #'extensions': tsp.Extensions()
-        })
+    tspreq = tsp.TimeStampReq(
+        {
+            "version": 1,
+            "message_imprint": tsp.MessageImprint(
+                {
+                    "hash_algorithm": algos.DigestAlgorithm({"algorithm": hashalgo}),
+                    "hashed_message": hashed_value,
+                }
+            ),
+            #'req_policy', ObjectIdentifier, {'optional': True}),
+            "nonce": int(time.time() * 1000),
+            "cert_req": True,
+            #'extensions': tsp.Extensions()
+        }
+    )
     tspreq = tspreq.dump()
 
     tspheaders = {"Content-Type": "application/timestamp-query"}
@@ -51,34 +56,60 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
         username = credentials.get("username", None)
         password = credentials.get("password", None)
         if username and password:
-            auth_header_value = b64encode(bytes(username + ':' + password, "utf-8")).decode("ascii")
+            auth_header_value = b64encode(
+                bytes(username + ":" + password, "utf-8")
+            ).decode("ascii")
             tspheaders["Authorization"] = f"Basic {auth_header_value}"
     if req_options is None:
         req_options = {}
 
     tspresp = requests.post(url, data=tspreq, headers=tspheaders, **req_options)
-    if tspresp.headers.get('Content-Type', None) == 'application/timestamp-reply':
+    if tspresp.headers.get("Content-Type", None) == "application/timestamp-reply":
         tspresp = tsp.TimeStampResp.load(tspresp.content)
 
-        if tspresp['status']['status'].native == 'granted':
+        if tspresp["status"]["status"].native == "granted":
             attrs = [
-                cms.CMSAttribute({
-                    'type': cms.CMSAttributeType('signature_time_stamp_token'),
-                    'values': cms.SetOfContentInfo([
-                        cms.ContentInfo({
-                            'content_type': cms.ContentType('signed_data'),
-                            'content': tspresp["time_stamp_token"]["content"],
-                            })
-                        ])
-                    })
-                ]
+                cms.CMSAttribute(
+                    {
+                        "type": cms.CMSAttributeType("signature_time_stamp_token"),
+                        "values": cms.SetOfContentInfo(
+                            [
+                                cms.ContentInfo(
+                                    {
+                                        "content_type": cms.ContentType("signed_data"),
+                                        "content": tspresp["time_stamp_token"][
+                                            "content"
+                                        ],
+                                    }
+                                )
+                            ]
+                        ),
+                    }
+                )
+            ]
             return attrs
         else:
             raise ValueError("TimeStampResponse status is not granted")
     else:
         raise ValueError("TimeStampResponse has invalid content type")
 
-def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, hsm=None, pss=False, timestampurl=None, timestampcredentials=None, timestamp_req_options=None, ocspurl=None, ocspissuer=None):
+
+def sign(
+    datau,
+    key,
+    cert,
+    othercerts,
+    hashalgo,
+    attrs=True,
+    signed_value=None,
+    hsm=None,
+    pss=False,
+    timestampurl=None,
+    timestampcredentials=None,
+    timestamp_req_options=None,
+    ocspurl=None,
+    ocspissuer=None,
+):
     if signed_value is None:
         signed_value = getattr(hashlib, hashalgo)(datau).digest()
     signed_time = datetime.now(tz=util.timezone.utc)
@@ -89,79 +120,172 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
     else:
         cert = cert2asn(cert)
 
+    certissuer = None
     certificates = []
     certificates.append(cert)
     for i in range(len(othercerts)):
-        certificates.append(cert2asn(othercerts[i]))
+        certo = cert2asn(othercerts[i])
+        if certo.subject == cert.issuer:
+            certissuer = certo
+        certificates.append(certo)
 
-    hashalgo = unicode(hashalgo) if sys.version[0] < '3' else hashalgo
+    hashalgo = unicode(hashalgo) if sys.version[0] < "3" else hashalgo
 
     signer = {
-        'version': 'v1',
-        'sid': cms.SignerIdentifier({
-            'issuer_and_serial_number': cms.IssuerAndSerialNumber({
-                'issuer': cert.issuer,
-                'serial_number': cert.serial_number,
-            }),
-        }),
-        'digest_algorithm': algos.DigestAlgorithm({'algorithm': hashalgo}),
-        'signature': signed_value,
+        "version": "v1",
+        "sid": cms.SignerIdentifier(
+            {
+                "issuer_and_serial_number": cms.IssuerAndSerialNumber(
+                    {
+                        "issuer": cert.issuer,
+                        "serial_number": cert.serial_number,
+                    }
+                ),
+            }
+        ),
+        "digest_algorithm": algos.DigestAlgorithm({"algorithm": hashalgo}),
+        "signature": signed_value,
     }
     if not pss:
-        signer['signature_algorithm'] = algos.SignedDigestAlgorithm({'algorithm': 'rsassa_pkcs1v15'})
+        signer["signature_algorithm"] = algos.SignedDigestAlgorithm(
+            {"algorithm": "rsassa_pkcs1v15"}
+        )
     else:
         if isinstance(key, keys.PrivateKeyInfo):
             salt_length = key.byte_size - hashes.SHA512.digest_size - 2
             salt_length = hashes.SHA512.digest_size
         else:
             salt_length = padding.calculate_max_pss_salt_length(key, hashes.SHA512)
-        signer['signature_algorithm'] = algos.SignedDigestAlgorithm({
-            'algorithm': 'rsassa_pss',
-            'parameters': algos.RSASSAPSSParams({
-                'hash_algorithm': algos.DigestAlgorithm({'algorithm': 'sha512'}),
-                'mask_gen_algorithm': algos.MaskGenAlgorithm({
-                    'algorithm': algos.MaskGenAlgorithmId('mgf1'),
-                    'parameters': {
-                        'algorithm': algos.DigestAlgorithmId('sha512'),
+        signer["signature_algorithm"] = algos.SignedDigestAlgorithm(
+            {
+                "algorithm": "rsassa_pss",
+                "parameters": algos.RSASSAPSSParams(
+                    {
+                        "hash_algorithm": algos.DigestAlgorithm(
+                            {"algorithm": "sha512"}
+                        ),
+                        "mask_gen_algorithm": algos.MaskGenAlgorithm(
+                            {
+                                "algorithm": algos.MaskGenAlgorithmId("mgf1"),
+                                "parameters": {
+                                    "algorithm": algos.DigestAlgorithmId("sha512"),
+                                },
+                            }
+                        ),
+                        "salt_length": algos.Integer(salt_length),
+                        "trailer_field": algos.TrailerField(1),
                     }
-                }),
-                'salt_length': algos.Integer(salt_length),
-                'trailer_field': algos.TrailerField(1)
-            })
-        })
+                ),
+            }
+        )
 
     if attrs:
         if attrs is True:
-            signer['signed_attrs'] = [
-                cms.CMSAttribute({
-                    'type': cms.CMSAttributeType('content_type'),
-                    'values': ('data',),
-                }),
-                cms.CMSAttribute({
-                    'type': cms.CMSAttributeType('message_digest'),
-                    'values': (signed_value,),
-                }),
-                cms.CMSAttribute({
-                    'type': cms.CMSAttributeType('signing_time'),
-                    'values': (cms.Time({'utc_time': core.UTCTime(signed_time)}),)
-                }),
+            signing_certificate1 = cms.CMSAttribute(
+                {
+                    "type": cms.CMSAttributeType("signing_certificate"),
+                    "values": (
+                        tsp.SigningCertificate(
+                            {
+                                "certs": [
+                                    tsp.ESSCertID(
+                                        {
+                                            "cert_hash": hashlib.sha1(
+                                                cert.dump()
+                                            ).digest(),
+                                            "issuer_serial": tsp.IssuerSerial(
+                                                {
+                                                    "issuer": (
+                                                        x509.GeneralName(
+                                                            {
+                                                                "directory_name": cert.issuer,
+                                                            }
+                                                        ),
+                                                    ),
+                                                    "serial_number": cert.serial_number,
+                                                }
+                                            ),
+                                        }
+                                    ),
+                                ]
+                            }
+                        ),
+                    ),
+                }
+            )
+
+            signing_certificate2 = cms.CMSAttribute(
+                {
+                    "type": cms.CMSAttributeType("signing_certificate_v2"),
+                    "values": [
+                        tsp.SigningCertificateV2(
+                            {
+                                "certs": [
+                                    tsp.ESSCertIDv2(
+                                        {
+                                            "hash_algorithm": algos.DigestAlgorithm(
+                                                {"algorithm": "sha256"}
+                                            ),
+                                            "cert_hash": hashlib.sha256(
+                                                cert.dump()
+                                            ).digest(),
+                                            "issuer_serial": tsp.IssuerSerial(
+                                                {
+                                                    "issuer": (
+                                                        x509.GeneralName(
+                                                            {
+                                                                "directory_name": cert.issuer,
+                                                            }
+                                                        ),
+                                                    ),
+                                                    "serial_number": cert.serial_number,
+                                                }
+                                            ),
+                                        }
+                                    ),
+                                ]
+                            }
+                        ),
+                    ],
+                }
+            )
+
+            signer["signed_attrs"] = [
+                cms.CMSAttribute(
+                    {
+                        "type": cms.CMSAttributeType("content_type"),
+                        "values": ("data",),
+                    }
+                ),
+                cms.CMSAttribute(
+                    {
+                        "type": cms.CMSAttributeType("message_digest"),
+                        "values": (signed_value,),
+                    }
+                ),
+                # cms.CMSAttribute(
+                #    {
+                #        "type": cms.CMSAttributeType("signing_time"),
+                #        "values": (cms.Time({"utc_time": core.UTCTime(signed_time)}),),
+                #    }
+                # ),
+                signing_certificate2,
             ]
         else:
             if isinstance(attrs, types.FunctionType):
                 attrs = attrs(signed_value)
-            signer['signed_attrs'] = attrs
-
+            signer["signed_attrs"] = attrs
 
     config = {
-        'version': 'v1',
-        'digest_algorithms': cms.DigestAlgorithms((
-            algos.DigestAlgorithm({'algorithm': hashalgo}),
-        )),
-        'encap_content_info': {
-            'content_type': 'data',
+        "version": "v1",
+        "digest_algorithms": cms.DigestAlgorithms(
+            (algos.DigestAlgorithm({"algorithm": hashalgo}),)
+        ),
+        "encap_content_info": {
+            "content_type": "data",
         },
-        'certificates': certificates,
-        'signer_infos': [
+        "certificates": certificates,
+        "signer_infos": [
             signer,
         ],
     }
@@ -180,25 +304,33 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
 
         response = requests.post(
             ocspurl,
-            headers={'Content-Type': 'application/ocsp-request'},
+            headers={"Content-Type": "application/ocsp-request"},
             data=data,
         )
         data = ocsp.OCSPResponse.load(response.content)
-        other = cms.RevocationInfoChoice({
-            'other': cms.OtherRevocationInfoFormat({
-                'other_rev_info_format': cms.OtherRevInfoFormatId('ocsp_response'),
-                'other_rev_info': data
-            })
-        })
-        config['crls'] = cms.RevocationInfoChoices([other])
+        other = cms.RevocationInfoChoice(
+            {
+                "other": cms.OtherRevocationInfoFormat(
+                    {
+                        "other_rev_info_format": cms.OtherRevInfoFormatId(
+                            "ocsp_response"
+                        ),
+                        "other_rev_info": data,
+                    }
+                )
+            }
+        )
+        config["crls"] = cms.RevocationInfoChoices([other])
 
-    datas = cms.ContentInfo({
-        'content_type': cms.ContentType('signed_data'),
-        'content': cms.SignedData(config),
-    })
+    datas = cms.ContentInfo(
+        {
+            "content_type": cms.ContentType("signed_data"),
+            "content": cms.SignedData(config),
+        }
+    )
     if attrs:
-        tosign = datas['content']['signer_infos'][0]['signed_attrs'].dump()
-        tosign = b'\x31' + tosign[1:]
+        tosign = datas["content"]["signer_infos"][0]["signed_attrs"].dump()
+        tosign = b"\x31" + tosign[1:]
     else:
         tosign = datau
     if hsm is not None:
@@ -206,16 +338,10 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
     elif isinstance(key, keys.PrivateKeyInfo):
         key = asymmetric.load_private_key(key)
         if pss:
-            signed_value_signature = asymmetric.rsa_pss_sign(
-                key,
-                tosign,
-                'sha512'
-            )
+            signed_value_signature = asymmetric.rsa_pss_sign(key, tosign, "sha512")
         else:
             signed_value_signature = asymmetric.rsa_pkcs1v15_sign(
-                key,
-                tosign,
-                hashalgo.lower()
+                key, tosign, hashalgo.lower()
             )
     else:
         if pss:
@@ -224,30 +350,25 @@ def sign(datau, key, cert, othercerts, hashalgo, attrs=True, signed_value=None, 
             digest = hasher.finalize()
             signed_value_signature = key.sign(
                 digest,
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA512()),
-                    salt_length=salt_length
-                ),
-                utils.Prehashed(hashes.SHA512())
+                padding.PSS(mgf=padding.MGF1(hashes.SHA512()), salt_length=salt_length),
+                utils.Prehashed(hashes.SHA512()),
             )
         else:
             signed_value_signature = key.sign(
-                tosign,
-                padding.PKCS1v15(),
-                getattr(hashes, hashalgo.upper())()
+                tosign, padding.PKCS1v15(), getattr(hashes, hashalgo.upper())()
             )
 
     if timestampurl is not None:
-        datas['content']['signer_infos'][0]['unsigned_attrs'] = timestamp(
+        datas["content"]["signer_infos"][0]["unsigned_attrs"] = timestamp(
             signed_value_signature,
             hashalgo,
             timestampurl,
             timestampcredentials,
             timestamp_req_options,
-            )
+        )
 
     # signed_value_signature = core.OctetString(signed_value_signature)
-    datas['content']['signer_infos'][0]['signature'] = signed_value_signature
+    datas["content"]["signer_infos"][0]["signature"] = signed_value_signature
 
-    #open('signed-content-info', 'wb').write(datas.dump())
+    # open('signed-content-info', 'wb').write(datas.dump())
     return datas.dump()
