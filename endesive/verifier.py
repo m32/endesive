@@ -23,6 +23,8 @@ class VerifyData(object):
                     _, _, cert_bytes = pem.unarmor(cert_bytes)
                 certs.append(x509.Certificate.load(cert_bytes))
         if systemCertsPath is not None:
+            if not certs:
+                certs = []
             for fname in glob.glob(os.path.join(systemCertsPath, "*.pem")):
                 with open(fname, "rb") as fp:
                     cert_bytes = fp.read()
