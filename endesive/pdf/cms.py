@@ -636,7 +636,7 @@ class SignedData(pdf.PdfFileWriter):
         fi = io.BytesIO(datau)
 
         # read end decrypt
-        prev = pdf.PdfFileReader(fi)
+        prev = pdf.PdfFileReader(fi, strict=False)
         if prev.isEncrypted:
             rc = prev.decrypt(udct["password"])
         else:
