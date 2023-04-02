@@ -249,6 +249,163 @@ class SignedData(pdf.PdfFileWriter):
         )
         return annot, annot_ref
 
+    def addAnnotation(self, cert, udct, box, page0ref, obj13, obj13ref, new_13):
+        from endesive.pdf.PyPDF2_annotate.annotations.signature import Signature
+        from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
+        from endesive.pdf.PyPDF2_annotate.config.location import Location
+        from endesive.pdf.PyPDF2_annotate.util.geometry import identity
+
+        x1, y1, x2, y2 = box
+        annotation = Signature(
+            Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), Appearance()
+        )
+        if "signature" in udct:
+            # Plain text signature with the default font
+            # text to render is contained in udct['signature']
+            # font parameters are in udct['signature']['text']
+            annotationtext = udct["signature"]
+            wrap_text = udct.get("text", {}).get("wraptext", True)
+            font_size = udct.get("text", {}).get("fontsize", 12)
+            text_align = udct.get("text", {}).get("textalign", "left")
+            line_spacing = udct.get("text", {}).get("linespacing", 1.2)
+
+            annotation.add_default_font()
+            annotation.set_signature_appearance(
+                ["fill_colour", 0, 0, 0],
+                ["font", "default", font_size],
+                [
+                    "text_box",
+                    annotationtext,
+                    "default",
+                    0,
+                    0,
+                    x2 - x1,
+                    y2 - y1,
+                    font_size,
+                    wrap_text,
+                    text_align,
+                    "middle",
+                    line_spacing,
+                ],
+            )
+        elif "signature_img" in udct:
+            # Simple image signature, stretches to fit the box
+            # image to render is contained in udct['signature_image']
+            annotation.add_image(udct["signature_img"], "Image")
+            annotation.set_signature_appearance(
+                [
+                    "image",
+                    "Image",
+                    0,
+                    0,
+                    x2 - x1,
+                    y2 - y1,
+                    udct.get("signature_img_distort", True),
+                    udct.get("signature_img_centred", False),
+                ]
+            )
+        elif "signature_appearance" in udct:
+            # Adobe-inspired signature with text and images
+            # Parameters are contained in udct['signature_appearance']
+            # If a field is included in the display list, that field
+            # will be contained in the annotation.
+            #
+            # Text and border are the colour specified by outline,
+            # and border is the the inset distance from the outer
+            # edge of the annotation.  The R G B values range between
+            # 0 and 1.
+            #
+            # Icon is an image to display above the background and
+            # border at the left-hand side of the anntoation.  If
+            # there is no text, it is centred.
+            #
+            # The text block is left-aligned to the right of the icon
+            # image.  If there is no image, the text is left-aliged
+            # with the left-hand border of the annotation
+            #
+            # display fields:
+            #   CN, DN, date, contact, reason, location
+            #
+            # Dict format:
+            #   appearance = dict(
+            #       background = Image with alpha / None,
+            #       icon = Image with alpha / None,
+            #       labels = bool,
+            #       display = list,
+            #       software = str,
+            #       outline = [R, G, B],
+            #       border = int,
+            #       )
+            sig = {}
+            for f in ("background", "icon", "labels", "border", "outline"):
+                if f in udct["signature_appearance"]:
+                    sig[f] = udct["signature_appearance"][f]
+
+            toggles = udct["signature_appearance"].get("display", [])
+            for f in ("contact", "reason", "location", "contact", "signingdate"):
+                if f in toggles:
+                    sig[f] = udct.get(f, "{} unknown".format(f))
+            if "date" in toggles:
+                sig["date"] = udct["signingdate"]
+            if "CN" in toggles:
+                from cryptography.x509 import ObjectIdentifier
+
+                sig["CN"] = cert.subject.get_attributes_for_oid(
+                    ObjectIdentifier("2.5.4.3")
+                )[0].value
+            if "DN" in toggles:
+                sig["DN"] = cert.subject.rfc4514_string()
+            annotation.simple_signature(sig)
+        else:
+            # Manual signature annotation creation
+            #
+            # Make your own appearance with an arbitrary number of
+            # images and fonts
+            if "manual_images" in udct:
+                for name, img in udct["manual_images"].items():
+                    annotation.add_image(img, name=name)
+            if "manual_fonts" in udct:
+                for name, path in udct["manual_fonts"].items():
+                    annotation.add_ttf_font(path, name=name)
+            annotation.add_default_font()
+            annotation.set_signature_appearance(*udct["signature_manual"])
+
+        pdfa = annotation.as_pdf_object(identity(), page=page0ref)
+        objapn = self._extend(pdfa["/AP"]["/N"])
+        objapnref = self._addObject(objapn)
+
+        objap = po.DictionaryObject()
+        objap[po.NameObject("/N")] = objapnref
+        obj13.update(
+            {
+                po.NameObject("/Rect"): po.ArrayObject(
+                    [
+                        po.FloatObject(x1),
+                        po.FloatObject(y1),
+                        po.FloatObject(x2),
+                        po.FloatObject(y2),
+                    ]
+                ),
+                po.NameObject("/AP"): objap,
+                # po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
+            }
+        )
+
+        page0 = page0ref.getObject()
+        if new_13:
+            annots = po.ArrayObject([obj13ref])
+            if "/Annots" in page0:
+                page0annots = page0["/Annots"]
+                if isinstance(page0annots, po.IndirectObject):
+                    annots.insert(0, page0annots)
+                elif isinstance(page0annots, po.ArrayObject):
+                    annots = page0annots
+                    annots.append(obj13ref)
+        else:
+            annots = page0["/Annots"]
+        page0.update({po.NameObject("/Annots"): annots})
+        self._objects[page0ref.idnum - 1] = page0
+
     def makepdf(self, prev, udct, algomd, zeros, cert, **params):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
@@ -277,6 +434,7 @@ class SignedData(pdf.PdfFileWriter):
                     )
                 }
             )
+            catalog.update({po.NameObject("/Extensions"): extensions})
         else:
             esic = extensions["/ESIC"]
             major, minor = esic["/BaseVersion"].lstrip("/").split(".")
@@ -287,7 +445,6 @@ class SignedData(pdf.PdfFileWriter):
                         po.NameObject("/ExtensionLevel"): po.NumberObject(1),
                     }
                 )
-        catalog.update({po.NameObject("/Extensions"): extensions})
 
         # obj12 is the digital signature
         obj12, obj12ref = self._make_signature(
@@ -373,161 +530,7 @@ class SignedData(pdf.PdfFileWriter):
 
         # add an annotation if there is a field to fill
         if box is not None:
-            from endesive.pdf.PyPDF2_annotate.annotations.signature import Signature
-            from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
-            from endesive.pdf.PyPDF2_annotate.config.location import Location
-            from endesive.pdf.PyPDF2_annotate.util.geometry import identity
-
-            x1, y1, x2, y2 = box
-            annotation = Signature(
-                Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), Appearance()
-            )
-            if "signature" in udct:
-                # Plain text signature with the default font
-                # text to render is contained in udct['signature']
-                # font parameters are in udct['signature']['text']
-                annotationtext = udct["signature"]
-                wrap_text = udct.get("text", {}).get("wraptext", True)
-                font_size = udct.get("text", {}).get("fontsize", 12)
-                text_align = udct.get("text", {}).get("textalign", "left")
-                line_spacing = udct.get("text", {}).get("linespacing", 1.2)
-
-                annotation.add_default_font()
-                annotation.set_signature_appearance(
-                    ["fill_colour", 0, 0, 0],
-                    ["font", "default", font_size],
-                    [
-                        "text_box",
-                        annotationtext,
-                        "default",
-                        0,
-                        0,
-                        x2 - x1,
-                        y2 - y1,
-                        font_size,
-                        wrap_text,
-                        text_align,
-                        "middle",
-                        line_spacing,
-                    ],
-                )
-            elif "signature_img" in udct:
-                # Simple image signature, stretches to fit the box
-                # image to render is contained in udct['signature_image']
-                annotation.add_image(udct["signature_img"], "Image")
-                annotation.set_signature_appearance(
-                    [
-                        "image",
-                        "Image",
-                        0,
-                        0,
-                        x2 - x1,
-                        y2 - y1,
-                        udct.get("signature_img_distort", True),
-                        udct.get("signature_img_centred", False),
-                    ]
-                )
-            elif "signature_appearance" in udct:
-                # Adobe-inspired signature with text and images
-                # Parameters are contained in udct['signature_appearance']
-                # If a field is included in the display list, that field
-                # will be contained in the annotation.
-                #
-                # Text and border are the colour specified by outline,
-                # and border is the the inset distance from the outer
-                # edge of the annotation.  The R G B values range between
-                # 0 and 1.
-                #
-                # Icon is an image to display above the background and
-                # border at the left-hand side of the anntoation.  If
-                # there is no text, it is centred.
-                #
-                # The text block is left-aligned to the right of the icon
-                # image.  If there is no image, the text is left-aliged
-                # with the left-hand border of the annotation
-                #
-                # display fields:
-                #   CN, DN, date, contact, reason, location
-                #
-                # Dict format:
-                #   appearance = dict(
-                #       background = Image with alpha / None,
-                #       icon = Image with alpha / None,
-                #       labels = bool,
-                #       display = list,
-                #       software = str,
-                #       outline = [R, G, B],
-                #       border = int,
-                #       )
-                sig = {}
-                for f in ("background", "icon", "labels", "border", "outline"):
-                    if f in udct["signature_appearance"]:
-                        sig[f] = udct["signature_appearance"][f]
-
-                toggles = udct["signature_appearance"].get("display", [])
-                for f in ("contact", "reason", "location", "contact", "signingdate"):
-                    if f in toggles:
-                        sig[f] = udct.get(f, "{} unknown".format(f))
-                if "date" in toggles:
-                    sig["date"] = udct["signingdate"]
-                if "CN" in toggles:
-                    from cryptography.x509 import ObjectIdentifier
-
-                    sig["CN"] = cert.subject.get_attributes_for_oid(
-                        ObjectIdentifier("2.5.4.3")
-                    )[0].value
-                if "DN" in toggles:
-                    sig["DN"] = cert.subject.rfc4514_string()
-                annotation.simple_signature(sig)
-            else:
-                # Manual signature annotation creation
-                #
-                # Make your own appearance with an arbitrary number of
-                # images and fonts
-                if "manual_images" in udct:
-                    for name, img in udct["manual_images"].items():
-                        annotation.add_image(img, name=name)
-                if "manual_fonts" in udct:
-                    for name, path in udct["manual_fonts"].items():
-                        annotation.add_ttf_font(path, name=name)
-                annotation.add_default_font()
-                annotation.set_signature_appearance(*udct["signature_manual"])
-
-            pdfa = annotation.as_pdf_object(identity(), page=page0ref)
-            objapn = self._extend(pdfa["/AP"]["/N"])
-            objapnref = self._addObject(objapn)
-
-            objap = po.DictionaryObject()
-            objap[po.NameObject("/N")] = objapnref
-            obj13.update(
-                {
-                    po.NameObject("/Rect"): po.ArrayObject(
-                        [
-                            po.FloatObject(x1),
-                            po.FloatObject(y1),
-                            po.FloatObject(x2),
-                            po.FloatObject(y2),
-                        ]
-                    ),
-                    po.NameObject("/AP"): objap,
-                    # po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
-                }
-            )
-
-            page0 = page0ref.getObject()
-            if new_13:
-                annots = po.ArrayObject([obj13ref])
-                if "/Annots" in page0:
-                    page0annots = page0["/Annots"]
-                    if isinstance(page0annots, po.IndirectObject):
-                        annots.insert(0, page0annots)
-                    elif isinstance(page0annots, po.ArrayObject):
-                        annots = page0annots
-                        annots.append(obj13ref)
-            else:
-                annots = page0["/Annots"]
-            page0.update({po.NameObject("/Annots"): annots})
-            self._objects[page0ref.idnum - 1] = page0
+            self.addAnnotation(cert, udct, box, page0ref, obj13, obj13ref, new_13)
 
         if udct.get("sigandcertify", False) and "/Perms" not in catalog:
             obj10 = po.DictionaryObject()
