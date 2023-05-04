@@ -24,7 +24,7 @@ def main():
         # "sigbutton": True,
         "sigfield": "Signature1",
         "auto_sigfield": True,
-        # "sigandcertify": True,
+        "sigandcertify": True,
         "signaturebox": (470, 840, 570, 640),
         "signature": "Dokument podpisany cyfrowo ąćęłńóśżź",
         # "signature_img": "signature_test.png",

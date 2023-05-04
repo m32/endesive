@@ -18,7 +18,7 @@ def main():
     date = date.strftime("D:%Y%m%d%H%M%S+00'00'")
     dct = {
         "aligned": 8192,
-        "sigflags": 3,
+        "sigflags": 1,
         "sigflagsft": 132,
         "sigpage": 0,
         # "sigbutton": True,
@@ -38,12 +38,12 @@ def main():
         p12 = pkcs12.load_key_and_certificates(
             fp.read(), b"1234", backends.default_backend()
         )
-    fname = "pdf-signed-cms-twice-1.pdf"
+    fname = "pdf-signed-cms-twice-2.pdf"
     if len(sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, "rb").read()
     datas = cms.sign(datau, dct, p12[0], p12[1], p12[2], "sha256")
-    fname = fname.replace("1", "2")
+    fname = fname.replace("2", "end")
     with open(fname, "wb") as fp:
         fp.write(datau)
         fp.write(datas)
