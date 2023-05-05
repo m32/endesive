@@ -27,6 +27,10 @@ force = "--force" in sys.argv
     cert2_key,
     cert2_pub,
     cert2_p12,
+    cert3,
+    cert3_key,
+    cert3_pub,
+    cert3_p12,
 ) = (
     "demo2_ca.crt.pem",
     "demo2_ca.key.pem",
@@ -38,6 +42,10 @@ force = "--force" in sys.argv
     "demo2_user2.key.pem",
     "demo2_user2.pub.pem",
     "demo2_user2.p12",
+    "demo2_user3.crt.pem",
+    "demo2_user3.key.pem",
+    "demo2_user3.pub.pem",
+    "demo2_user3.p12",
 )
 
 
@@ -345,6 +353,7 @@ class Main(object):
     def USERs(self):
         self.USER(1, cert1, cert1_key, cert1_pub, cert1_p12)
         self.USER(2, cert2, cert2_key, cert2_pub, cert2_p12)
+        self.USER(3, cert3, cert3_key, cert3_pub, cert3_p12)
 
 
 print("Generating certificates")
