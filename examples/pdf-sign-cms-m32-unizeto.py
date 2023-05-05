@@ -51,8 +51,8 @@ def main():
         "sha256",
         None,
         tspurl,
-        # ocspurl=ocspurl,
-        # ocspissuer=ocspissuer,
+        ocspurl=ocspurl,
+        ocspissuer=ocspissuer,
     )
     fname = fname.replace(".pdf", "-signed-cms-m32-unizeto.pdf")
     with open(fname, "wb") as fp:
