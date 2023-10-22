@@ -9,12 +9,13 @@ from endesive import xades, signer, hsm
 
 import os
 import sys
+import sysconfig
 
 os.environ["SOFTHSM2_CONF"] = "softhsm2.conf"
 if sys.platform == "win32":
     dllpath = r"W:\binw\SoftHSM2\lib\softhsm2-x64.dll"
 else:
-    dllpath = "/usr/lib/softhsm/libsofthsm2.so"
+    dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), "softhsm/libsofthsm2.so")
 
 import PyKCS11 as PK11
 
