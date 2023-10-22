@@ -12,7 +12,7 @@ tests_root = os.path.dirname(__file__)
 fixtures_dir = os.path.join(tests_root, 'fixtures')
 
 
-import test_cert
+from . import test_cert
 
 def fixture(fname):
     return os.path.join(fixtures_dir, fname)

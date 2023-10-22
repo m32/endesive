@@ -15,7 +15,7 @@ from endesive import email
 import hashlib
 from asn1crypto import cms, algos, core, pem
 
-import test_cert
+from . import test_cert
 
 tests_root = os.path.dirname(__file__)
 fixtures_dir = os.path.join(tests_root, 'fixtures')
