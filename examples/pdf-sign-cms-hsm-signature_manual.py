@@ -5,6 +5,7 @@ from endesive import pdf, hsm
 
 import os
 import sys
+import sysconfig
 import datetime
 
 os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
@@ -28,7 +29,7 @@ if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
 if sys.platform == 'win32':
     dllpath = r'W:\binw\SoftHSM2\lib\softhsm2-x64.dll'
 else:
-    dllpath = '/usr/lib/softhsm/libsofthsm2.so'
+    dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), "softhsm/libsofthsm2.so")
 
 import PyKCS11 as PK11
 
