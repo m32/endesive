@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import hsm, signer, verifier
 import PyKCS11 as PK11
 
-from . import test_cert
+import test_cert
 
 tests_root = os.path.dirname(__file__)
 fixtures_dir = os.path.join(tests_root, 'fixtures')
