@@ -15,7 +15,7 @@ from endesive import email
 import hashlib
 from asn1crypto import cms, algos, core, pem
 
-import test_cert
+from . import test_cert
 
 tests_root = os.path.dirname(__file__)
 fixtures_dir = os.path.join(tests_root, 'fixtures')
@@ -86,7 +86,9 @@ class EMAILTests(unittest.TestCase):
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
 
-        assert stderr == b'Verification successful\n'
+        # OpenSSL <= 1.1.1 outputs 'Verification successful'
+        # OpenSSL >= 3.0.0 outputs 'CMS Verification successful'
+        assert stderr == b'Verification successful\n' or stderr == b'CMS Verification successful\n'
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_attr_custom(self):
