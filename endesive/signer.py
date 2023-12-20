@@ -14,7 +14,7 @@ from asn1crypto import cms, algos, core, keys, pem, tsp, x509, ocsp, util
 from oscrypto import asymmetric
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, utils
+from cryptography.hazmat.primitives.asymmetric import padding, utils, ec
 
 
 def cert2asn(cert, cert_bytes=True):
@@ -354,9 +354,14 @@ def sign(
                 utils.Prehashed(hashes.SHA512()),
             )
         else:
-            signed_value_signature = key.sign(
-                tosign, padding.PKCS1v15(), getattr(hashes, hashalgo.upper())()
-            )
+            if isinstance(key, ec.EllipticCurvePrivateKey):
+                signed_value_signature = key.sign(
+                    tosign, ec.ECDSA(getattr(hashes, hashalgo.upper())())
+                )
+            else:
+                signed_value_signature = key.sign(
+                    tosign, padding.PKCS1v15(), getattr(hashes, hashalgo.upper())()
+                )
 
     if timestampurl is not None:
         datas["content"]["signer_infos"][0]["unsigned_attrs"] = timestamp(
