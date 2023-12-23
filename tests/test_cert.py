@@ -11,7 +11,7 @@ import uuid
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import rsa, ec
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 
@@ -35,6 +35,11 @@ def fixture(fname):
     cert2_key,
     cert2_pub,
     cert2_p12,
+    cert3_csr,
+    cert3_cert,
+    cert3_key,
+    cert3_pub,
+    cert3_p12,
 ) = (
     fixture("demo2_ca.crt.pem"),
     fixture("demo2_ca.key.pem"),
@@ -43,11 +48,16 @@ def fixture(fname):
     fixture("demo2_user1.key.pem"),
     fixture("demo2_user1.pub.pem"),
     fixture("demo2_user1.p12"),
-    fixture("demo2_user1.csr.pem"),
+    fixture("demo2_user2.csr.pem"),
     fixture("demo2_user2.crt.pem"),
     fixture("demo2_user2.key.pem"),
     fixture("demo2_user2.pub.pem"),
     fixture("demo2_user2.p12"),
+    fixture("demo2_user3.csr.pem"),
+    fixture("demo2_user3.crt.pem"),
+    fixture("demo2_user3.key.pem"),
+    fixture("demo2_user3.pub.pem"),
+    fixture("demo2_user3.p12"),
 )
 
 
@@ -55,9 +65,14 @@ class CA(object):
     def __init__(self):
         self.createCA()
 
-    def key_create(self) -> rsa.RSAPrivateKey:
+    def key_create_rsa(self) -> rsa.RSAPrivateKey:
         return rsa.generate_private_key(
             public_exponent=65537, key_size=2048, backend=default_backend()
+        )
+
+    def key_create_ec(self) -> ec.EllipticCurvePrivateKey:
+        return ec.generate_private_key(
+            ec.SECP256R1(), default_backend()
         )
 
     def key_save(self, fname: str, key: rsa.RSAPrivateKey, password: str) -> None:
@@ -319,7 +334,7 @@ class CA(object):
             cert = self.cert_load(ca_cert)
             key = self.key_load(ca_key, "1234")
         else:
-            key = self.key_create()
+            key = self.key_create_rsa()
             cert = self.ca_create(key)
 
             self.key_save(ca_key, key, "1234")
@@ -329,14 +344,17 @@ class CA(object):
         self.ca_pk = key
 
     def USER(self, no, cert, cert_key, cert_pub, cert_p12) -> None:
-        client_pk = self.key_create()
-        client_csr = self.csr_create("demo%d@trisoft.com.pl" % no, client_pk, commonname="USER %s"%no)
         if no == 1:
+            client_pk = self.key_create_rsa()
             fname = cert1_csr
-            self.csr_save(fname, client_csr)
-        else:
+        elif no == 2:
+            client_pk = self.key_create_rsa()
             fname = cert2_csr
-            self.csr_save(fname, client_csr)
+        else:
+            client_pk = self.key_create_ec()
+            fname = cert3_csr
+        client_csr = self.csr_create("demo%d@trisoft.com.pl" % no, client_pk, commonname="USER %s"%no)
+        self.csr_save(fname, client_csr)
         client_cert = self.csr_sign(fname)
         self.cert_save(cert, client_cert)
         self.key_save(cert_key, client_pk, "1234")
@@ -348,6 +366,7 @@ class CA(object):
     def createUSERS(self):
         self.USER(1, cert1_cert, cert1_key, cert1_pub, cert1_p12)
         self.USER(2, cert2_cert, cert2_key, cert2_pub, cert2_p12)
+        self.USER(3, cert3_cert, cert3_key, cert3_pub, cert3_p12)
 
 
 class CATests(unittest.TestCase):
