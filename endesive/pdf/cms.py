@@ -10,6 +10,7 @@ import codecs
 import struct
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
+from cryptography.hazmat.primitives.asymmetric import ec
 from endesive import signer
 from endesive.pdf.PyPDF2 import pdf, generic as po
 
@@ -660,7 +661,7 @@ class SignedData(pdf.PdfFileWriter):
             algomd = obj["/DigestMethod"][1:].lower()
 
         # produce smaller signatures, but must be signed twice
-        aligned = udct.get("aligned", 0)
+        aligned = udct.get("aligned", 4096 if isinstance(key, ec.EllipticCurvePrivateKey) else 0)
         if aligned:
             zeros = b"00" * aligned
         else:

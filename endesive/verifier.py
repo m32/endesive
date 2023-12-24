@@ -7,7 +7,7 @@ from asn1crypto import x509, core, pem, cms
 from certvalidator import CertificateValidator, ValidationContext
 
 from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, ec
 from cryptography import x509 as cx509
 from cryptography.hazmat.backends import default_backend
 
@@ -67,7 +67,17 @@ class VerifyData(object):
         sigalgo = signed_data["signer_infos"][0]["signature_algorithm"]
         # sigalgo.debug()
         sigalgoname = sigalgo.signature_algo
-        if sigalgoname == "rsassa_pss":
+        if isinstance(public_key, ec.EllipticCurvePublicKey):
+            try:
+                public_key.verify(
+                    signature,
+                    signedData,
+                    ec.ECDSA(getattr(hashes, algo.upper())()),
+                )
+                signatureok = True
+            except Exception as e:
+                signatureok = False
+        elif sigalgoname == "rsassa_pss":
             parameters = sigalgo["parameters"]
             # parameters.debug()
             # print(parameters.native)
