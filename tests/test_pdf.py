@@ -163,7 +163,7 @@ class PDFTests(unittest.TestCase):
 
     def test_pdf_signature_appearance_ec(self):
         dct = {
-            'aligned': 0,
+            'aligned': 4096,
             'sigflags': 3,
             'sigflagsft': 132,
             'sigpage': 0,
