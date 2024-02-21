@@ -660,6 +660,8 @@ class SignedData(pdf.PdfFileWriter):
         if obj is not None:
             algomd = obj["/DigestMethod"][1:].lower()
 
+        pss = udct.get("force_pss", False)
+
         # produce smaller signatures, but must be signed twice
         aligned = udct.get("aligned", 4096 if isinstance(key, ec.EllipticCurvePrivateKey) else 0)
         if aligned:
@@ -686,7 +688,7 @@ class SignedData(pdf.PdfFileWriter):
                     attrs,
                     md,
                     hsm,
-                    False,
+                    pss,
                     timestampurl,
                     timestampcredentials,
                     timestamp_req_options,
@@ -769,7 +771,7 @@ class SignedData(pdf.PdfFileWriter):
                 attrs,
                 md,
                 hsm,
-                False,
+                pss,
                 timestampurl,
                 timestampcredentials,
                 timestamp_req_options,
@@ -921,6 +923,9 @@ def sign(
             text: dict                  text attributes
                                             wraptext=True, fontsize:12, textalign:'left', linespacing:1.2
             application: string         optional application name in advanced signature properties dialog in Acrobat Reader
+            force_pss: bool default:False
+                                                True  - do a RSASSA-PSS signature
+                                                False - do a RSASSA-PKCS-v1.5 signature
         key: cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey - private key used to sign the document
         cert: cryptography.x509.Certificate - certificate associated with the key
         othercerts: list of cryptography.x509.Certificate to be saved with the signed document,

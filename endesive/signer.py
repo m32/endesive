@@ -151,8 +151,11 @@ def sign(
             {"algorithm": "rsassa_pkcs1v15"}
         )
     else:
-        if isinstance(key, keys.PrivateKeyInfo):
-            salt_length = key.byte_size - hashes.SHA512.digest_size - 2
+        signature_algorithm_hash_algorithm = "sha512"
+        if hsm is not None:
+            salt_length = getattr(hashes, hashalgo.upper()).digest_size
+            signature_algorithm_hash_algorithm = hashalgo
+        elif isinstance(key, keys.PrivateKeyInfo):
             salt_length = hashes.SHA512.digest_size
         else:
             salt_length = padding.calculate_max_pss_salt_length(key, hashes.SHA512)
@@ -162,13 +165,13 @@ def sign(
                 "parameters": algos.RSASSAPSSParams(
                     {
                         "hash_algorithm": algos.DigestAlgorithm(
-                            {"algorithm": "sha512"}
+                            {"algorithm": signature_algorithm_hash_algorithm}
                         ),
                         "mask_gen_algorithm": algos.MaskGenAlgorithm(
                             {
                                 "algorithm": algos.MaskGenAlgorithmId("mgf1"),
                                 "parameters": {
-                                    "algorithm": algos.DigestAlgorithmId("sha512"),
+                                    "algorithm": algos.DigestAlgorithmId(signature_algorithm_hash_algorithm),
                                 },
                             }
                         ),
