@@ -3,6 +3,7 @@ demo2_*
 softhsm2/
 softhsm2.conf
 pdf-signed-cms.pdf
+pdf-signed-cms-pss.pdf
 pdf-encrypted-signed.pdf
 pdf-signed-appearance.pdf
 pdf-signed-appearance-ec.pdf

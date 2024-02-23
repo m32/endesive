@@ -151,24 +151,25 @@ def sign(
             {"algorithm": "rsassa_pkcs1v15"}
         )
     else:
+        md = getattr(hashes, hashalgo.upper())
         if isinstance(key, keys.PrivateKeyInfo):
-            salt_length = key.byte_size - hashes.SHA512.digest_size - 2
-            salt_length = hashes.SHA512.digest_size
+            salt_length = key.byte_size - md.digest_size - 2
+            salt_length = md.digest_size
         else:
-            salt_length = padding.calculate_max_pss_salt_length(key, hashes.SHA512)
+            salt_length = padding.calculate_max_pss_salt_length(key, md)
         signer["signature_algorithm"] = algos.SignedDigestAlgorithm(
             {
                 "algorithm": "rsassa_pss",
                 "parameters": algos.RSASSAPSSParams(
                     {
                         "hash_algorithm": algos.DigestAlgorithm(
-                            {"algorithm": "sha512"}
+                            {"algorithm": hashalgo.lower()}
                         ),
                         "mask_gen_algorithm": algos.MaskGenAlgorithm(
                             {
                                 "algorithm": algos.MaskGenAlgorithmId("mgf1"),
                                 "parameters": {
-                                    "algorithm": algos.DigestAlgorithmId("sha512"),
+                                    "algorithm": algos.DigestAlgorithmId(hashalgo.lower()),
                                 },
                             }
                         ),
@@ -338,20 +339,21 @@ def sign(
     elif isinstance(key, keys.PrivateKeyInfo):
         key = asymmetric.load_private_key(key)
         if pss:
-            signed_value_signature = asymmetric.rsa_pss_sign(key, tosign, "sha512")
+            signed_value_signature = asymmetric.rsa_pss_sign(key, tosign, hashalgo.lower())
         else:
             signed_value_signature = asymmetric.rsa_pkcs1v15_sign(
                 key, tosign, hashalgo.lower()
             )
     else:
         if pss:
-            hasher = hashes.Hash(hashes.SHA512(), backend=backends.default_backend())
+            md = getattr(hashes, hashalgo.upper())
+            hasher = hashes.Hash(md(), backend=backends.default_backend())
             hasher.update(tosign)
             digest = hasher.finalize()
             signed_value_signature = key.sign(
                 digest,
-                padding.PSS(mgf=padding.MGF1(hashes.SHA512()), salt_length=salt_length),
-                utils.Prehashed(hashes.SHA512()),
+                padding.PSS(mgf=padding.MGF1(md()), salt_length=salt_length),
+                utils.Prehashed(md()),
             )
         else:
             if isinstance(key, ec.EllipticCurvePrivateKey):

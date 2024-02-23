@@ -677,6 +677,7 @@ class SignedData(pdf.PdfFileWriter):
                 )[0]["values"][0].dump()
             else:
                 attrs = udct.get("attrs", True)
+                pss = udct.get("pss", False)
                 contents = signer.sign(
                     None,
                     key,
@@ -686,7 +687,7 @@ class SignedData(pdf.PdfFileWriter):
                     attrs,
                     md,
                     hsm,
-                    False,
+                    pss,
                     timestampurl,
                     timestampcredentials,
                     timestamp_req_options,
@@ -760,6 +761,7 @@ class SignedData(pdf.PdfFileWriter):
             )[0]["values"][0].dump()
         else:
             attrs = udct.get("attrs", True)
+            pss = udct.get("pss", False)
             contents = signer.sign(
                 None,
                 key,
@@ -769,7 +771,7 @@ class SignedData(pdf.PdfFileWriter):
                 attrs,
                 md,
                 hsm,
-                False,
+                pss,
                 timestampurl,
                 timestampcredentials,
                 timestamp_req_options,
@@ -921,6 +923,7 @@ def sign(
             text: dict                  text attributes
                                             wraptext=True, fontsize:12, textalign:'left', linespacing:1.2
             application: string         optional application name in advanced signature properties dialog in Acrobat Reader
+            pss: boolen                 optional choosen signature scheme RSASSA-PSS (true) vs. PKCS1-v1_5 (false/default)
         key: cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey - private key used to sign the document
         cert: cryptography.x509.Certificate - certificate associated with the key
         othercerts: list of cryptography.x509.Certificate to be saved with the signed document,

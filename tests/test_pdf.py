@@ -50,6 +50,38 @@ class PDFTests(unittest.TestCase):
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
 
+    def test_pdf_pss(self):
+        dct = {
+            'sigflags': 3,
+            'contact': 'mak@trisoft.com.pl',
+            'location': 'Szczecin',
+            'signingdate': '20180731082642+02\'00\'',
+            'reason': 'Dokument podpisany cyfrowo',
+            'pss': True,
+        }
+        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        fname = fixture('pdf.pdf')
+        with open(fname, 'rb') as fh:
+            datau = fh.read()
+        datas = pdf.cms.sign(datau, dct,
+            p12[0], p12[1], p12[2],
+            'sha256'
+        )
+        fname = fname.replace('.pdf', '-signed-cms-pss.pdf')
+        with open(fname, 'wb') as fp:
+            fp.write(datau)
+            fp.write(datas)
+
+        with open(test_cert.ca_cert, 'rb') as fh:
+            trusted_cert_pems = (fh.read(),)
+        with open(fname, 'rb') as fh:
+            data = fh.read()
+        results = pdf.verify(
+            data, trusted_cert_pems, "/etc/ssl/certs"
+        )
+        for (hashok, signatureok, certok) in results:
+            assert signatureok and hashok and certok
+
     def test_pdf_aligned(self):
         dct = {
             'sigflags': 3,
