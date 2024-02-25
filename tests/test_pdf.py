@@ -284,7 +284,7 @@ class PDFTests(unittest.TestCase):
             p12[0], p12[1], p12[2],
             'sha256'
         )
-        fname = fname.replace('.pdf', '-signed-appearance.pdf')
+        fname = fname.replace('.pdf', '-signed-appearance-manual.pdf')
         with open(fname, 'wb') as fp:
             fp.write(datau)
             fp.write(datas)
