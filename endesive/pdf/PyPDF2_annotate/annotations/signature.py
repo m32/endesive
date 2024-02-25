@@ -55,6 +55,16 @@ class Signature(Annotation):
         self._ttf = {}
         self._type1 = {}
 
+    def add_additional_resources(self, resources):
+        # TODO: additional resources like: fonts, ... that need to be included in pdf
+        return
+        try:
+            resources.Font
+        except AttributeError:
+            resources.Font = IndirectPdfDict()
+        for font_name, font in self.ttf.items():
+            resources.Font[PdfName(font_name)] = font
+
     def simple_signature(self, signature):
         """
             simple_signature(self, signature)
@@ -84,7 +94,7 @@ class Signature(Annotation):
         height = bbox[3] - bbox[1]
         width = bbox[2] - bbox[0]
         t_left = 5
-        t_right = bbox[2]
+        t_top = 5
         border = signature.get('border', 0)
 
         if signature.get('labels', False):
@@ -161,7 +171,7 @@ class Signature(Annotation):
 
         if block:
             font = self.get_default_font()
-            cs.extend(processor.text_box('\n'.join(block), font, t_left, 5, (bbox[2]-5)-t_left, height-5))
+            cs.extend(processor.text_box('\n'.join(block), font, t_left, t_top, width-2*t_left, height-2*t_top))
 
         cs.add(Restore())
         self._n2_layer = cs
@@ -455,6 +465,8 @@ class SignatureAppearance():
         else:
             font = ttf_font
             fontname = font.font["name"]
+            if fontname == 'Helvetica':
+                fontname = PDF_ANNOTATOR_FONT
         font.set_size(font_size)
         font.set_text(text)
 
