@@ -152,7 +152,9 @@ def sign(
         )
     else:
         md = getattr(hashes, hashalgo.upper())
-        if isinstance(key, keys.PrivateKeyInfo):
+        if hsm is not None:
+            salt_length = md.digest_size
+        elif isinstance(key, keys.PrivateKeyInfo):
             salt_length = key.byte_size - md.digest_size - 2
             salt_length = md.digest_size
         else:
