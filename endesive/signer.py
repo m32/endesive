@@ -152,13 +152,14 @@ def sign(
         )
     else:
         md = getattr(hashes, hashalgo.upper())
-        if hsm is not None:
-            salt_length = md.digest_size
-        elif isinstance(key, keys.PrivateKeyInfo):
+        if isinstance(key, keys.PrivateKeyInfo):
             salt_length = key.byte_size - md.digest_size - 2
             salt_length = md.digest_size
         else:
-            salt_length = padding.calculate_max_pss_salt_length(key, md)
+            if key is None:
+                salt_length = md.digest_size
+            else:
+                salt_length = padding.calculate_max_pss_salt_length(key, md)
         signer["signature_algorithm"] = algos.SignedDigestAlgorithm(
             {
                 "algorithm": "rsassa_pss",
