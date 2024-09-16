@@ -185,13 +185,13 @@ class HSM(BaseHSM):
             "validity": {
                 "not_before": asn1x509.Time(
                     {
-                        "utc_time": datetime.datetime.now(tz=asn1util.timezone.utc)
+                        "general_time": datetime.datetime.now(tz=asn1util.timezone.utc)
                         - datetime.timedelta(days=1),
                     }
                 ),
                 "not_after": asn1x509.Time(
                     {
-                        "utc_time": until,
+                        "general_time": until,
                     }
                 ),
             },
