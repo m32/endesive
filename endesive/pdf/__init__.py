@@ -1,3 +1,3 @@
 from . import cms
 from . import pdf
-from .verify import verify
+from .verify import PDFVerifier, verify
