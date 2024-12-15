@@ -79,12 +79,14 @@ class PDFVerifier:
                 return False
             self.byte_ranges.append(br)
 
-        if len(self.byte_ranges) > 0:
-            byte_range = self.byte_ranges[-1] # last signature
-            if byte_range[0]!=0 or byte_range[2]+byte_range[3] != len(self.pdf_data):
-                self.wholefile = False
-                return False
-            self.wholefile = True
+        if len(self.byte_ranges) == 0:
+            return False
+
+        byte_range = self.byte_ranges[-1] # last signature
+        if byte_range[0]!=0 or byte_range[2]+byte_range[3] != len(self.pdf_data):
+            self.wholefile = False
+            return False
+        self.wholefile = True
 
         return True
 
