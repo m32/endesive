@@ -51,10 +51,15 @@ def main():
         ok, info = v.verify_ocsp_data(cert, othercerts, crldata)
         if ok:
             print(f'ocsp issued at: {info[0]}, next check at: {info[1]}')
+        else:
+            print(f'ocsp is invalid')
 
     if tspdata is not None:
         ok, info = v.verify_tsp_data(signed_data, tspdata, othercerts)
-        print(f'tsp issued at: {info}')
+        if ok:
+            print(f'tsp issued at: {info}')
+        else:
+            print(f'tsp is invalid')
         
 if __name__ == '__main__':
     main()
