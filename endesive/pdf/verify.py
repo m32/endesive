@@ -79,13 +79,14 @@ class PDFVerifier:
                 return False
             self.byte_ranges.append(br)
 
-        byte_range = self.byte_ranges[-1] # last signature
-        if byte_range[0]!=0 or byte_range[2]+byte_range[3] != len(self.pdf_data):
-            self.wholefile = False
-            return False
+        if len(self.byte_ranges) > 0:
+            byte_range = self.byte_ranges[-1] # last signature
+            if byte_range[0]!=0 or byte_range[2]+byte_range[3] != len(self.pdf_data):
+                self.wholefile = False
+                return False
+            self.wholefile = True
 
-        self.wholefile = True
-        return len(self.byte_ranges) > 0
+        return True
 
     def decompose_signed_data(self, datau: bytes, signed_data: cms.SignedData) -> tuple:
         signature = signed_data["signer_infos"][0]["signature"].native
