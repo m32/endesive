@@ -23,7 +23,7 @@ def main():
         "auto_sigfield": True,
         "password": "1234",
     }
-    fname = "pdf_forms/blank_form.pdf"
+    fname = "pdf.pdf"
     if len(sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, "rb").read()
