@@ -35,8 +35,8 @@ def main():
         )
 
     ocspurl = "https://ocsp.certum.pl/"
-    ocspissuer = open("CertumDigitalIdentificationCASHA2.crt", "rb").read()
-    ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+    ocspissuer = open("csmimersaca.cer", "rb").read()
+    ocspissuer = x509.load_der_x509_certificate(ocspissuer, backends.default_backend())
 
     fname = "pdf.pdf"
     if len(sys.argv) > 2:
