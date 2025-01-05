@@ -65,10 +65,12 @@ class DecryptedData(object):
                 default_backend()
             )
         elif algorithm == 'TRIPLEDES':
+            # XXX will be removed in version 48.0.0
+            from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
             # XXX howto decode parameters to CBC mode ?
             mode = 'cbc'
             cipher = Cipher(
-                algorithms.TripleDES(udata),
+                TripleDES(udata),
                 getattr(modes, mode.upper())(param),
                 default_backend()
             )
