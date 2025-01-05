@@ -36,13 +36,15 @@ def main():
         except:
             continue
         no = 0
-        for (hashok, signatureok, certok) in pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
-        ):
-            print("*" * 10, "signature no:", no)
-            print("signature ok?", signatureok)
-            print("hash ok?", hashok)
-            print("cert ok?", certok)
-
+        try:
+            for (hashok, signatureok, certok) in pdf.verify(
+                data, trusted_cert_pems, "/etc/ssl/certs"
+            ):
+                print("*" * 10, "signature no:", no)
+                print("signature ok?", signatureok)
+                print("hash ok?", hashok)
+                print("cert ok?", certok)
+        except Exception as exc:
+            print(exc)
 
 main()
