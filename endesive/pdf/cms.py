@@ -417,40 +417,44 @@ class SignedData(pdf.PdfFileWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
-        # if params['mode'] == 'timestamp':
-        # deal with extensions
-        if "/Extensions" not in catalog:
-            extensions = po.DictionaryObject()
-        else:
-            extensions = catalog["/Extensions"]
+        if params['mode'] == 'timestamp':
+            # deal with extensions
+            if "/Extensions" not in catalog:
+                extensions = po.DictionaryObject()
+            else:
+                extensions = catalog["/Extensions"]
 
-        if "/ESIC" not in extensions:
-            extensions.update(
-                {
-                    po.NameObject("/ESIC"): po.DictionaryObject(
+            if "/ESIC" not in extensions:
+                extensions.update(
+                    {
+                        po.NameObject("/ESIC"): po.DictionaryObject(
+                            {
+                                po.NameObject("/BaseVersion"): po.NameObject("/1.7"),
+                                po.NameObject("/ExtensionLevel"): po.NumberObject(1),
+                            }
+                        )
+                    }
+                )
+                catalog.update({po.NameObject("/Extensions"): extensions})
+            else:
+                esic = extensions["/ESIC"]
+                major, minor = esic["/BaseVersion"].lstrip("/").split(".")
+                if int(major) < 1 or int(minor) < 7:
+                    esic.update(
                         {
                             po.NameObject("/BaseVersion"): po.NameObject("/1.7"),
                             po.NameObject("/ExtensionLevel"): po.NumberObject(1),
                         }
                     )
-                }
-            )
-            catalog.update({po.NameObject("/Extensions"): extensions})
+
+            SubFilter=po.NameObject("/ETSI.CAdES.detached")
         else:
-            esic = extensions["/ESIC"]
-            major, minor = esic["/BaseVersion"].lstrip("/").split(".")
-            if int(major) < 1 or int(minor) < 7:
-                esic.update(
-                    {
-                        po.NameObject("/BaseVersion"): po.NameObject("/1.7"),
-                        po.NameObject("/ExtensionLevel"): po.NumberObject(1),
-                    }
-                )
+            SubFilter=po.NameObject("/adbe.pkcs7.detached")
 
         # obj12 is the digital signature
         obj12, obj12ref = self._make_signature(
             Type=po.NameObject("/Sig"),
-            SubFilter=po.NameObject("/ETSI.CAdES.detached"),
+            SubFilter=SubFilter,
             Contents=UnencryptedBytes(zeros),
         )
 
@@ -469,6 +473,7 @@ class SignedData(pdf.PdfFileWriter):
                 ),
             }
         )
+
         if params["mode"] == "timestamp":
             # obj12 is a timestamp this time
             obj12.update(
@@ -478,18 +483,20 @@ class SignedData(pdf.PdfFileWriter):
                     po.NameObject("/V"): po.NumberObject(0),
                 }
             )
-        else:
-            obj12.update(
-                {
-                    po.NameObject("/Name"): po.createStringObject(udct["contact"]),
-                    po.NameObject("/Location"): po.createStringObject(udct["location"]),
-                    po.NameObject("/Reason"): po.createStringObject(udct["reason"]),
-                }
-            )
-            if params.get("use_signingdate"):
-                obj12.update(
-                    {po.NameObject("/M"): po.createStringObject(udct["signingdate"])}
-                )
+        d12 = {}
+        for k, v in (
+            ('/Name', 'name'),
+            ('/Contact', 'contact'),
+            ('/Location', 'location'),
+            ('/Reason', 'reason'),
+        ):
+            v = udct.get(v, None)
+            if v is not None:
+                d12[po.NameObject(k)] = po.createStringObject(v)
+        if 1 or params.get("use_signingdate"):
+            d12[po.NameObject("/M")] = po.createStringObject(udct["signingdate"])
+        if d12:
+            obj12.update(d12)
 
         # obj13 is a combined AcroForm Sig field with Widget annotation
         new_13 = True
@@ -532,6 +539,24 @@ class SignedData(pdf.PdfFileWriter):
         # add an annotation if there is a field to fill
         if box is not None:
             self.addAnnotation(cert, udct, box, page0ref, obj13, obj13ref, new_13)
+        else:
+            # invisible signature
+            objap = po.DictionaryObject()
+            objapref = self._addObject(objap)
+            objform = po.DictionaryObject({
+                po.NameObject("/Length"): po.NumberObject(0),
+                po.NameObject("/Type"): po.NameObject("/XObject"),
+                po.NameObject("/Subtype"): po.NameObject("/Form"),
+                po.NameObject("/Bbox"): po.ArrayObject([
+                    po.FloatObject(0.0),
+                    po.FloatObject(0.0),
+                    po.FloatObject(0.0),
+                    po.FloatObject(0.0),
+                ]),
+            })
+            objformref = self._addObject(objform)
+            objap.update({po.NameObject("/N"): objformref})
+            obj13.update({po.NameObject("/AP"): objapref})
 
         if udct.get("sigandcertify", False) and "/Perms" not in catalog:
             obj10 = po.DictionaryObject()

@@ -20,6 +20,7 @@ def main():
         "sigflags": 3,
         "sigpage": 0,
         "sigbutton": False,
+        "name": "Grzegorz Makarewicz",
         "contact": "mak@trisoft.com.pl",
         "location": "Szczecin",
         "signingdate": date.encode(),
@@ -37,6 +38,8 @@ def main():
     ocspurl = "https://ocsp.certum.pl/"
     ocspissuer = open("csmimersaca.cer", "rb").read()
     ocspissuer = x509.load_der_x509_certificate(ocspissuer, backends.default_backend())
+
+    #tspurl=ocspurl=ocspissuer=None
 
     fname = "pdf.pdf"
     if len(sys.argv) > 2:
