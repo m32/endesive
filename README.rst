@@ -109,7 +109,7 @@ Tools
 Online pdf validator `pdfvalidator`_ or `verapdf`_.
 Offline Apache `pdfbox`_ java based validator.
 
-Validate electronic signatures: `ec_europa`_.
+Validate electronic signatures: `ec_europa`_ or `_pkitools_net`.
 
 .. _cryptography: https://github.com/pyca/cryptography
 .. _asn1crypto: https://github.com/wbond/asn1crypto
@@ -122,3 +122,4 @@ Validate electronic signatures: `ec_europa`_.
 .. _verapdf: https://demo.verapdf.org/
 .. _pdfbox: https://pdfbox.apache.org/
 .. _ec_europa: https://ec.europa.eu/cefdigital/DSS/webapp-demo/validation
+.. _pkitools_net: https://pkitools.net/pages/validator/pdf.html
