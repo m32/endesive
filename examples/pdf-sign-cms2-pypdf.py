@@ -36,7 +36,7 @@ class Signer(PdfWriter):
         super().__init__(fileobj=fileobj, *args, **kwargs, incremental=True)
 
     def makepdf(self, algomd, zeros):
-        page0ref = self.get_page(0)
+        page0ref = self.get_page(0).indirect_reference
 
         obj13 = po.DictionaryObject()
         obj13ref = self._add_object(obj13)
@@ -110,7 +110,7 @@ class Signer(PdfWriter):
             formref = self._add_object(form)
             self._root_object[po.NameObject("/AcroForm")] = formref
 
-        if "/Perms" not in self._root_object:
+        if 0 and "/Perms" not in self._root_object:
             obj10 = po.DictionaryObject()
             obj10ref = self._add_object(obj10)
             obj11 = po.DictionaryObject()
@@ -139,9 +139,14 @@ class Signer(PdfWriter):
     def sign(self, md, algomd):
         tspurl = "http://public-qlts.certum.pl/qts-17"
         tspurl = None
-        with open("ca/demo2_user1.p12", "rb") as fp:
+        pk12fname = "ca/demo2_user1.p12"
+        pk12pass = b"1234"
+        pk12fname = "/home/mak/Dokumenty/m32/ssl/actalis/actalis.p12"
+        pk12fname = "/home/mak/Dokumenty/m32/ssl/unizeto/unizeto.p12"
+        pk12pass = sys.argv[1].encode()
+        with open(pk12fname, "rb") as fp:
             p12 = pkcs12.load_key_and_certificates(
-                fp.read(), b"1234", backends.default_backend()
+                fp.read(), pk12pass, backends.default_backend()
             )
         contents = signer.sign(
             None, p12[0], p12[1], p12[2], algomd, True, md, None, False, tspurl
@@ -200,32 +205,25 @@ def main():
 
     print('*'*20, '1')
     writer = Signer(fname)
-    text_annotation = Text(
-        text="Hello World\nThis is incremental pdf with annotation!",
-        rect=(150, 550, 500, 650),
-        open=True,
-    )
-    #page = writer.get_page(0)
-    page = writer.pages[0]
-    writer.add_annotation(page, annotation=text_annotation)
     datas = writer.main()
     fname = "pdf-signed-cms2-pypdf-1.pdf"
     with open(fname, "wb") as fp:
         fp.write(datas)
 
-    print('*'*20, '2')
-    writer = Signer(fname)
-    text_annotation = Text(
-        text="Hello World\nThis is incremental pdf with annotation!",
-        rect=(150, 550, 500, 650),
-        open=True,
-    )
-    #page = writer.get_page(0)
-    page = writer.pages[1]
-    writer.add_annotation(page, annotation=text_annotation)
-    datas = writer.main()
-    fname = "pdf-signed-cms2-pypdf-2.pdf"
-    with open(fname, "wb") as fp:
-        fp.write(datas)
+    if 0:
+        print('*'*20, '2')
+        writer = Signer(fname)
+        text_annotation = Text(
+            text="Hello World\nThis is incremental pdf with annotation!",
+            rect=(150, 550, 500, 650),
+            open=True,
+        )
+        #page = writer.get_page(0)
+        page = writer.pages[1]
+        writer.add_annotation(page, annotation=text_annotation)
+        datas = writer.main()
+        fname = "pdf-signed-cms2-pypdf-2.pdf"
+        with open(fname, "wb") as fp:
+            fp.write(datas)
 
 main()
