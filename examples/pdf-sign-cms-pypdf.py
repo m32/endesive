@@ -466,7 +466,7 @@ class Main(pdf.PdfFileWriter):
             contents += b"0" * nb
         datas = datas.replace(zeros, contents, 1)
 
-        fname = fname.replace(".pdf", "-signed-pypdf.pdf")
+        fname = fname.replace(".pdf", "-signed-cms-pypdf.pdf")
         with open(fname, "wb") as fp:
             fp.write(datau)
             fp.write(datas)
