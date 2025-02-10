@@ -28,7 +28,7 @@ def main():
             print(f"file {fname} is modified")
         else:
             print(f"file {fname} is unsigned")
-        if not v.whole_file:
+        if not v.wholefile:
             print("the signature does not cover the entire pdf file")
         return
     
