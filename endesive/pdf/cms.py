@@ -659,6 +659,7 @@ class SignedData(pdf.PdfFileWriter):
         mode="sign",
         ocspurl=None,
         ocspissuer=None,
+        use_signingdate=True,
     ):
         startdata = len(datau)
 
@@ -721,7 +722,7 @@ class SignedData(pdf.PdfFileWriter):
                 )
             zeros = contents.hex().encode("utf-8")
 
-        params = {"mode": mode}
+        params = {"mode": mode, "use_signingdate": use_signingdate}
         if not timestampurl:
             params["use_signingdate"] = True
 
