@@ -35,6 +35,73 @@ class Signer(PdfWriter):
     def __init__(self, fileobj, *args, **kwargs):
         super().__init__(fileobj=fileobj, *args, **kwargs, incremental=True)
 
+    # method written from scratch because binary/compressed xref
+    # created by pypdf makes it impossible to check the signature
+    # in acrobat reader
+    def _write_increment(self, stream):
+        from pypdf.constants import TrailerKeys as TK
+        object_positions = []
+        # write new and updated objects
+        original_hash_count = len(self._original_hash)
+        for i, obj in enumerate(self._objects):
+            if obj is not None and (
+                i >= original_hash_count
+                or obj.hash_bin() != self._original_hash[i]
+            ):
+                idnum = i + 1
+                assert isinstance(obj, po.PdfObject)  # mypy
+                object_positions.append(stream.tell())
+                stream.write(f"{idnum} 0 obj\n".encode())
+                """ encryption is not operational
+                if self._encryption and obj != self._encrypt_entry:
+                    obj = self._encryption.encrypt_object(obj, idnum, 0)
+                """
+                obj.write_to_stream(stream)
+                stream.write(b"\nendobj\n")
+            else:
+                object_positions.append(0)
+
+        # save xref location for use in trailer
+        xref_location = stream.tell()
+
+        # write new xref table
+        stream.write(b"xref\n")
+        # first object is allways the same: 0 0xffff f
+        stream.write(f"0 1\n".encode())
+        stream.write(f"{0:0>10} {65535:0>5} f \n".encode())
+        i = 0
+        while i < len(object_positions):
+            while i < len(object_positions) and not object_positions[i]:
+                i += 1
+            if i == len(object_positions):
+                break
+            active = i # number of continious elements
+            while active < len(object_positions) and object_positions[active]:
+                active += 1
+            stream.write(f"{i+1} {active-i}\n".encode())
+            while i < len(object_positions) and object_positions[i]:
+                stream.write(f"{object_positions[i]:0>10} {0:0>5} n \n".encode())
+                i += 1
+
+        # create new ID
+        self.generate_file_identifiers()
+        # prepare new trailer
+        trailer = po.DictionaryObject(
+            {
+                po.NameObject(TK.SIZE): po.NumberObject(len(self._objects) + 1),
+                po.NameObject(TK.ROOT): self.root_object.indirect_reference,
+                po.NameObject(TK.PREV): po.NumberObject(self._reader._startxref),
+                po.NameObject(TK.ID): self._ID,
+            }
+        )
+        if self._info is not None:
+            trailer[po.NameObject(TK.INFO)] = self._info.indirect_reference
+        if self._encrypt_entry:
+            trailer[po.NameObject(TK.ENCRYPT)] = self._encrypt_entry.indirect_reference
+        stream.write(b"trailer\n")
+        trailer.write_to_stream(stream)
+        stream.write(f"\nstartxref\n{xref_location}\n%%EOF\n".encode())  # eof
+
     def makepdf(self, algomd, zeros):
         page0ref = self.get_page(0).indirect_reference
 
