@@ -171,7 +171,8 @@ class Signature(Annotation):
 
         if block:
             font = self.get_default_font()
-            cs.extend(processor.text_box('\n'.join(block), font, t_left, t_top, width-2*t_left, height-2*t_top))
+            cs.extend(processor.text_box('\n'.join(block), font, t_left, 5, (bbox[2]-5)-t_left, height-5))
+            #cs.extend(processor.text_box('\n'.join(block), font, t_left, t_top, width-2*t_left, height-2*t_top))
 
         cs.add(Restore())
         self._n2_layer = cs
