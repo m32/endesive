@@ -40,9 +40,11 @@ class EMAILTests(unittest.TestCase):
         with open(fname, 'wb') as fh:
             fh.write(datas)
 
-        with open(test_cert.cert1_cert, 'rb') as fp:
+        with io.open(fname, 'rt', encoding='utf-8') as fp:
+            datas = fp.read()
+        with open(test_cert.ca_cert, 'rb') as fp:
             cert = fp.read()
-        (hashok, signatureok, certok) = email.verify(datas.decode('utf8'), [cert,])
+        (hashok, signatureok, certok) = email.verify(datas, [cert,])
         assert hashok and signatureok and certok
 
         cmd = [
@@ -71,9 +73,11 @@ class EMAILTests(unittest.TestCase):
         with open(fname, 'wb') as fh:
             fh.write(datas)
 
-        with open(test_cert.cert1_cert, 'rb') as fp:
+        with io.open(fname, 'rt', encoding='utf-8') as fp:
+            datas = fp.read()
+        with open(test_cert.ca_cert, 'rb') as fp:
             cert = fp.read()
-        (hashok, signatureok, certok) = email.verify(datas.decode('utf8'), [cert,])
+        (hashok, signatureok, certok) = email.verify(datas, [cert,])
         assert hashok and signatureok and certok
 
         cmd = [
