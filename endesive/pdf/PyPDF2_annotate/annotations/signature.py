@@ -97,24 +97,27 @@ class Signature(Annotation):
         t_top = 5
         border = signature.get('border', 0)
 
-        if signature.get('labels', False):
-            labels = dict(
-                DN = 'DN: ',
-                CN = 'Digitally signed by ',
-                date = 'Date: ',
-                contact = 'Contact: ',
-                reason = 'Reason: ',
-                location = 'Location: ',
-                software = 'Signing software: ',
-                )
-        else:
-            labels = {}
-
         block = []
-        for i in ('CN', 'DN', 'date', 'reason', 'contact', 'location', 'software'):
-            if i not in signature:
-                continue
-            block.append('{}{}'.format(labels.get(i, ''), signature[i]))
+        if signature.get('text', False):
+            block.append(signature['text'])
+        else:
+            if signature.get('labels', False):
+                labels = dict(
+                    DN = 'DN: ',
+                    CN = 'Digitally signed by ',
+                    date = 'Date: ',
+                    contact = 'Contact: ',
+                    reason = 'Reason: ',
+                    location = 'Location: ',
+                    software = 'Signing software: ',
+                )
+            else:
+                labels = {}
+
+            for i in ('CN', 'DN', 'date', 'reason', 'contact', 'location', 'software'):
+                if i not in signature:
+                    continue
+                block.append('{}{}'.format(labels.get(i, ''), signature[i]))
 
         cs = ContentStream([Save()])
         if 'background' in signature:
