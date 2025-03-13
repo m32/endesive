@@ -40,6 +40,6 @@ setup(
     package_dir={"": "."},
     package_data={"": ["*.ttf"]},
     platforms=["all"],
-    install_requires=['certvalidator', 'cryptography', 'asn1crypto', 'oscrypto', 'lxml', 'pykcs11', 'Pillow', 'pytz', 'requests','paramiko', 'attrs'],
+    install_requires=['certvalidator', 'cryptography', 'asn1crypto', 'lxml', 'pykcs11', 'Pillow', 'pytz', 'requests','paramiko', 'attrs'],
     test_suite="tests",
 )

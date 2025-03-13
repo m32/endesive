@@ -11,7 +11,6 @@ from datetime import datetime
 import requests
 import pytz
 from asn1crypto import cms, algos, core, keys, pem, tsp, x509, ocsp, util
-from oscrypto import asymmetric
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, utils, ec
@@ -339,14 +338,6 @@ def sign(
         tosign = datau
     if hsm is not None:
         signed_value_signature = hsm.sign(keyid, tosign, hashalgo)
-    elif isinstance(key, keys.PrivateKeyInfo):
-        key = asymmetric.load_private_key(key)
-        if pss:
-            signed_value_signature = asymmetric.rsa_pss_sign(key, tosign, hashalgo.lower())
-        else:
-            signed_value_signature = asymmetric.rsa_pkcs1v15_sign(
-                key, tosign, hashalgo.lower()
-            )
     else:
         if pss:
             md = getattr(hashes, hashalgo.upper())
