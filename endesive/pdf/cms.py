@@ -343,19 +343,21 @@ class SignedData(pdf.PdfFileWriter):
                     sig[f] = udct["signature_appearance"][f]
 
             toggles = udct["signature_appearance"].get("display", [])
-            for f in ("contact", "reason", "location", "contact", "signingdate"):
-                if f in toggles:
-                    sig[f] = udct.get(f, "{} unknown".format(f))
-            if "date" in toggles:
-                sig["date"] = udct["signingdate"]
-            if "CN" in toggles:
-                from cryptography.x509 import ObjectIdentifier
-
-                sig["CN"] = cert.subject.get_attributes_for_oid(
-                    ObjectIdentifier("2.5.4.3")
-                )[0].value
-            if "DN" in toggles:
-                sig["DN"] = cert.subject.rfc4514_string()
+            if(isinstance(toggles, str)):
+                sig["text"] = toggles
+            else:
+                for f in ("contact", "reason", "location", "contact", "signingdate"):
+                    if f in toggles:
+                        sig[f] = udct.get(f, "{} unknown".format(f))
+                if "date" in toggles:
+                    sig["date"] = udct["signingdate"]
+                if "CN" in toggles:
+                    from cryptography.x509 import ObjectIdentifier
+                    sig["CN"] = cert.subject.get_attributes_for_oid(
+                        ObjectIdentifier("2.5.4.3")
+                    )[0].value
+                if "DN" in toggles:
+                    sig["DN"] = cert.subject.rfc4514_string()
             annotation.simple_signature(sig)
         else:
             # Manual signature annotation creation
