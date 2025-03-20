@@ -1,5 +1,6 @@
 cryptography
 asn1crypto
+oscrypto
 certvalidator
 lxml
 pykcs11
