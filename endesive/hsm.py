@@ -166,34 +166,25 @@ class HSM(BaseHSM):
 
     def certsign(self, sn, pubKey, subject, until, caprivKey, ca):
         args = {
-            "version": "v1",
+            "version": "v3",
             "serial_number": sn,
-            "issuer": asn1x509.Name.build(
-                {
-                    "common_name": "hsm CA",
-                }
-            ),
-            "subject": asn1x509.Name.build(
-                {
-                    "common_name": subject,
-                }
-            ),
+            "issuer": asn1x509.Name.build({
+                "common_name": "hsm Root CA",
+            }),
+            "subject": asn1x509.Name.build({
+                "common_name": subject,
+            }),
             "signature": {
                 "algorithm": "sha256_rsa",
                 "parameters": None,
             },
             "validity": {
-                "not_before": asn1x509.Time(
-                    {
-                        "general_time": datetime.datetime.now(tz=asn1util.timezone.utc)
-                        - datetime.timedelta(days=1),
-                    }
-                ),
-                "not_after": asn1x509.Time(
-                    {
-                        "general_time": until,
-                    }
-                ),
+                "not_before": asn1x509.Time({
+                    "utc_time": asn1x509.UTCTime((datetime.datetime.utcnow() - datetime.timedelta(days=1)).strftime('%y%m%d%H%M%SZ')),
+                }),
+                "not_after": asn1x509.Time({
+                    "utc_time": asn1x509.UTCTime(until.strftime('%y%m%d%H%M%SZ')),
+                }),
             },
             "subject_public_key_info": {
                 "algorithm": {
@@ -203,53 +194,128 @@ class HSM(BaseHSM):
                 "public_key": pubKey,
             },
         }
-        if ca:
-            args.update(
+        if ca is None:
+            args["issuer"] = asn1x509.Name.build({
+                "common_name": subject,
+            })
+            args.update({
+                "extensions": [
+                    {
+                        "extn_id": "basic_constraints",
+                        "critical": True,
+                        "extn_value": {"ca": True, "path_len_constraint": None},
+                    },
+                    {
+                        "extn_id": "key_usage",
+                        "critical": True,
+                        "extn_value": set(
+                            [
+                                "crl_sign",
+                                "digital_signature",
+                                "key_cert_sign",
+                            ]
+                        ),
+                    },
+                ]
+            })
+        elif ca:
+            extensions = [
                 {
-                    "extensions": [
-                        {
-                            "extn_id": "basic_constraints",
-                            "critical": True,
-                            "extn_value": {"ca": True, "path_len_constraint": None},
-                        },
-                        {
-                            "extn_id": "key_usage",
-                            "critical": True,
-                            "extn_value": set(
-                                [
-                                    "crl_sign",
-                                    "digital_signature",
-                                    "key_cert_sign",
-                                ]
-                            ),
-                        },
-                    ]
-                }
-            )
+                #    'extn_id': 'crl_distribution_points',
+                #    'critical': False,
+                #    'extn_value': [
+                #        asn1util.OrderedDict([
+                #            ('distribution_point', ['http://ca.trisoft.com.pl/crl']),
+                #            ('reasons', None),
+                #            ('crl_issuer', None),
+                #        ]),
+                #    ]
+                #}, {
+                #    'extn_id':'authority_information_access',
+                #    'critical': False,
+                #    'extn_value': [
+                #        {
+                #            'access_method': 'ca_issuers',
+                #            'access_location': asn1x509.URI('http://ca.trisoft.com.pl/cacert'),
+                #        }, {
+                #            'access_method': 'ocsp',
+                #            'access_location': asn1x509.URI('http://ca.trisoft.com.pl/ocsp'),
+                #        }
+                #    ]
+                #}, {
+                    'extn_id': 'authority_key_identifier',
+                    'critical': False,
+                    'extn_value': {
+                        'key_identifier': None,
+                        'authority_cert_issuer': None,
+                        'authority_cert_serial_number': 1,
+                    }
+                #}, {
+                #    'extn_id': 'key_identifier',
+                #    'critical': False,
+                #    'extn_value': b'',
+                }, {
+                    "extn_id": "basic_constraints",
+                    "critical": True,
+                    "extn_value": {"ca": True, "path_len_constraint": 0},
+                }, {
+                    "extn_id": "key_usage",
+                    "critical": True,
+                    "extn_value": set([
+                        "crl_sign",
+                        "digital_signature",
+                        "key_cert_sign",
+                    ]),
+                },
+            ]
+            args.update({
+                "extensions": extensions
+            })
         else:
-            args.update(
+            extensions = [
+                #asn1util.OrderedDict([
+                #    ('extn_id', 'subject_alt_name'),
+                #    ('critical', False),
+                #    ('extn_value', ['demo1@trisoft.com.pl'])
+                #]),
                 {
-                    "extensions": [
-                        {
-                            "extn_id": "basic_constraints",
-                            "critical": True,
-                            "extn_value": {"ca": False},
-                        },
-                        {
-                            "extn_id": "key_usage",
-                            "critical": True,
-                            "extn_value": set(
-                                [
-                                    "digital_signature",
-                                    "key_agreement",
-                                    "key_encipherment",
-                                    "non_repudiation",
-                                ]
-                            ),
-                        },
-                    ]
-                }
-            )
+                #    'extn_id': 'subject_alt_name',
+                #    'critical': False,
+                #    'extn_value': {'rfc822_name' : 'demo1@trisoft.com.pl'},
+                #}, {
+                    'extn_id': 'authority_key_identifier',
+                    'critical': False,
+                    'extn_value': {
+                        'key_identifier': None,
+                        'authority_cert_issuer': None,
+                        'authority_cert_serial_number': 2,
+                    }
+                #}, {
+                #    'extn_id': 'key_identifier',
+                #    'critical': False,
+                #    'extn_value': b'',
+                }, {
+                    "extn_id": "basic_constraints",
+                    "critical": True,
+                    "extn_value": {"ca": False},
+                }, {
+                    "extn_id": "key_usage",
+                    "critical": True,
+                    "extn_value": set([
+                            "digital_signature",
+                            "key_agreement",
+                            "key_encipherment",
+                            "non_repudiation",
+                    ]),
+                },
+            ]
+            args.update({
+                "issuer": asn1x509.Name.build({
+                    "common_name": "hsm Intermediate CA",
+                }),
+                "extensions": extensions,
+            })
+
         tbs = asn1x509.TbsCertificate(args)
 
         # Sign the TBS Certificate
@@ -292,10 +358,10 @@ class HSM(BaseHSM):
             }
         )
         # pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.now(tz=asn1util.timezone.utc) + datetime.timedelta(
-            days=365 * 10
+        until = datetime.datetime.utcnow() + datetime.timedelta(
+            days=365 * 40
         )
-        der_bytes = self.certsign(1, pubKey, subject, until, privKey, True)
+        der_bytes = self.certsign(1, pubKey, subject, until, privKey, None)
         self.cert_save(der_bytes, label, subject, keyID)
 
     def ca_sign(self, keyID, label, sn, subject, days, cakeyID):
@@ -319,10 +385,10 @@ class HSM(BaseHSM):
             }
         )
         # pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.now(tz=asn1util.timezone.utc) + datetime.timedelta(
+        until = datetime.datetime.utcnow() + datetime.timedelta(
             days=days
         )
-        der_bytes = self.certsign(sn, pubKey, subject, until, caprivKey, False)
+        der_bytes = self.certsign(sn, pubKey, subject, until, caprivKey, keyID == b'\x02')
         self.cert_save(der_bytes, label, subject, keyID)
 
     def cert_export(self, fname, keyID):
