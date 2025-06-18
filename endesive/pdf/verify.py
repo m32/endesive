@@ -254,7 +254,7 @@ class PDFVerifier:
         return False, None
 
 
-def verify(pdfdata, certs=None, systemCertsPath=None):
+def verify(pdfdata, certs=None):
     results = []
     n = pdfdata.find(b"/ByteRange")
     while n != -1:
@@ -269,7 +269,7 @@ def verify(pdfdata, certs=None, systemCertsPath=None):
         data2 = pdfdata[br[2] : br[2] + br[3]]
         signedData = data1 + data2
 
-        result = verifier.verify(bcontents, signedData, certs, systemCertsPath)
+        result = verifier.verify(bcontents, signedData, certs)
         results.append(result)
         n = pdfdata.find(b"/ByteRange", br[2] + br[3])
     return results

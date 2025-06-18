@@ -2,36 +2,33 @@
 import os
 import glob
 import hashlib
+import datetime
 
 from asn1crypto import x509, core, pem, cms
-from certvalidator import CertificateValidator, ValidationContext
+
+import certifi
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding, ec
+from cryptography.x509.verification import PolicyBuilder, Store
 from cryptography import x509 as cx509
 from cryptography.hazmat.backends import default_backend
 
 
 class VerifyData(object):
-    def __init__(self, trustedCerts=None, systemCertsPath=None):
-        certs = None
+    def __init__(self, trustedCerts=None):
+        with open(certifi.where(), "rb") as pems:
+            certs = cx509.load_pem_x509_certificates(pems.read())
         if trustedCerts is not None:
-            certs = []
             for cert_bytes in trustedCerts:
-                # cert_bytes = cert_bytes.encode("utf8")
-                if pem.detect(cert_bytes):
-                    _, _, cert_bytes = pem.unarmor(cert_bytes)
-                certs.append(x509.Certificate.load(cert_bytes))
-        if systemCertsPath is not None:
-            if not certs:
-                certs = []
-            for fname in glob.glob(os.path.join(systemCertsPath, "*.pem")):
-                with open(fname, "rb") as fp:
-                    cert_bytes = fp.read()
-                if pem.detect(cert_bytes):
-                    _, _, cert_bytes = pem.unarmor(cert_bytes)
-                certs.append(x509.Certificate.load(cert_bytes))
-        self.context = ValidationContext(certs)
+                certs.append(cx509.load_pem_x509_certificate(cert_bytes))
+        #self.trustedCerts = trustedCerts
+        store = Store(certs)
+        self.verifier = PolicyBuilder(
+            ).store(store
+            ).time(datetime.datetime.utcnow()
+            ).max_chain_depth(4
+            ).build_client_verifier()
 
     def verify(self, datas, datau):
         signed_data = cms.ContentInfo.load(datas)["content"]
@@ -57,12 +54,17 @@ class VerifyData(object):
         serial = signed_data["signer_infos"][0]["sid"].native["serial_number"]
         for pdfcert in signed_data["certificates"]:
             if serial != pdfcert.native["tbs_certificate"]["serial_number"]:
-                othercerts.append(pdfcert.chosen)
+                othercerts.append(
+                    cx509.load_pem_x509_certificate(
+                        pem.armor("CERTIFICATE", pdfcert.chosen.dump())
+                    )
+                )
             else:
-                cert = pdfcert.chosen
-        public_key = cx509.load_pem_x509_certificate(
-            pem.armor("CERTIFICATE", cert.dump()), default_backend()
-        ).public_key()
+                assert cert is None
+                cert = cx509.load_pem_x509_certificate(
+                    pem.armor("CERTIFICATE", pdfcert.chosen.dump())
+                )
+        public_key = cert.public_key()
 
         sigalgo = signed_data["signer_infos"][0]["signature_algorithm"]
         # sigalgo.debug()
@@ -109,20 +111,18 @@ class VerifyData(object):
                 signatureok = False
         else:
             raise ValueError("Unknown signature algorithm")
-        validator = CertificateValidator(
-            cert, othercerts, validation_context=self.context
-        )
+
         try:
-            path = validator.validate_usage(set(["digital_signature"]))
+            self.verifier.verify(cert, othercerts)
             certok = True
         except Exception as ex:
-            print("*" * 10, "failed certificate verification:", str(ex))
-            print("cert.issuer:", cert.native["tbs_certificate"]["issuer"])
-            print("cert.subject:", cert.native["tbs_certificate"]["subject"])
+            print("*" * 10, "failed certificate verification:", ex)
+            print("cert.issuer:", cert.issuer)
+            print("cert.subject:", cert.subject)
             certok = False
         return (hashok, signatureok, certok)
 
 
-def verify(datas, datau, certs, systemCertsPath=None):
-    cls = VerifyData(certs, systemCertsPath)
+def verify(datas, datau, certs):
+    cls = VerifyData(certs)
     return cls.verify(datas, datau)
