@@ -4,6 +4,7 @@ import os
 from email.mime.application import MIMEApplication
 
 from asn1crypto import cms, core, algos
+from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -14,7 +15,7 @@ from endesive import signer
 
 class EncryptedData(object):
 
-    def email(self, data, oaep):
+    def email(self, data: bytes, oaep: bool) -> str:
         prefix = ['x-', ''][oaep]
         msg = MIMEApplication(data)
         del msg['Content-Type']
@@ -127,7 +128,15 @@ class EncryptedData(object):
         return data
 
 
-def encrypt(data, certs, algo='aes256_cbc', oaep=False):
+def encrypt(data:bytes, certs:list[x509.Certificate], algo:str='aes256_cbc', oaep:bool=False) -> bytes:
+    """
+    Encrypt the given data bytes using the provided certificates and algorithm.
+    :param data: The data to encrypt.
+    :param certs: A list of x509.Certificate objects to use for encryption.
+    :param algo: The encryption algorithm to use (allowed are: aes256_cbc, aes256_ofb).
+    :param oaep: Whether to use OAEP padding (default is False).
+    :return: The encrypted data as bytes.
+    """
     assert algo[:3] == 'aes' and algo.split('_', 1)[1] in ('cbc', 'ofb')
     cls = EncryptedData()
     return cls.build(data, certs, algo, oaep)

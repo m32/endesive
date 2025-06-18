@@ -7,11 +7,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
 
 class DecryptedData(object):
 
-    def decrypt(self, data, key):
+    def decrypt(self, data: str, key: PrivateKeyTypes) -> bytes:
         msg = message_from_string(data)
         data = None
         for part in msg.walk():
@@ -26,7 +27,7 @@ class DecryptedData(object):
             data = part.get_payload(decode=True)
             break
         if data is None:
-            return
+            raise ValueError('No encrypted part found in the message')
 
         signed_data = cms.ContentInfo.load(data)['content']
         # signed_data.debug()
@@ -85,6 +86,12 @@ class DecryptedData(object):
         return udata
 
 
-def decrypt(data, key):
+def decrypt(data: str, key: PrivateKeyTypes) -> bytes:
+    """
+    Decrypt the given data string using the provided private key.
+    :param data: The encrypted data as a string.
+    :param key: The private key used for decryption.
+    :return: The decrypted data as bytes.
+    """
     cls = DecryptedData()
     return cls.decrypt(data, key)

@@ -254,7 +254,16 @@ class PDFVerifier:
         return False, None
 
 
-def verify(pdfdata, certs=None):
+def verify(pdfdata:bytes, certs:list[cx509.Certificate]=None) -> list[tuple[bool, bool, bool]]   :
+    """
+    Verify PDF signature.
+    :param pdfdata: PDF document as bytes.
+    :param certs: List of additional certificates used to verify signature (system independent).
+    :return: List of tuples containing three boolean values for each signature:
+        (hashok, signatureok, certok):
+        hashok: bool - True if the hash matches.
+        signatureok: bool - True if the signature is valid.
+        certok: bool - True if the certificate used for signing is trusted and valid."""
     results = []
     n = pdfdata.find(b"/ByteRange")
     while n != -1:

@@ -123,6 +123,15 @@ class VerifyData(object):
         return (hashok, signatureok, certok)
 
 
-def verify(datas, datau, certs):
+def verify(datas:bytes, datau:bytes, certs:list[x509.Certificate]=None) -> tuple[bool, bool, bool]:
+    """
+    Verify signed data.
+    :param data: Email data as bytes.
+    :param certs: List of additional certificates used to verify signature (system independent).
+    :return (hashok, signatureok, certok):
+        hashok: bool - True if the hash matches.
+        signatureok: bool - True if the signature is valid.
+        certok: bool - True if the certificate used for signing is trusted and valid.
+    """
     cls = VerifyData(certs)
     return cls.verify(datas, datau)
