@@ -11,9 +11,11 @@ else:
     #fname = "xml-xmlsigner-enveloping.xml"
     #fname = 'xml-xades-bes-enveloped.xml'
 data = open(fname, "rb").read()
+
 signed_root = etree.fromstring(data)
+
 verified_data = (
-    signxml.XMLVerifier().verify(signed_root, ca_pem_file="ca/demo2_ca.crt.pem").signed_xml
+    signxml.XMLVerifier().verify(signed_root, ca_pem_file="ca/demo2_ca.root.crt.pem").signed_xml
 )
 
 xml = etree.tostring(

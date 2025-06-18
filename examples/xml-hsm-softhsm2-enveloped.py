@@ -74,8 +74,6 @@ def main():
         return clshsm.sign(keyid, tosign, algosig)
 
     data = open("xml.xml", "rb").read()
-    with open('xx.der', 'wb') as fp:
-        fp.write(cert)
 
     cert = x509.load_der_x509_certificate(cert, backend=default_backend())
     certcontent = cert.public_bytes(serialization.Encoding.DER)
