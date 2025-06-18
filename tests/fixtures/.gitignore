@@ -1,5 +1,6 @@
 cert-hsm-*
 demo2_*
+root.pem
 softhsm2/
 softhsm2.conf
 pdf-signed-cms.pdf

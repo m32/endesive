@@ -36,7 +36,7 @@ class PLAINTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-content', fixture('plain-unsigned.txt'),
             '-in', fname,
             '-inform', 'der',
@@ -61,7 +61,7 @@ class PLAINTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-content', fixture('plain-unsigned.txt'),
             '-in', fname,
             '-inform', 'der',
@@ -76,7 +76,7 @@ class PLAINTests(unittest.TestCase):
             'openssl', 'smime', '-sign',
             '-md', 'sha256',
             '-binary',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-in', fixture('plain-unsigned.txt'),
             '-out', fixture('plain-ssl-signed-attr.txt'),
             '-outform', 'der',
@@ -89,8 +89,9 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stdout
         assert b'' == stderr
 
-        with open(test_cert.ca_cert, 'rb') as fh:
-            trusted_cert_pems = (fh.read(),)
+        trusted_cert_pems = []
+        with open(fixture('root.pem'), 'rb') as fp:
+            trusted_cert_pems.append(fp.read())
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         with open(fixture('plain-ssl-signed-attr.txt'), 'rb') as fh:
@@ -103,7 +104,7 @@ class PLAINTests(unittest.TestCase):
             'openssl', 'smime', '-sign',
             '-md', 'sha256',
             '-binary', '-noattr',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-in', fixture('plain-unsigned.txt'),
             '-out', fixture('plain-ssl-signed-noattr.txt'),
             '-outform', 'der',
@@ -116,11 +117,22 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stdout
         assert b'' == stderr
 
-        with open(test_cert.ca_cert, 'rb') as fh:
-            trusted_cert_pems = (fh.read(),)
+        trusted_cert_pems = []
+        with open(fixture('root.pem'), 'rb') as fp:
+            trusted_cert_pems.append(fp.read())
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         with open(fixture('plain-ssl-signed-noattr.txt'), 'rb') as fh:
             datas = fh.read()
         (hashok, signatureok, certok) = plain.verify(datas, datau, trusted_cert_pems)
         assert signatureok and hashok and certok
+
+if __name__ == '__main__':
+    cls = PLAINTests()
+    for n in dir(cls):
+        if n.split('_')[0] == 'test':
+            print(n)
+            try:
+                getattr(cls, n)()
+            except Exception as exc:
+                pass

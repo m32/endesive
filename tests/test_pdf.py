@@ -40,12 +40,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
@@ -72,12 +72,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
@@ -104,12 +104,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
@@ -137,12 +137,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
@@ -183,12 +183,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
@@ -229,12 +229,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
@@ -289,12 +289,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok
@@ -323,12 +323,12 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_cert, 'rb') as fh:
+        with open(test_cert.ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
         results = pdf.verify(
-            data, trusted_cert_pems, "/etc/ssl/certs"
+            data, trusted_cert_pems
         )
         for (hashok, signatureok, certok) in results:
             assert signatureok and hashok and certok

@@ -42,14 +42,14 @@ class EMAILTests(unittest.TestCase):
 
         with io.open(fname, 'rt', encoding='utf-8') as fp:
             datas = fp.read()
-        with open(test_cert.ca_cert, 'rb') as fp:
+        with open(test_cert.ca_sub_cert, 'rb') as fp:
             cert = fp.read()
         (hashok, signatureok, certok) = email.verify(datas, [cert,])
         assert hashok and signatureok and certok
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -75,7 +75,7 @@ class EMAILTests(unittest.TestCase):
 
         with io.open(fname, 'rt', encoding='utf-8') as fp:
             datas = fp.read()
-        with open(test_cert.ca_cert, 'rb') as fp:
+        with open(test_cert.ca_sub_cert, 'rb') as fp:
             cert = fp.read()
         (hashok, signatureok, certok) = email.verify(datas, [cert,])
         assert hashok and signatureok and certok
@@ -84,7 +84,7 @@ class EMAILTests(unittest.TestCase):
             'openssl', 'cms', '-verify',
             '-signer', test_cert.cert1_cert,
             '-keyopt', 'rsa_padding_mode:pss', '-md', 'sha512',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-in', fname
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -125,7 +125,7 @@ class EMAILTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -149,7 +149,7 @@ class EMAILTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', test_cert.ca_cert,
+            '-CAfile', fixture('root.pem'),
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
