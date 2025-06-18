@@ -3,7 +3,6 @@
 # https://signatures-conformance-checker.etsi.org/pub/index.php
 #
 import base64
-from endesive import xades
 import time
 import datetime
 import hashlib
