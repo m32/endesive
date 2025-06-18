@@ -4,7 +4,8 @@ from endesive import plain
 
 
 def main():
-    trusted_cert_pems = (open('ca/demo2_ca.crt.pem', 'rb').read(),)
+    #trusted_cert_pems = (open('ca/demo2_ca.root.crt.pem', 'rb').read(),)
+    trusted_cert_pems = (open('ca/root.pem', 'rb').read(),)
     datau = open('plain-unsigned.txt', 'rb').read()
     for fname in (
             'plain-ssl-signed-attr.txt',

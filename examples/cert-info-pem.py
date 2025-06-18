@@ -19,7 +19,7 @@ def main():
     if len(sys.argv) == 2:
         pemname = sys.argv[1]
     else:
-        pemname = 'ca/demo2_ca.crt.pem'
+        pemname = 'ca/demo2_ca.sub.crt.pem'
     data = open(pemname, 'rb').read()
     cert = cert2asn(data)
     pprint.pprint(cert.native)

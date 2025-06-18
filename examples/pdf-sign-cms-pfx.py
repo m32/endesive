@@ -49,7 +49,7 @@ def validate_args(args):
     """Validating commandline arguments raises valueError exception with if any command
     line arguments are not valid."""
 
-    IS_PFX = lambda pfx_certificate: re.match( r'^(.[^,]+)(.pfx|.PFX){1}$', pfx_certificate)
+    IS_PFX = lambda pfx_certificate: re.match( r'^(.[^,]+)(.pfx|.PFX|.p12|.P12){1}$', pfx_certificate)
     if not IS_PFX(args.pfx_certificate):
         raise ValueError('Not a proper pfx file with .pfx or .PFX extension')
     if args.coords:

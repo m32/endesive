@@ -41,15 +41,18 @@ class HSM(hsm.HSM):
     def main(self):
         cakeyID = bytes((0x1,))
         ca_cert_pem = asn1pem.armor('CERTIFICATE', self.cert_load(cakeyID))
-        trusted_cert_pems = (ca_cert_pem,)
+        trusted_cert_pems = [ca_cert_pem]
         for fname in (
             'pdf-signed-cms-hsm.pdf',
             'pdf-signed-cms-hsm-signed-cms-hsm.pdf',
+            "pdf-signed-cms-hsm-signature_appearance.pdf",
+            "pdf-signed-cms-hsm-signature_manual.pdf",
         ):
             print('*' * 20, fname)
             try:
                 data = open(fname, 'rb').read()
             except:
+                print('skip')
                 continue
             results = pdf.verify(data, trusted_cert_pems)
             for i in range(len(results)):

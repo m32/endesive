@@ -2,29 +2,31 @@
 # http://qistoph.blogspot.com/2012/01/manual-verify-pkcs7-signed-data-with.html
 # https://security.stackexchange.com/questions/176329/verify-s-mime-signature-with-no-certificate-included
 
-sign1(){
+sign1() {
     openssl smime -sign \
 -md sha256 \
 -binary \
--CAfile ca/demo2_ca.crt.pem \
+-CAfile ca/demo2_ca.sub.crt.pem \
 -in $1 -out $2 -outform der \
--inkey ca/demo2_user1.key.pem \
+-inkey ca/demo2_user1.key.pem -passin pass:1234 \
 -signer ca/demo2_user1.crt.pem
 }
 
-sign2(){
+sign2() {
+    cat ca/demo2_user1.crt.pem ca/demo2_ca.sub.crt.pem >x-cert.tmp
     openssl smime -sign \
 -md sha256 \
 -binary -noattr \
--CAfile ca/demo2_ca.crt.pem \
+-CAfile ca/demo2_ca.root.crt.pem \
 -in $1 -out $2 -outform der \
--inkey ca/demo2_user1.key.pem \
--signer ca/demo2_user1.crt.pem
+-inkey ca/demo2_user1.key.pem -passin pass:1234 \
+-signer x-cert.tmp
+    rm x-cert.tmp
 }
 
-verify(){
+verify() {
     openssl smime -verify \
--CAfile ca/demo2_ca.crt.pem \
+-CAfile ca/root.pem \
 -content $1 \
 -in $2 -inform der
 }

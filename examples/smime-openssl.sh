@@ -1,11 +1,11 @@
 #!/bin/bash
 
 sign1() {
-    openssl smime -sign -CAfile ca/demo2_ca.crt.pem -signer $1 -inkey $2 -outform SMIME -in $3 -out $4
+    openssl smime -sign -CAfile ca/root.pem -signer $1 -inkey $2 -passin pass:1234 -outform SMIME -in $3 -out $4
 }
 
 sign2() {
-    openssl smime -sign -noattr -CAfile ca/demo2_ca.crt.pem -signer $1 -inkey $2 -outform SMIME -in $3 -out $4
+    openssl smime -sign -noattr -CAfile ca/root.pem -signer $1 -inkey $2 -passin pass:1234 -outform SMIME -in $3 -out $4
 }
 
 encrypt() {
@@ -13,35 +13,35 @@ encrypt() {
 }
 
 decrypt() {
-    openssl smime -decrypt -recip $1 -inkey $2 -in $3
+    openssl smime -decrypt -recip $1 -inkey $2 -passin pass:1234 -in $3
 }
 
 verify() {
-    openssl smime -verify -CAfile ca/demo2_ca.crt.pem -in $1 -inform SMIME
+    openssl smime -verify -CAfile ca/root.pem -in $1 -inform SMIME
 }
 
-psssign(){
-    openssl cms -sign -signer $1 -inkey $2 -in $3 -out $4 -keyopt rsa_padding_mode:pss -md sha512
+psssign() {
+    openssl cms -sign -signer $1 -inkey $2 -passin pass:1234 -in $3 -out $4 -keyopt rsa_padding_mode:pss -md sha512
 }
 
-pssverify(){
-    openssl cms -verify -signer $1 -CAfile ca/demo2_ca.crt.pem -in $2 -keyopt rsa_padding_mode:pss -md sha512
+pssverify() {
+    openssl cms -verify -signer $1 -CAfile ca/root.pem -in $2 -keyopt rsa_padding_mode:pss -md sha512
 }
 
-oaepencrypt(){
+oaepencrypt() {
     openssl cms -encrypt -recip $1 -in $2 -out $3 -keyopt rsa_padding_mode:oaep -md sha512
 }
 
-oaepdecrypt(){
-    openssl cms -decrypt -recip $1 -inkey $2 -in $3
+oaepdecrypt() {
+    openssl cms -decrypt -recip $1 -inkey $2 -passin pass:1234 -in $3
 }
 
-detached(){
-    openssl smime -sign -in $3 -signer $1 -inkey $2 -outform der -binary -out $4
+detached() {
+    openssl smime -sign -in $3 -signer $1 -inkey $2 -passin pass:1234 -outform der -binary -out $4
 }
 
-detachedverify(){
-    openssl smime -verify -in $2 -inform der -content $1 -CAfile ca/demo2_ca.crt.pem
+detachedverify() {
+    openssl smime -verify -in $2 -inform der -content $1 -CAfile ca/root.pem
 }
 
 if [ -z "$1" ]; then

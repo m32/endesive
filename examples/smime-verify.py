@@ -5,17 +5,17 @@ from endesive import email
 
 
 def main():
-    trusted_cert_pems = (open('ca/demo2_ca.crt.pem', 'rb').read(),)
+    trusted_cert_pems = (open('ca/root.pem', 'rb').read(),)
 
     for fname in (
-            'smime-ssl-signed-attr.txt',
-            'smime-ssl-signed-noattr.txt',
-            'smime-signed-attr.txt',
-            'smime-signed-attr-custom.txt',
-            'smime-signed-noattr.txt',
-            'smime-ssl-pss-signed.txt',
-            'smime-signed-pss-oscrypto.txt',
-            'smime-signed-pss.txt',
+        'smime-signed-attr.txt',
+        'smime-signed-attr-custom.txt',
+        'smime-signed-hsm.txt',
+        'smime-signed-noattr.txt',
+        'smime-signed-pss.txt',
+        'smime-ssl-pss-signed.txt',
+        'smime-ssl-signed-attr.txt',
+        'smime-ssl-signed-noattr.txt',
     ):
         print('*' * 20, fname)
         try:

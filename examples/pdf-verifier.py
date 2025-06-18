@@ -7,7 +7,7 @@ def main():
     trustedcerts = []
     with open("nccert2016.crt", "rb") as fp:
         trustedcerts.append(fp.read())
-    with open("ca/demo2_ca.crt.pem", "rb") as fp:
+    with open("ca/demo2_ca.root.crt.pem", "rb") as fp:
         trustedcerts.append(fp.read())
 
     if len(sys.argv) > 1:
@@ -17,7 +17,7 @@ def main():
     with open(fname, "rb") as fp:
         pdf_data = fp.read()
 
-    v = PDFVerifier(pdf_data, trustedcerts, "/etc/ssl/certs")
+    v = PDFVerifier(pdf_data, trustedcerts)
 
     if not v.is_valid_pdf():
         print(f"{fname} is not a pdf file")

@@ -5,6 +5,11 @@ import os
 import sys
 import sysconfig
 
+if "--force" in sys.argv:
+    if os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
+        import shutil
+        shutil.rmtree(os.path.join(os.getcwd(), 'softhsm2'))
+
 os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
 if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2.conf')):
     open('softhsm2.conf', 'wt').write('''\
@@ -38,12 +43,21 @@ Create two certificates:
 '''
 class HSM(hsm.HSM):
     def main(self):
-        cakeyID = bytes((0x1,))
+        rootcakeyID = bytes((0x1,))
+        rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, rootcakeyID)])
+        if len(rec) == 0:
+            label = 'hsm Root CA'
+            self.gen_privkey(label, rootcakeyID)
+            self.ca_gen(label, rootcakeyID, label)
+        self.cert_export('cert-hsm-ca-root', rootcakeyID)
+
+        cakeyID = bytes((0x2,))
         rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, cakeyID)])
         if len(rec) == 0:
-            label = 'hsm CA'
+            label = 'hsm Intermediate CA'
             self.gen_privkey(label, cakeyID)
-            self.ca_gen(label, cakeyID, 'hsm CA')
+            self.ca_sign(cakeyID, label, 2, label, 365 * 10, rootcakeyID)
+        self.cert_export('cert-hsm-ca-sub', cakeyID)
 
         keyID = bytes((0x66,0x66,0x90))
         rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, keyID)])
@@ -51,8 +65,6 @@ class HSM(hsm.HSM):
             label = 'hsm USER 1'
             self.gen_privkey(label, keyID)
             self.ca_sign(keyID, label, 0x666690, "hsm USER 1", 365, cakeyID)
-
-        self.cert_export('cert-hsm-ca', cakeyID)
         self.cert_export('cert-hsm-user1', keyID)
 
 def main():

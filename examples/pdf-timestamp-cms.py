@@ -22,6 +22,7 @@ def main():
         "sigfield": "Signature1",
         "auto_sigfield": True,
         "password": "1234",
+        "signingdate": "2025-06-11",
     }
     fname = "pdf.pdf"
     if len(sys.argv) > 1:
