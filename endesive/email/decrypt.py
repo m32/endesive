@@ -89,6 +89,7 @@ class DecryptedData(object):
 def decrypt(data: str, key: PrivateKeyTypes) -> bytes:
     """
     Decrypt the given data string using the provided private key.
+
     :param data: The encrypted data as a string.
     :param key: The private key used for decryption.
     :return: The decrypted data as bytes.

@@ -47,11 +47,22 @@ class BaseHSM:
 
 class HSM(BaseHSM):
     def __init__(self, dllpath):
+        """
+        Initialize HSM
+
+        :param dllpath: dynamic library used to communicate with HSM
+        """
         self.pkcs11 = PyKCS11.PyKCS11Lib()
         self.pkcs11.load(dllpath)
         self.session = None
 
     def getSlot(self, label):
+        """
+        Find the slot
+
+        :param label: searched slot name
+        :return: slot
+        """
         slots = self.pkcs11.getSlotList(tokenPresent=True)
         for slot in slots:
             info = self.pkcs11.getTokenInfo(slot)
@@ -63,6 +74,13 @@ class HSM(BaseHSM):
         return None
 
     def create(self, label, pin, sopin):
+        """
+        Initialize a slot
+
+        :param label: searched slot name
+        :param pin: pin for slot
+        :param sopin: administrative pin
+        """
         slot = self.getSlot(label)
         if slot is not None:
             return
@@ -77,6 +95,12 @@ class HSM(BaseHSM):
         session.closeSession()
 
     def login(self, label, pin):
+        """
+        Start session
+
+        :param label: slot name
+        :param pin: pin for slot
+        """
         slot = self.getSlot(label)
         if slot is None:
             return
@@ -86,12 +110,22 @@ class HSM(BaseHSM):
         self.session.login(pin)
 
     def logout(self):
+        """
+        End session
+        """
         if self.session is not None:
             self.session.logout()
             self.session.closeSession()
             self.session = None
 
     def gen_privkey(self, label, key_id, key_length=2048):
+        """
+        Create private key
+
+        :param label: key label
+        :param key_id: key ID
+        :param key_length: key length in bits
+        """
         # label - just a label for identifying objects
         # key_id has to be the same for both objects, it will also be necessary
         #     when importing the certificate, to ensure it is linked with these keys.
@@ -129,6 +163,14 @@ class HSM(BaseHSM):
         self.session.generateKeyPair(public_template, private_template)
 
     def cert_save(self, cert, label, subject, key_id):
+        """
+        Save certificate
+
+        :param cert: certificate
+        :param label: certificate label
+        :param subject: certificate subject
+        :param key_id: key ID
+        """
         cert_template = [
             (PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE),
             (PyKCS11.CKA_CERTIFICATE_TYPE, PyKCS11.CKC_X_509),
@@ -156,6 +198,11 @@ class HSM(BaseHSM):
         self.session.createObject(cert_template)
 
     def cert_load(self, keyID):
+        """
+        Load certificate
+
+        :param keyID: key ID
+        """
         rec = self.session.findObjects(
             [(PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE), (PyKCS11.CKA_ID, keyID)]
         )
@@ -165,6 +212,22 @@ class HSM(BaseHSM):
         return value
 
     def certsign(self, sn, pubKey, subject, until, caprivKey, ca):
+        """
+        Sign certificate
+
+        :param sn: serial number
+        :param pubKey: public key
+        :param subject: common name for certificate subject
+        :param until: until when is the certificate valid
+        :param caprivKey: signing key
+        :param ca:
+
+            None: create self signed root CA certificate
+
+            True: create indirect CA certificate
+
+            False: create user certificate
+        """
         args = {
             "version": "v3",
             "serial_number": sn,
@@ -311,7 +374,7 @@ class HSM(BaseHSM):
             ]
             args.update({
                 "issuer": asn1x509.Name.build({
-                    "common_name": "hsm Intermediate CA",
+                    "common_name": "hsm Indirect CA",
                 }),
                 "extensions": extensions,
             })
@@ -338,6 +401,13 @@ class HSM(BaseHSM):
         return cert.dump()
 
     def ca_gen(self, label, keyID, subject):
+        """
+        Initiate root CA certificate
+
+        :param label: HSM key label
+        :param keyID: HSM key ID
+        :param subject: common name in certificate subject
+        """
         privKey = self.session.findObjects(
             [(PyKCS11.CKA_CLASS, PyKCS11.CKO_PRIVATE_KEY), (PyKCS11.CKA_ID, keyID)]
         )[0]
@@ -365,6 +435,16 @@ class HSM(BaseHSM):
         self.cert_save(der_bytes, label, subject, keyID)
 
     def ca_sign(self, keyID, label, sn, subject, days, cakeyID):
+        """
+        Sign certificate
+
+        :param keyID: HSM key identifier of the signed certificate
+        :param label: HSM label
+        :param sn: certificate serial number
+        :param subject: HSM subject, common name stored in subject fiel of the signed certificate
+        :param days: validity day of certificate
+        :param cakeyID: HSM key identifier of the signing key
+        """
         caprivKey = self.session.findObjects(
             [(PyKCS11.CKA_CLASS, PyKCS11.CKO_PRIVATE_KEY), (PyKCS11.CKA_ID, cakeyID)]
         )[0]

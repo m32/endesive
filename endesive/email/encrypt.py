@@ -131,6 +131,7 @@ class EncryptedData(object):
 def encrypt(data:bytes, certs:list[x509.Certificate], algo:str='aes256_cbc', oaep:bool=False) -> bytes:
     """
     Encrypt the given data bytes using the provided certificates and algorithm.
+
     :param data: The data to encrypt.
     :param certs: A list of x509.Certificate objects to use for encryption.
     :param algo: The encryption algorithm to use (allowed are: aes256_cbc, aes256_ofb).
