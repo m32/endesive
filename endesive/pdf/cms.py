@@ -641,10 +641,28 @@ class SignedData(pdf.PdfFileWriter):
         if "/Metadata" in catalog:
             catalog[po.NameObject("/Metadata")] = catalog.raw_get("/Metadata")
 
+        if udct.get("ltv", False):
+            self.add_dss(catalog)
+
         x_root = prev.trailer.raw_get("/Root")
         self._objects[x_root.idnum - 1] = catalog
         self.x_root = po.IndirectObject(x_root.idnum, 0, self)
         self.x_info = prev.trailer.get("/Info")
+
+    def add_dss(self, catalog):
+        dss = po.DictionaryObject()
+        vri = po.DictionaryObject()
+        certs = po.ArrayObject()
+        ocsps = po.ArrayObject()
+        crls = po.ArrayObject()
+        dss.update({
+            po.NameObject("/Type"): po.NameObject("/DSS"),
+            po.NameObject("/VRI"): vri,
+            po.NameObject("/Certs"): certs,
+            po.NameObject("/OCSPs"): ocsps,
+            po.NameObject("/CRLs"): crls,
+        })
+        catalog[po.NameObject("/DSS")] = self._addObject(dss)
 
     def sign(
         self,
@@ -778,6 +796,18 @@ class SignedData(pdf.PdfFileWriter):
         md.update(b2)
         md = md.digest()
 
+        ocspresp = None
+        if udct.get("ltv", False):
+            if ocspurl is None:
+                ocspurl = signer.extract_ocsp_url_from_cert(cert)
+            if ocspurl is not None:
+                if ocspissuer is None:
+                    for othercert in othercerts:
+                        if othercert.subject == cert.issuer:
+                            ocspissuer = othercert
+                            break
+                certissuer = ocspissuer
+                ocspresp = signer.fetch_ocsp_response(cert, certissuer, ocspurl)
         if mode == "timestamp":
             contents = signer.timestamp(
                 None,
@@ -814,7 +844,28 @@ class SignedData(pdf.PdfFileWriter):
 
         datas = datas.replace(zeros, contents, 1)
 
+        if udct.get("ltv", False):
+            self.add_validation_data(ocspresp, cert, othercerts)
+
         return datas
+
+    def add_validation_data(self, ocspresp, cert, othercerts):
+        dss = self.x_root.getObject()['/DSS'].getObject()
+        vri = dss['/VRI'].getObject()
+        ocsp = dss['/OCSPs'].getObject()
+        certs = dss['/Certs'].getObject()
+        if ocspresp is not None:
+            obj = po.StreamObject()
+            obj._data = ocspresp
+            ocsp.append(self._addObject(obj))
+        obj = po.StreamObject()
+        from cryptography.hazmat.primitives import serialization
+        obj._data = cert.public_bytes(serialization.Encoding.DER)
+        certs.append(self._addObject(obj))
+        for cert in othercerts:
+            obj = po.StreamObject()
+            obj._data = cert.public_bytes(serialization.Encoding.DER)
+            certs.append(self._addObject(obj))
 
 
 def timestamp(

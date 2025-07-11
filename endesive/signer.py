@@ -5,15 +5,15 @@ import sys
 import types
 import hashlib
 import time
+import requests
 from base64 import b64encode
 from datetime import datetime
-
-import requests
-import pytz
 from asn1crypto import cms, algos, core, keys, pem, tsp, x509, ocsp, util
-from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, utils, ec
+from cryptography.hazmat import backends
+from cryptography import x509 as cryptography_x509
+from cryptography.x509 import ocsp as cryptography_ocsp
 
 
 def cert2asn(cert, cert_bytes=True):
@@ -26,6 +26,58 @@ def cert2asn(cert, cert_bytes=True):
     if pem.detect(cert_bytes):
         _, _, cert_bytes = pem.unarmor(cert_bytes)
     return x509.Certificate.load(cert_bytes)
+
+
+def extract_ocsp_url_from_cert(cert):
+    """Extract OCSP URL from certificate's Authority Information Access extension"""
+    if hasattr(cert, 'public_bytes'):
+        crypto_cert = cert
+    else:
+        if hasattr(cert, 'dump'):
+            cert_bytes = cert.dump()
+        else:
+            cert_bytes = cert
+        crypto_cert = cryptography_x509.load_der_x509_certificate(
+            cert_bytes, backends.default_backend())
+
+    try:
+        aia = crypto_cert.extensions.get_extension_for_oid(
+            cryptography_x509.oid.ExtensionOID.AUTHORITY_INFORMATION_ACCESS)
+        for access_description in aia.value:
+            if access_description.access_method == cryptography_x509.oid.AuthorityInformationAccessOID.OCSP:
+                return access_description.access_location.value
+    except cryptography_x509.ExtensionNotFound:
+        return None
+    return None
+
+
+def fetch_ocsp_response(cert, issuer, url):
+    if hasattr(cert, 'dump'):
+        cert_bytes = cert.dump()
+        cert = cryptography_x509.load_der_x509_certificate(
+            cert_bytes, backends.default_backend())
+
+    if hasattr(issuer, 'dump'):
+        issuer_bytes = issuer.dump()
+        issuer = cryptography_x509.load_der_x509_certificate(
+            issuer_bytes, backends.default_backend())
+
+    builder = cryptography_ocsp.OCSPRequestBuilder()
+    builder = builder.add_certificate(cert, issuer, hashes.SHA1())
+    req = builder.build()
+    data = req.public_bytes(serialization.Encoding.DER)
+
+    try:
+        response = requests.post(
+            url,
+            headers={"Content-Type": "application/ocsp-request"},
+            data=data,
+        )
+        if response.status_code != 200:
+            return None
+        return response.content
+    except requests.exceptions.ConnectionError:
+        return None
 
 
 def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None):
@@ -293,37 +345,22 @@ def sign(
         ],
     }
     if ocspurl and ocspissuer:
-        from cryptography.hazmat.backends.openssl.backend import backend
-        from cryptography.x509 import ocsp as cocsp
-        from cryptography import x509 as cx509
-
-        ocspuser = cert.dump()
-        ocspuser = cx509.load_der_x509_certificate(ocspuser, backend=backend)
-
-        builder = cocsp.OCSPRequestBuilder()
-        builder = builder.add_certificate(ocspuser, ocspissuer, hashes.SHA1())
-        req = builder.build()
-        data = req.public_bytes(serialization.Encoding.DER)
-
-        response = requests.post(
-            ocspurl,
-            headers={"Content-Type": "application/ocsp-request"},
-            data=data,
-        )
-        data = ocsp.OCSPResponse.load(response.content)
-        other = cms.RevocationInfoChoice(
-            {
-                "other": cms.OtherRevocationInfoFormat(
-                    {
-                        "other_rev_info_format": cms.OtherRevInfoFormatId(
-                            "ocsp_response"
-                        ),
-                        "other_rev_info": data,
-                    }
-                )
-            }
-        )
-        config["crls"] = cms.RevocationInfoChoices([other])
+        ocsp_response = fetch_ocsp_response(cert, ocspissuer, ocspurl)
+        if ocsp_response:
+            ocsp_response = ocsp.OCSPResponse.load(ocsp_response)
+            other = cms.RevocationInfoChoice(
+                {
+                    "other": cms.OtherRevocationInfoFormat(
+                        {
+                            "other_rev_info_format": cms.OtherRevInfoFormatId(
+                                "ocsp_response"
+                            ),
+                            "other_rev_info": ocsp_response,
+                        }
+                    )
+                }
+            )
+            config["crls"] = cms.RevocationInfoChoices([other])
 
     datas = cms.ContentInfo(
         {
