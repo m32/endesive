@@ -20,6 +20,7 @@ def main():
 
         "pdf-signed-cms.pdf",
         "pdf-signed-cms-hash.pdf",
+        "pdf-signed-cms-ltv.pdf",
         "pdf-signed-cms-m32-actalis.pdf",
         "pdf-signed-cms-m32-unizeto.pdf",
         "pdf-signed-cms-pfx.pdf",

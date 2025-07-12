@@ -59,7 +59,7 @@ def main():
                     #  ocspurl=ocsp_url,
                      ocspissuer=issuer_cert,
                      timestampurl=dct['tsa_url'])
-    fname = fname.replace(".pdf", "-signed-cms.pdf")
+    fname = fname.replace(".pdf", "-signed-cms-ltv.pdf")
     with open(fname, "wb") as fp:
         fp.write(datau)
         fp.write(datas)
