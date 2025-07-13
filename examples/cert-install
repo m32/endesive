@@ -1,0 +1,4 @@
+#!/bin/bash
+# sudo ./cert-install
+cp ca/demo2_ca.root.crt.pem /usr/share/ca-certificates/mozilla/
+update-ca-certificates --default
