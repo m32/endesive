@@ -155,7 +155,7 @@ class Main(object):
             .subject_name(csr.subject)
             .issuer_name(self.ca_sub_cert.subject)
             .public_key(csr.public_key())
-            .serial_number(uuid.uuid4().int)  # pylint: disable=no-member
+            .serial_number(x509.random_serial_number())
             .not_valid_before(datetime.datetime.utcnow())
             .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
             .add_extension(
