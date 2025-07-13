@@ -1,0 +1,9 @@
+#!/bin/bash
+
+one() {
+vpy3 pyhanko --verbose sign validate --pretty-print $*
+}
+
+#one pdf-signed-cms.pdf
+#one pdf-signed-cms-m32-unizeto.pdf
+one $*
