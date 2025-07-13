@@ -37,8 +37,8 @@ def main():
             fp.read(), b"1234", backends.default_backend()
         )
     fname = "pdf.pdf"
-    if len(sys.argv) > 1:
-        fname = sys.argv[1]
+    if len(sys.argv) > 2:
+        fname = sys.argv[2]
     datau = open(fname, "rb").read()
 
     print(f"Signing certificate subject: {p12[1].subject.rfc4514_string()}")
