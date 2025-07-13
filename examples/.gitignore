@@ -6,3 +6,8 @@
 softhsm2/
 softhsm2.conf
 signature_appearances/endesive/
+
+t-ocsp-crl.der
+t-ocsp-issuer.der
+t-ocsp-req.bin
+t-ocsp-resp.bin
