@@ -1002,6 +1002,7 @@ def sign(
         timestamp_req_options: Dict to set options to the POST http call against the timestamp server. Default: None
         ocsppurl: ocsp server URL or None
         ocspissuer: certificate of issuer or None
+        ltv: boolean enable LTV signature
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
 
