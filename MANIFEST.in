@@ -1,5 +1,4 @@
 include LICENSE.pyfpdf
 include LICENSE.pypdf2
 include LICENSE.pdf-annotate
-include changelog.md
 include endesive/pdf/PyPDF2_annotate/fonts/Helvetica.ttf

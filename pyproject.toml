@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "endesive"
+description = "Library for digital signing and verification of digital signatures in mail, PDF and XML documents."
+authors = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
+maintainers = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
+readme = "README.rst"
+version = "2.19.0"
+license = "MIT"
+license-files = ["LICENSE", "LICENSE.pdf-annotate", "LICENSE.pyfpdf", "LICENSE.pypdf2"]
+requires-python = ">=3.0"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Communications :: Email",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Office/Business",
+    "Topic :: Text Processing",
+    "Topic :: Multimedia :: Graphics",
+]
+
+[project.urls]
+Source = "https://github.com/m32/endesive"
+"Bug Reports" = "https://github.com/m32/endesive/issues"
+
+[project.optional-dependencies]
+full = [
+    "cryptography",
+    "asn1crypto",
+    "certvalidator",
+    "lxml",
+    "pykcs11",
+    "Pillow",
+    "pytz",
+    "requests",
+    "paramiko",
+    "attrs"
+]
+
+dev = [
+    "pytest-cov",
+    "wheel",
+    "oscrypto"
+]
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme"
+]
+
+[tool.check-wheel-contents]
+package = "./endesive"
+
+[tool.pytest.ini_options]
+filterwarnings = ["error"]
+testpaths = ["tests"]
