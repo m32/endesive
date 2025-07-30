@@ -8,7 +8,7 @@ description = "Library for digital signing and verification of digital signature
 authors = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
 maintainers = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
 readme = "README.rst"
-version = "2.19.0"
+version = "2.19.1"
 license = "MIT"
 license-files = ["LICENSE", "LICENSE.pdf-annotate", "LICENSE.pyfpdf", "LICENSE.pypdf2"]
 requires-python = ">=3.0"
@@ -34,20 +34,16 @@ Source = "https://github.com/m32/endesive"
 full = [
     "cryptography",
     "asn1crypto",
-    "certvalidator",
     "lxml",
     "pykcs11",
     "Pillow",
-    "pytz",
     "requests",
-    "paramiko",
-    "attrs"
+    "paramiko"
 ]
 
 dev = [
     "pytest-cov",
-    "wheel",
-    "oscrypto"
+    "wheel"
 ]
 docs = [
     "sphinx",
