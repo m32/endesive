@@ -1,7 +1,13 @@
 #!/bin/bash
 
 one() {
-vpy3 pyhanko --verbose sign validate --no-revocation-check --pretty-print $*
+vpy3 pyhanko \
+--verbose \
+sign validate \
+--no-revocation-check \
+--pretty-print \
+--trust ./nccert2016.crt.pem \
+$*
 }
 
 #one pdf-signed-cms.pdf

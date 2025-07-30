@@ -5,7 +5,7 @@ from endesive.pdf import PDFVerifier
 
 def main():
     trustedcerts = []
-    with open("nccert2016.crt", "rb") as fp:
+    with open("nccert2016.crt.pem", "rb") as fp:
         trustedcerts.append(fp.read())
     with open("ca/demo2_ca.root.crt.pem", "rb") as fp:
         trustedcerts.append(fp.read())
@@ -42,10 +42,10 @@ def main():
         print(f"signing certificate is invalid")
         return
 
-    print(f"signed with cert serial_number: {cert['tbs_certificate']['serial_number'].native}")
+    print(f"signed with cert serial_number: {cert.serial_number}")
     print("other certificates:")
     for ocert in othercerts:
-        print(f"     serial_number: {ocert['tbs_certificate']['serial_number'].native}")
+        print(f"     serial_number: {ocert.serial_number}")
 
     if crldata.native is not None:
         ok, info = v.verify_ocsp_data(cert, othercerts, crldata)
