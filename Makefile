@@ -5,3 +5,8 @@ test:
 
 mypy:
 	mypy endesive --ignore-missing-imports --check-untyped --strict
+
+docs:
+	sphinx-apidoc -o docs ./endesive
+
+.PHONY: test mypy docs
