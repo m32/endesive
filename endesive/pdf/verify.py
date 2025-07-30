@@ -4,12 +4,15 @@ import sys
 import glob
 import logging
 import hashlib
+import datetime
 
 from asn1crypto import x509, core, pem, cms, tsp, crl, ocsp, pdf
-from certvalidator import CertificateValidator, ValidationContext
+
+import certifi
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding, ec
+from cryptography.x509.verification import PolicyBuilder, Store
 from cryptography import x509 as cx509
 from cryptography.hazmat.backends import default_backend
 
@@ -25,31 +28,23 @@ class PDFVerifier:
         self.modified = False
         self.wholefile = False
         self.byte_ranges = []
-        certs = None
+
+        #print('certifi.where()', certifi.where())
+        with open(certifi.where(), "rb") as pems:
+            certs = cx509.load_pem_x509_certificates(pems.read())
         if trustedCerts is not None:
-            certs = []
             for cert_bytes in trustedCerts:
-                # cert_bytes = cert_bytes.encode("utf8")
-                if pem.detect(cert_bytes):
-                    _, _, cert_bytes = pem.unarmor(cert_bytes)
-                certs.append(x509.Certificate.load(cert_bytes))
-        if systemCertsPath is not None:
-            if not certs:
-                certs = []
-            for fname in glob.glob(os.path.join(systemCertsPath, "*.pem")):
-                with open(fname, "rb") as fp:
-                    cert_bytes = fp.read()
-                if pem.detect(cert_bytes):
-                    _, _, cert_bytes = pem.unarmor(cert_bytes)
-                certs.append(x509.Certificate.load(cert_bytes))
-        self.context = ValidationContext(certs)
+                certs.append(cx509.load_pem_x509_certificate(cert_bytes))
+        #self.trustedCerts = trustedCerts
+        self.verifier = PolicyBuilder(
+            ).store(Store(certs)
+            ).time(datetime.datetime.utcnow()
+            ).max_chain_depth(4
+            ).build_client_verifier()
 
     def validate_certificate(self, cert, othercerts=[]) -> bool:
-        validator = CertificateValidator(
-            cert, othercerts, validation_context=self.context
-        )
         try:
-            path = validator.validate_usage(set(["digital_signature"]))
+            self.verifier.verify(cert, othercerts)
             certok = True
         except Exception as ex:
             logger.exception(ex)
@@ -111,12 +106,17 @@ class PDFVerifier:
         serial = signed_data["signer_infos"][0]["sid"].native["serial_number"]
         for pdfcert in signed_data["certificates"]:
             if serial != pdfcert.native["tbs_certificate"]["serial_number"]:
-                othercerts.append(pdfcert.chosen)
+                othercerts.append(
+                    cx509.load_pem_x509_certificate(
+                        pem.armor("CERTIFICATE", pdfcert.chosen.dump())
+                    )
+                )
             else:
-                cert = pdfcert.chosen
-        public_key = cx509.load_pem_x509_certificate(
-            pem.armor("CERTIFICATE", cert.dump()), default_backend()
-        ).public_key()
+                assert cert is None
+                cert = cx509.load_pem_x509_certificate(
+                    pem.armor("CERTIFICATE", pdfcert.chosen.dump())
+                )
+        public_key = cert.public_key()
 
         sigalgo = signed_data["signer_infos"][0]["signature_algorithm"]
         sigalgoname = sigalgo.signature_algo
@@ -171,6 +171,7 @@ class PDFVerifier:
                         tspdata = v["content"]
         crls = signed_data["crls"]
 
+        #print(signed_data, tspdata, crls, cert, othercerts, hashok, signatureok)
         return (signed_data, tspdata, crls, cert, othercerts, hashok, signatureok)
 
     def decompose_signature(self) -> tuple:
@@ -203,8 +204,7 @@ class PDFVerifier:
                 cert_was_checked = False
                 next_check_at = None
                 for ccert in crlresp["tbs_response_data"]["responses"]:
-                    v = ccert["cert_id"]["serial_number"].native == cert.serial_number
-                    if v:
+                    if ccert["cert_id"]["serial_number"].native == cert.serial_number:
                         cert_was_checked = True
                         next_check_at = ccert["next_update"].native
                         break
@@ -215,14 +215,11 @@ class PDFVerifier:
                 for othercert in crlresp["certs"]:
                     for ext in othercert["tbs_certificate"]["extensions"]:
                         if ext["extn_id"].native == "extended_key_usage" and "ocsp_signing" in ext["extn_value"].native:
-                            ocspcert = othercert
+                            ocspcert = cx509.load_der_x509_certificate(othercert.dump())
                 if ocspcert:
-                    bcert = x509.Certificate.load(ocspcert.dump())
-                    if self.validate_certificate(bcert, othercerts) and not sigok:
+                    if self.validate_certificate(ocspcert, othercerts) and not sigok:
                         try:
-                            public_key = cx509.load_pem_x509_certificate(
-                                pem.armor("CERTIFICATE", ocspcert.dump()), default_backend()
-                            ).public_key()
+                            public_key = ocspcert.public_key()
                             signedData = crlresp["tbs_response_data"].dump()
                             # only sha256_rsa
                             public_key.verify(
