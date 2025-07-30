@@ -7,10 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   endesive.pdf.PyPDF2
-   endesive.pdf.PyPDF2_annotate
-   endesive.pdf.fpdf
-
 Submodules
 ----------
 
