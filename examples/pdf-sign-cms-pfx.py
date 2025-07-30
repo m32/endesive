@@ -4,7 +4,6 @@
 
 """
 import argparse
-import pytz
 import re
 import sys
 import datetime
@@ -93,7 +92,6 @@ def run():
         p12pk, p12pc, p12oc = load_pfx(args.pfx_certificate, args.password)
 
         names = get_rdns_names(p12pc.subject.rdns)
-        timezone = pytz.timezone('Asia/Calcutta')
         #default coords of bottom right corner in a pdf page
         coords = [350, 50, 550, 150]
         if args.coords:
