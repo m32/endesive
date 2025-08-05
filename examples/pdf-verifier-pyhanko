@@ -1,15 +1,20 @@
 #!/bin/bash
 
-one() {
+full() {
 vpy3 pyhanko \
 --verbose \
 sign validate \
---no-revocation-check \
 --pretty-print \
---trust ./nccert2016.crt.pem \
 $*
 }
 
-#one pdf-signed-cms.pdf
-#one pdf-signed-cms-m32-unizeto.pdf
-one $*
+fast() {
+full \
+--no-revocation-check \
+$*
+}
+
+
+#pdf-verifier-pyhanko fast pdf-signed-cms.pdf
+#pdf-verifier-pyhanko fast pdf-signed-cms-m32-unizeto.pdf
+$*
