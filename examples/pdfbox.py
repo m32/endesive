@@ -1,22 +1,24 @@
 #!/usr/bin/env vpython3
 import os
+#os.environ['JAVA_HOME'] = '/usr/lib/jvm/msopenjdk-21-amd64/'
+os.environ['JVM_PATH'] = '/usr/lib/jvm/msopenjdk-21-amd64/lib/server/libjvm.so'
+import sys
+import jnius_config
 
-jars = [
-'java/debugger-app-2.0.14.jar',
-'java/fontbox-2.0.14.jar',
-'java/java.activation-1.1.1.jar',
-'java/javax.xml.bind-2.2.3.jar',
-'java/pdfbox-2.0.14.jar',
-'java/pdfbox-app-2.0.14.jar',
-'java/pdfbox-debugger-2.0.14.jar',
-'java/pdfbox-showsignature.jar',
-'java/pdfbox-tools-2.0.14.jar',
-'java/preflight-2.0.14.jar',
-'java/preflight-app-2.0.14.jar',
-'java/xades4j-1.5.1.jar',
-'java/xmpbox-2.0.14.jar',
-]
-os.environ['CLASSPATH'] = ':'.join(jars)
-os.environ['JAVA_HOME'] = '/usr/lib/jvm/default-java'
+PATH=['.']
+def walk(top):
+    todo = []
+    for fname in os.listdir(top):
+        fqname = os.path.join(top, fname)
+        if os.path.isdir(fqname):
+            todo.append(fqname)
+        elif fname.split('.')[-1] == 'jar':
+            PATH.append(fqname)
+    for fqname in todo:
+        walk(fqname)
+
+walk('/devel/lib/java/pdfbox')
+jnius_config.set_classpath(*PATH)
+
 
 import jnius

@@ -3,11 +3,11 @@ import sys
 import pdfbox
 from jnius import autoclass
 
-
 pdfname = 'pdf.pdf'
 if len(sys.argv) > 1:
     pdfname = sys.argv[1]
-parser = autoclass('org.apache.pdfbox.preflight.parser.PreflightParser')(pdfname)
+signature = autoclass('org.apache.pdfbox.examples.examples.ShowSignature')
+signature.showSignature('', pdfname)
 parser.parse()
 #org.apache.pdfbox.preflight.PreflightDocument
 document = parser.getPreflightDocument()
