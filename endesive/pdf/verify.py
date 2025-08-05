@@ -262,11 +262,20 @@ class PDFVerifier:
                         return cert
 
             def seekForRoot(xcert, certs):
+                xcertsigner = xcert.extensions.get_extension_for_class(
+                    cx509.AuthorityKeyIdentifier
+                ).value.key_identifier
                 for cert in certs:
-                    if xcert.issuer == cert.subject:
+                    certsubject = cert.extensions.get_extension_for_class(
+                        cx509.SubjectKeyIdentifier
+                    ).value.key_identifier
+                    if xcertsigner == certsubject:
                         return True
                 for cert in self.certs:
-                    if xcert.issuer == cert.subject:
+                    certsubject = cert.extensions.get_extension_for_class(
+                        cx509.SubjectKeyIdentifier
+                    ).value.key_identifier
+                    if xcertsigner == certsubject:
                         return True
                 return False
 
