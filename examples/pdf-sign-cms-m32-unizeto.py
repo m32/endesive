@@ -26,6 +26,7 @@ def main():
         "signingdate": date.encode(),
         "reason": "Dokument podpisany cyfrowo",
         "sigandcertify": False,
+        "ltv": True,
     }
 
     pk12fname = "/home/mak/Dokumenty/m32/ssl/unizeto/unizeto.p12"
@@ -34,12 +35,6 @@ def main():
         p12 = pkcs12.load_key_and_certificates(
             fp.read(), pk12pass, backends.default_backend()
         )
-
-    ocspurl = "https://ocsp.certum.pl/"
-    ocspissuer = open("csmimersaca.cer", "rb").read()
-    ocspissuer = x509.load_der_x509_certificate(ocspissuer, backends.default_backend())
-
-    #tspurl=ocspurl=ocspissuer=None
 
     fname = "pdf.pdf"
     if len(sys.argv) > 2:
@@ -53,9 +48,7 @@ def main():
         p12[2][:3],
         "sha256",
         None,
-        tspurl,
-        ocspurl=ocspurl,
-        ocspissuer=ocspissuer,
+        tspurl
     )
     fname = fname.replace(".pdf", "-signed-cms-m32-unizeto.pdf")
     with open(fname, "wb") as fp:
