@@ -12,7 +12,7 @@ import certifi
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding, ec
-from cryptography.x509.verification import PolicyBuilder, Store
+from cryptography.x509 import verification
 from cryptography import x509 as cx509
 from cryptography.hazmat.backends import default_backend
 
@@ -36,11 +36,21 @@ class PDFVerifier:
             for cert_bytes in trustedCerts:
                 certs.append(cx509.load_pem_x509_certificate(cert_bytes))
         #self.trustedCerts = trustedCerts
-        self.verifier = PolicyBuilder(
-            ).store(Store(certs)
+
+        self.certs = certs
+        self.verifier = verification.PolicyBuilder(
+            ).store(verification.Store(certs)
             ).time(datetime.datetime.utcnow()
             ).max_chain_depth(4
             ).build_client_verifier()
+
+    def validator_cb(self, policy, cert, ext):
+        print('*'*20, 'validator_cb')
+        print('pol:', policy)
+        print('cert:', cert)
+        print('ext:', ext)
+        # Any exception from the python validator is treated as failure.
+        #raise ValueError("...")
 
     def validate_certificate(self, cert, othercerts=[]) -> bool:
         try:
@@ -242,12 +252,80 @@ class PDFVerifier:
     def verify_tsp_data(self, signed_data, tspdata, othercerts):
         if tspdata['encap_content_info']['content_type'].native == 'tst_info':
             (_, _, tcrldata, tcert, tothercerts, _, tsignatureok) = self.decompose_signed_data(b'', tspdata)
-            if tsignatureok and self.validate_certificate(tcert, othercerts):
-                tst = tspdata['encap_content_info']['content'].parsed
-                signature_bytes = signed_data['signer_infos'][0]['signature'].native
-                md = hashlib.sha256(signature_bytes).digest()
-                if md == tst['message_imprint']['hashed_message'].native:
-                    return True, tst['gen_time'].native
+            if not tsignatureok:
+                return False, None
+
+            def getleaf(xcert):
+                leaf_certificate = None
+                for cert in tothercerts:
+                    if xcert.issuer == cert.subject:
+                        return cert
+
+            def seekForRoot(xcert, certs):
+                for cert in certs:
+                    if xcert.issuer == cert.subject:
+                        return True
+                for cert in self.certs:
+                    if xcert.issuer == cert.subject:
+                        return True
+                return False
+
+            # tcert must have timeStamping EKU
+            eku_extension = tcert.extensions.get_extension_for_class(
+                cx509.ExtendedKeyUsage
+            )
+            if not eku_extension.critical:
+                logger.debug("The EKU extension is not critical.")
+                return False, None
+
+            if cx509.ExtendedKeyUsageOID.TIME_STAMPING not in eku_extension.value:
+                logger.debug("The EKU extension does not have KeyPurposeID id-kp-timeStamping.")
+                return False, None
+
+            leaf_certificate = getleaf(tcert)
+            if leaf_certificate:
+                bc_extension = leaf_certificate.extensions.get_extension_for_class(
+                    cx509.BasicConstraints
+                )
+                eku_extension = leaf_certificate.extensions.get_extension_for_class(
+                    cx509.ExtendedKeyUsage
+                )
+                if not bc_extension.critical or not bc_extension.value.ca:
+                    logger.debug("Leaf certificate is not CA.")
+                    return False, None
+                #elif not eku_extension.critical:
+                #    # leaf cert must have timeStamping EKU
+                #    msg = "The EKU extension is not critical."
+                #    raise VerificationError(msg)
+                elif cx509.ExtendedKeyUsageOID.TIME_STAMPING not in eku_extension.value:
+                    logger.debug("The EKU extension does not have KeyPurposeID id-kp-timeStamping.")
+                    return False, None
+
+                while True:
+                    cert = getleaf(leaf_certificate)
+                    if cert:
+                        leaf_certificate = cert
+                    else:
+                        break
+
+                # leaf_certificate must be signed by known CA
+                # ok = self.verifier.verify(leaf_certificate, othercerts)
+                ok = seekForRoot(leaf_certificate, othercerts)
+            else:
+                # tcert may not have subjectAltName
+                #ok = self.verifier.verify(tcert, othercerts)
+                ok = seekForRoot(tcert, othercerts)
+
+            if not ok:
+                logger.debug("No leaf certificate found in the chain.")
+                return False, None
+
+            tst = tspdata['encap_content_info']['content'].parsed
+            signature_bytes = signed_data['signer_infos'][0]['signature'].native
+            md = hashlib.sha256(signature_bytes).digest()
+            if md == tst['message_imprint']['hashed_message'].native:
+                return True, tst['gen_time'].native
+
         return False, None
 
 
