@@ -5,6 +5,8 @@ from win32.lib import win32cryptcon
 
 from endesive import hsm, pdf
 
+CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG = 0x10000
+
 class WindowsHSM(hsm.BaseHSM):
     def __init__(self, subject, certstore='MY'):
         self.derdata = None
@@ -25,7 +27,9 @@ class WindowsHSM(hsm.BaseHSM):
         return 1, self.derdata
 
     def sign(self, keyid, data, mech):
-        keyspec, cryptprov = self.cert.CryptAcquireCertificatePrivateKey(win32cryptcon.CRYPT_ACQUIRE_COMPARE_KEY_FLAG)
+        keyspec, cryptprov = self.cert.CryptAcquireCertificatePrivateKey(
+            win32cryptcon.CRYPT_ACQUIRE_COMPARE_KEY_FLAG | CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG
+        )
         chash = cryptprov.CryptCreateHash(win32cryptcon.CALG_SHA1, None, 0)
         chash.CryptHashData(data, 0)
         res = chash.CryptSignHash(keyspec, 0)
