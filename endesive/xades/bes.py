@@ -217,7 +217,7 @@ class BES:
         "_5d": "_02",
     }
 
-    def enveloped(self, data, cert, certcontent, signproc, tspurl, tspcred):
+    def enveloped(self, data, cert, certcontent, signproc, tspurl, tspcred, signaturemethod=None):
         tree = etree.parse(io.BytesIO(data))
         signedobj = tree.getroot()
         canonicalizedxml = self._c14n(signedobj, "")
@@ -311,12 +311,14 @@ Content-Disposition: filename="document.xml"\
             digestvalue2, tspurl, tspcred, "sha256"
         )
 
+        if signaturemethod is None:
+            signaturemethod = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
         signedinfo = SignedInfo(
             CanonicalizationMethod(
                 Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
             ),
             SignatureMethod(
-                Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                Algorithm=signaturemethod
             ),
             Reference(
                 Transforms(
@@ -387,6 +389,7 @@ Content-Disposition: filename="document.xml"\
         detached=False,
         tspurl=None,
         tspcred=None,
+        signaturemethod=None,
     ):
         swithcomments = ""
         if withcomments:
@@ -481,12 +484,14 @@ Content-Disposition: filename="%s"\
             print(canonicalizedxml)
             print("digest:", digestvalue2)
 
+        if signaturemethod is None:
+            signaturemethod = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
         signedinfo = SignedInfo(
             CanonicalizationMethod(
                 Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
             ),
             SignatureMethod(
-                Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                Algorithm=signaturemethod
             ),
             Reference(
                 Transforms(
