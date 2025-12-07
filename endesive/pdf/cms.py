@@ -496,7 +496,7 @@ class SignedData(pdf.PdfFileWriter):
             v = udct.get(v, None)
             if v is not None:
                 d12[po.NameObject(k)] = po.createStringObject(v)
-        if 1 or params.get("use_signingdate"):
+        if params.get("use_signingdate"):
             d12[po.NameObject("/M")] = po.createStringObject(udct["signingdate"])
         if d12:
             obj12.update(d12)
