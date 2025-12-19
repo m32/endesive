@@ -930,6 +930,7 @@ def sign(
     timestamp_req_options=None,
     ocspurl=None,
     ocspissuer=None,
+    use_signingdate=True,
 ):
     """
     parameters:
@@ -1003,6 +1004,7 @@ def sign(
         ocsppurl: ocsp server URL or None
         ocspissuer: certificate of issuer or None
         ltv: boolean enable LTV signature
+        use_signingdate: boolean include signingdate from udct in signer info block of pdf
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic signature
 
@@ -1072,4 +1074,5 @@ def sign(
         "sign",
         ocspurl,
         ocspissuer,
+        use_signingdate,
     )
