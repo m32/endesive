@@ -25,13 +25,7 @@ classifiers = [
     "Topic :: Text Processing",
     "Topic :: Multimedia :: Graphics",
 ]
-
-[project.urls]
-Source = "https://github.com/m32/endesive"
-"Bug Reports" = "https://github.com/m32/endesive/issues"
-
-[project.optional-dependencies]
-full = [
+dependencies = [
     "cryptography",
     "asn1crypto",
     "lxml",
@@ -41,6 +35,11 @@ full = [
     "paramiko"
 ]
 
+[project.urls]
+Source = "https://github.com/m32/endesive"
+"Bug Reports" = "https://github.com/m32/endesive/issues"
+
+[project.optional-dependencies]
 dev = [
     "pytest-cov",
     "wheel"
