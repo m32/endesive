@@ -6,10 +6,10 @@ from email.mime.application import MIMEApplication
 from asn1crypto import cms, core, algos
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.decrepit.ciphers import modes as dmodes
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as cmodes
 from cryptography.hazmat.primitives.asymmetric import padding
-
 from endesive import signer
 
 
@@ -93,9 +93,13 @@ class EncryptedData(object):
         block_size = 16
         session_key = os.urandom(key_size)
         iv = os.urandom(block_size)
+        name = algo.split('_', 1)[1].upper()
+        proc = getattr(dmodes, name, None)
+        if not proc:
+            proc = getattr(cmodes, name)
         cipher = Cipher(
             algorithms.AES(session_key),
-            getattr(modes, algo.split('_', 1)[1].upper())(iv),
+            proc(iv),
             default_backend()
         )
 

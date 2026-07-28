@@ -243,7 +243,7 @@ class HSM(BaseHSM):
             },
             "validity": {
                 "not_before": asn1x509.Time({
-                    "utc_time": asn1x509.UTCTime((datetime.datetime.utcnow() - datetime.timedelta(days=1)).strftime('%y%m%d%H%M%SZ')),
+                    "utc_time": asn1x509.UTCTime((datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)).strftime('%y%m%d%H%M%SZ')),
                 }),
                 "not_after": asn1x509.Time({
                     "utc_time": asn1x509.UTCTime(until.strftime('%y%m%d%H%M%SZ')),
@@ -428,7 +428,7 @@ class HSM(BaseHSM):
             }
         )
         # pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.utcnow() + datetime.timedelta(
+        until = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
             days=365 * 40
         )
         der_bytes = self.certsign(1, pubKey, subject, until, privKey, None)
@@ -465,7 +465,7 @@ class HSM(BaseHSM):
             }
         )
         # pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.utcnow() + datetime.timedelta(
+        until = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
             days=days
         )
         der_bytes = self.certsign(sn, pubKey, subject, until, caprivKey, keyID == b'\x02')

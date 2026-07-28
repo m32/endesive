@@ -1,0 +1,6 @@
+qpdf \
+--encrypt "1234" "1234" 256 \
+--extract=n \
+--modify=none -- \
+pdf.pdf \
+pdf-qpdf.pdf

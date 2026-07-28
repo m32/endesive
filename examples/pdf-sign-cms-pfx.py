@@ -98,7 +98,7 @@ def run():
           coords = [int(coord) for coord in args.coords.split(',') if coord]
         page = args.page if args.page else 1
         dest = args.dest if args.dest else args.src
-        date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+        date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
         date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
         signature = signature_string(names['CN'], date, names['C'])
         dct = {

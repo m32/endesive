@@ -858,7 +858,7 @@ class SignedData(pdf.PdfFileWriter):
 def timestamp(
     datau,
     udct,
-    algomd="sha1",
+    algomd="sha256",
     timestampurl=None,
     timestampcredentials=None,
     timestamp_req_options=None,
@@ -891,7 +891,7 @@ def timestamp(
             - signature_manual
             - manual_fonts
             - manual_images
-        algomd:string                   default: sha1 - name of the hashing algorithm used to calculate
+        algomd:string                   default: sha256 - name of the hashing algorithm used to calculate
                                             the hash of the document being signed e.g.: sha1, sha256, sha384, sha512, ripemd160
         hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
         timestampurl: timestamp server URL or None
@@ -923,7 +923,7 @@ def sign(
     key,
     cert,
     othercerts,
-    algomd="sha1",
+    algomd="sha256",
     hsm=None,
     timestampurl=None,
     timestampcredentials=None,
@@ -995,7 +995,7 @@ def sign(
         cert: cryptography.x509.Certificate - certificate associated with the key
         othercerts: list of cryptography.x509.Certificate to be saved with the signed document,
             e.g.: a list of intermediate certificates used to confirm the authenticity of the certificate used in the signature
-        algomd:string                   default: sha1 - name of the hashing algorithm used to calculate
+        algomd:string                   default: sha256 - name of the hashing algorithm used to calculate
                                             the hash of the document being signed e.g.: sha1, sha256, sha384, sha512, ripemd160
         hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
         timestampurl: timestamp server URL or None

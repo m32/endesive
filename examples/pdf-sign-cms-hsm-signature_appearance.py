@@ -73,7 +73,7 @@ class Signer(hsm.HSM):
             self.logout()
 
 def main():
-    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
     date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
     class User:
         full_name = 'u.full: ąćęłńóśżź'

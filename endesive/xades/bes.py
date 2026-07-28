@@ -8,11 +8,15 @@ import datetime
 import hashlib
 import io
 import uuid
+import secrets
 
 from cryptography.x509.oid import NameOID
 from lxml import etree, builder
 import requests
 from asn1crypto import cms, algos, core, keys, pem, tsp, x509, util
+
+
+DEFAULT_HTTP_TIMEOUT = 10
 
 DS = builder.ElementMaker(
     namespace="http://www.w3.org/2000/09/xmldsig#",
@@ -82,8 +86,8 @@ class BES:
     debug = False
 
     def __init__(self):
-        self.guid = str(uuid.uuid1())
-        self.time = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.guid = str(uuid.uuid4())
+        self.time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def sha256(self, data):
         h = hashlib.sha256(data).digest()
@@ -157,7 +161,7 @@ class BES:
                         }
                     ),
                     #'req_policy', ObjectIdentifier, {'optional': True}),
-                    "nonce": int(time.time() * 1000),
+                    "nonce": secrets.randbits(64),
                     "cert_req": True,
                     #'extensions': tsp.Extensions()
                 }
@@ -173,7 +177,12 @@ class BES:
                         bytes(username + ":" + password, "utf-8")
                     ).decode("ascii")
                     tspheaders["Authorization"] = f"Basic {auth_header_value}"
-            tspresp = requests.post(tspurl, data=tspreq, headers=tspheaders)
+            tspresp = requests.post(
+                tspurl,
+                data=tspreq,
+                headers=tspheaders,
+                timeout=DEFAULT_HTTP_TIMEOUT,
+            )
             if (
                 tspresp.headers.get("Content-Type", None)
                 == "application/timestamp-reply"

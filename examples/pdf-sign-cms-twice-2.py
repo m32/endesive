@@ -14,7 +14,7 @@ from endesive.pdf import cms
 
 
 def main():
-    date = datetime.datetime.utcnow()
+    date = datetime.datetime.now(datetime.UTC)
     date = date.strftime("D:%Y%m%d%H%M%S+00'00'")
     dct = {
         "aligned": 8192,

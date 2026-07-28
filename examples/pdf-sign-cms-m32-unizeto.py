@@ -14,7 +14,7 @@ from endesive import pdf
 def main():
     tspurl = "http://time.certum.pl"
     #tspurl = "http://public-qlts.certum.pl/qts-17"
-    date = datetime.datetime.utcnow()
+    date = datetime.datetime.now(datetime.UTC)
     date = date.strftime("D:%Y%m%d%H%M%S+00'00'")
     dct = {
         "sigflags": 3,

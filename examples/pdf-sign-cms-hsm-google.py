@@ -53,7 +53,7 @@ class GoogleHSM(hsm.BaseHSM):
 
 def main(project_id, location_id, key_ring_id, key_id, version_id, fname):
     
-    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
     date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
     dct = {
         'sigflags': 3,

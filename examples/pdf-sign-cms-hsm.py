@@ -82,7 +82,7 @@ def main():
     ocspissuer = open('CertumDigitalIdentificationCASHA2.crt', 'rb').read()
     ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
 
-    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
     date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
     dct = {
         'sigflags': 3,

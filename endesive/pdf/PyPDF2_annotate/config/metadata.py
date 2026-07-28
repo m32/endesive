@@ -99,7 +99,7 @@ class Metadata(object):
 
     @staticmethod
     def now():
-        return datetime.utcnow().replace(tzinfo=UTC())
+        return datetime.datetime.now(datetime.UTC).replace(tzinfo=UTC())
 
 
 def serialize_value(value):

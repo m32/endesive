@@ -5,7 +5,8 @@ from email import message_from_string
 from asn1crypto import cms
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.decrepit.ciphers import modes as dmodes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as cmodes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
@@ -55,6 +56,9 @@ class DecryptedData(object):
 
         algorithm, mode = algo.split('_', 1)
         algorithm = algorithm.upper()
+        proc = getattr(dmodes, mode.upper(), None)
+        if not proc:
+            proc = getattr(cmodes, mode.upper())
         if algorithm in (
             'AES128',
             'AES192',
@@ -62,7 +66,7 @@ class DecryptedData(object):
         ):
             cipher = Cipher(
                 algorithms.AES(udata),
-                getattr(modes, mode.upper())(param),
+                proc(param),
                 default_backend()
             )
         elif algorithm == 'TRIPLEDES':
@@ -72,7 +76,7 @@ class DecryptedData(object):
             mode = 'cbc'
             cipher = Cipher(
                 TripleDES(udata),
-                getattr(modes, mode.upper())(param),
+                proc(param),
                 default_backend()
             )
         else:

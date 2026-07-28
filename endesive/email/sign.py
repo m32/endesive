@@ -44,7 +44,7 @@ Content-Disposition: attachment; filename="smime.p7s"
         return data
 
 
-def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[x509.Certificate], hashalgo='sha1', attrs=True, pss=False)->bytes:
+def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[x509.Certificate], hashalgo='sha256', attrs=True, pss=False)->bytes:
     """
     Sign data with private key and encapsulate the result (data and signature) as S/MIME message.
 
@@ -52,7 +52,7 @@ def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[
     :param key: Private key to sign with (PrivateKeyTypes).
     :param cert: Certificate to sign with (x509.Certificate).
     :param certs: List of additional certificates (list of x509.Certificate).
-    :param hashalgo: Hash algorithm to use (str, default 'sha1').
+    :param hashalgo: Hash algorithm to use (str, default 'sha256').
     :param attrs: Whether to include attributes (bool, default True).
     :param pss: Whether to use PSS padding (bool, default False).
     :return: Signed data as bytes.

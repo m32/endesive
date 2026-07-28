@@ -11,7 +11,7 @@ from endesive import pdf
 #logging.basicConfig(level=logging.DEBUG)
 
 def main():
-    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     img = Image.open('signature_test.png')
     dct = {

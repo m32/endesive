@@ -7,7 +7,7 @@ from endesive.pdf import pdf
 
 
 def main():
-    date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+    date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
     date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
     dct = {
         'sigflags': 3,

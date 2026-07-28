@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import sys
 import types
 import hashlib
-import time
+import secrets
 import requests
 from base64 import b64encode
 from datetime import datetime
@@ -14,6 +14,9 @@ from cryptography.hazmat.primitives.asymmetric import padding, utils, ec
 from cryptography.hazmat import backends
 from cryptography import x509 as cryptography_x509
 from cryptography.x509 import ocsp as cryptography_ocsp
+
+
+DEFAULT_HTTP_TIMEOUT = 10
 
 
 def cert2asn(cert, cert_bytes=True):
@@ -72,11 +75,12 @@ def fetch_ocsp_response(cert, issuer, url):
             url,
             headers={"Content-Type": "application/ocsp-request"},
             data=data,
+            timeout=DEFAULT_HTTP_TIMEOUT,
         )
         if response.status_code != 200:
             return None
         return response.content
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.RequestException:
         return None
 
 
@@ -95,7 +99,7 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
                 }
             ),
             #'req_policy', ObjectIdentifier, {'optional': True}),
-            "nonce": int(time.time() * 1000),
+            "nonce": secrets.randbits(64),
             "cert_req": True,
             #'extensions': tsp.Extensions()
         }
@@ -113,6 +117,7 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
             tspheaders["Authorization"] = f"Basic {auth_header_value}"
     if req_options is None:
         req_options = {}
+    req_options.setdefault("timeout", DEFAULT_HTTP_TIMEOUT)
 
     tspresp = requests.post(url, data=tspreq, headers=tspheaders, **req_options)
     if tspresp.headers.get("Content-Type", None) == "application/timestamp-reply":

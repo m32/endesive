@@ -22,6 +22,15 @@ from endesive import verifier
 logger = logging.getLogger(__name__)
 
 
+_SIG_HASH_ALGOS = {
+    "sha1": hashes.SHA1,
+    "sha224": hashes.SHA224,
+    "sha256": hashes.SHA256,
+    "sha384": hashes.SHA384,
+    "sha512": hashes.SHA512,
+}
+
+
 class PDFVerifier:
     def __init__(self, pdf_data: bytes, trustedCerts=None, systemCertsPath=None):
         self.pdf_data = pdf_data
@@ -40,7 +49,7 @@ class PDFVerifier:
         self.certs = certs
         self.verifier = verification.PolicyBuilder(
             ).store(verification.Store(certs)
-            ).time(datetime.datetime.utcnow()
+            ).time(datetime.datetime.now(datetime.UTC)
             ).max_chain_depth(4
             ).build_client_verifier()
 
@@ -61,6 +70,40 @@ class PDFVerifier:
             certok = False
         return certok
 
+    def _resolve_hash_cls(self, algo_name):
+        if algo_name is None:
+            return None
+        normalized = algo_name.lower().replace("-", "")
+        if normalized.endswith("rsa"):
+            normalized = normalized[:-3].rstrip("_")
+        return _SIG_HASH_ALGOS.get(normalized)
+
+    def _verify_ocsp_cert_id(self, cert_id, issuer_cert):
+        hash_name = cert_id["hash_algorithm"]["algorithm"].native
+        hash_cls = self._resolve_hash_cls(hash_name)
+        if hash_cls is None:
+            return False
+
+        issuer_asn1 = x509.Certificate.load(
+            issuer_cert.public_bytes(serialization.Encoding.DER)
+        )
+        issuer_name = issuer_asn1["tbs_certificate"]["subject"].dump()
+        issuer_key_bitstring = issuer_asn1["tbs_certificate"]["subject_public_key_info"]["public_key"]
+        issuer_key = issuer_key_bitstring.contents[1:]
+
+        digest = hashes.Hash(hash_cls())
+        digest.update(issuer_name)
+        expected_name_hash = digest.finalize()
+
+        digest = hashes.Hash(hash_cls())
+        digest.update(issuer_key)
+        expected_key_hash = digest.finalize()
+
+        return (
+            cert_id["issuer_name_hash"].native == expected_name_hash
+            and cert_id["issuer_key_hash"].native == expected_key_hash
+        )
+
     def is_valid_pdf(self) -> bool:
         return b"%PDF-" in self.pdf_data[:1024]
 
@@ -78,8 +121,9 @@ class PDFVerifier:
             n = stop + 1
             try:
                 br = [int(i, 10) for i in self.pdf_data[start + 1 : stop].split()]
-                assert self.pdf_data[br[1]] == 60 and self.pdf_data[br[2]-1] == 62
-            except:
+                if self.pdf_data[br[1]] != 60 or self.pdf_data[br[2] - 1] != 62:
+                    raise ValueError("Invalid ByteRange markers")
+            except Exception:
                 self.modified = True
                 return False
             self.byte_ranges.append(br)
@@ -122,10 +166,13 @@ class PDFVerifier:
                     )
                 )
             else:
-                assert cert is None
+                if cert is not None:
+                    raise ValueError("Multiple signer certificates with the same serial")
                 cert = cx509.load_pem_x509_certificate(
                     pem.armor("CERTIFICATE", pdfcert.chosen.dump())
                 )
+        if cert is None:
+            raise ValueError("Signer certificate not found in signed data")
         public_key = cert.public_key()
 
         sigalgo = signed_data["signer_infos"][0]["signature_algorithm"]
@@ -157,7 +204,7 @@ class PDFVerifier:
                     getattr(hashes, salgo)(),
                 )
                 signatureok = True
-            except:
+            except Exception:
                 signatureok = False
         elif sigalgoname == "rsassa_pkcs1v15":
             try:
@@ -168,7 +215,7 @@ class PDFVerifier:
                     getattr(hashes, algo.upper())(),
                 )
                 signatureok = True
-            except:
+            except Exception:
                 signatureok = False
         else:
             raise ValueError("Unknown signature algorithm")
@@ -189,7 +236,7 @@ class PDFVerifier:
         contents = self.pdf_data[byte_range[0] + byte_range[1] + 1 : byte_range[2] - 1]
         try:
             signaturebytes = bytes.fromhex(contents.decode("utf8"))
-        except:
+        except Exception:
             return False
         data1 = self.pdf_data[byte_range[0] : byte_range[0] + byte_range[1]]
         data2 = self.pdf_data[byte_range[2] : byte_range[2] + byte_range[3]]
@@ -199,6 +246,11 @@ class PDFVerifier:
         return self.decompose_signed_data(datau, signed_data)
 
     def verify_ocsp_data(self, cert, othercerts, crldata):
+        issuer_cert = next((item for item in othercerts if item.subject == cert.issuer), None)
+        if issuer_cert is None:
+            logger.debug("cannot resolve issuer certificate for OCSP CertID check")
+            return False, None
+
         for crl1 in crldata:
             # clr1: cms.RevocationInfoChoice
             if crl1.native["other_rev_info_format"] != "ocsp_response":
@@ -214,7 +266,11 @@ class PDFVerifier:
                 cert_was_checked = False
                 next_check_at = None
                 for ccert in crlresp["tbs_response_data"]["responses"]:
-                    if ccert["cert_id"]["serial_number"].native == cert.serial_number:
+                    cert_id = ccert["cert_id"]
+                    if (
+                        cert_id["serial_number"].native == cert.serial_number
+                        and self._verify_ocsp_cert_id(cert_id, issuer_cert)
+                    ):
                         cert_was_checked = True
                         next_check_at = ccert["next_update"].native
                         break
@@ -231,17 +287,27 @@ class PDFVerifier:
                         try:
                             public_key = ocspcert.public_key()
                             signedData = crlresp["tbs_response_data"].dump()
-                            # only sha256_rsa
+                            hash_cls = self._resolve_hash_cls(sigalgo)
+                            if hash_cls is None:
+                                raise ValueError(f"Unsupported OCSP signature algorithm: {sigalgo}")
+
                             public_key.verify(
                                 sig,
                                 signedData,
                                 padding.PKCS1v15(),
-                                getattr(hashes, "SHA256")(),
+                                hash_cls(),
                             )
                             sigok = True
-                        except:
+                        except Exception:
                             logger.debug(f"ocsp signing certificate is invalid")
                             pass
+                now = datetime.datetime.now(datetime.UTC)
+                if produced_at > now:
+                    logger.debug("ocsp produced_at is in the future")
+                    return False, None
+                if next_check_at is not None and next_check_at < now:
+                    logger.debug("ocsp response is stale")
+                    return False, None
                 if sigok and cert_was_checked:
                     return True, (produced_at, next_check_at)
                 logger.debug(f"ocsp cannot be verified")
@@ -353,9 +419,11 @@ def verify(pdfdata:bytes, certs:list[cx509.Certificate]=None) -> list[tuple[bool
     while n != -1:
         start = pdfdata.find(b"[", n)
         stop = pdfdata.find(b"]", start)
-        assert n != -1 and start != -1 and stop != -1
+        if n == -1 or start == -1 or stop == -1:
+            raise ValueError("Invalid PDF signature ByteRange format")
         br = [int(i, 10) for i in pdfdata[start + 1 : stop].split()]
-        assert pdfdata[br[1]] == 60 and pdfdata[br[2]-1] == 62
+        if pdfdata[br[1]] != 60 or pdfdata[br[2] - 1] != 62:
+            raise ValueError("Invalid PDF signature contents delimiters")
         contents = pdfdata[br[0] + br[1] + 1 : br[2] - 1]
         bcontents = bytes.fromhex(contents.decode("utf8"))
         data1 = pdfdata[br[0] : br[0] + br[1]]

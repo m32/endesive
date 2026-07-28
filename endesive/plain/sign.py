@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 from endesive import signer
 
 
-def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[x509.Certificate], hashalgo='sha1', attrs=True, pss=False) -> bytes:
+def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[x509.Certificate], hashalgo='sha256', attrs=True, pss=False) -> bytes:
     """
     Sign data with private key without any encapsulation.
 
@@ -14,7 +14,7 @@ def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[
         key: Private key to sign with (PrivateKeyTypes).
         cert: Certificate to sign with (x509.Certificate).
         certs: List of additional certificates (list of x509.Certificate).
-        hashalgo: Hash algorithm to use (str, default 'sha1').
+        hashalgo: Hash algorithm to use (str, default 'sha256').
         attrs: Whether to include attributes (bool, default True).
         pss: Whether to use PSS padding (bool, default False).
 

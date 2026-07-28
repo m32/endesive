@@ -240,7 +240,7 @@ class PDFTests(unittest.TestCase):
             assert signatureok and hashok and certok
 
     def test_pdf_signature_manual(self):
-        date = datetime.datetime.utcnow() - datetime.timedelta(hours=12)
+        date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
         date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
         class User:
             full_name = 'u.full: ąćęłńóśżź'

@@ -156,8 +156,8 @@ class Main(object):
             .issuer_name(self.ca_sub_cert.subject)
             .public_key(csr.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.datetime.utcnow())
-            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+            .not_valid_before(datetime.datetime.now(datetime.UTC))
+            .not_valid_after(datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=365))
             .add_extension(
                 x509.BasicConstraints(ca=False, path_length=None),
                 critical=True
@@ -287,10 +287,10 @@ class Main(object):
             .issuer_name(issuer)
             .public_key(key.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.datetime.utcnow())
+            .not_valid_before(datetime.datetime.now(datetime.UTC))
             .not_valid_after(
                 # Our certificate will be valid for 40 years
-                datetime.datetime.utcnow()
+                datetime.datetime.now(datetime.UTC)
                 + datetime.timedelta(days=40 * 365)
             ).add_extension(
                 x509.BasicConstraints(
@@ -338,10 +338,10 @@ class Main(object):
             .issuer_name(rootcert.subject)
             .public_key(key.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.datetime.utcnow())
+            .not_valid_before(datetime.datetime.now(datetime.UTC))
             .not_valid_after(
                 # Our certificate will be valid for 10 years
-                datetime.datetime.utcnow()
+                datetime.datetime.now(datetime.UTC)
                 + datetime.timedelta(days=10 * 365)
             ).add_extension(
                 x509.BasicConstraints(

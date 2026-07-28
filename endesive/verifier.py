@@ -26,7 +26,7 @@ class VerifyData(object):
         store = Store(certs)
         self.verifier = PolicyBuilder(
             ).store(store
-            ).time(datetime.datetime.utcnow()
+            ).time(datetime.datetime.now(datetime.UTC)
             ).max_chain_depth(4
             ).build_client_verifier()
 
@@ -60,10 +60,13 @@ class VerifyData(object):
                     )
                 )
             else:
-                assert cert is None
+                if cert is not None:
+                    raise ValueError("Multiple signer certificates with the same serial")
                 cert = cx509.load_pem_x509_certificate(
                     pem.armor("CERTIFICATE", pdfcert.chosen.dump())
                 )
+        if cert is None:
+            raise ValueError("Signer certificate not found in signed data")
         public_key = cert.public_key()
 
         sigalgo = signed_data["signer_infos"][0]["signature_algorithm"]
@@ -96,7 +99,7 @@ class VerifyData(object):
                     getattr(hashes, salgo)(),
                 )
                 signatureok = True
-            except:
+            except Exception:
                 signatureok = False
         elif sigalgoname == "rsassa_pkcs1v15":
             try:
@@ -107,7 +110,7 @@ class VerifyData(object):
                     getattr(hashes, algo.upper())(),
                 )
                 signatureok = True
-            except:
+            except Exception:
                 signatureok = False
         else:
             raise ValueError("Unknown signature algorithm")
