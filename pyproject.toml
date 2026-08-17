@@ -32,7 +32,8 @@ dependencies = [
     "pykcs11",
     "Pillow",
     "requests",
-    "paramiko"
+    "paramiko",
+    "pypdf"
 ]
 
 [project.urls]

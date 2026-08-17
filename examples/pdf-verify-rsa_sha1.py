@@ -1,7 +1,7 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
 import hashlib
-from endesive.pdf.PyPDF2 import PdfFileReader
+from pypdf import PdfReader
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 
 def main():
     fname = "pdf-adobe-webcapture-x509.rsa_sha1.pdf"
-    pdf = PdfFileReader(fname)
+    pdf = PdfReader(fname)
     catalog = pdf.trailer["/Root"]
     docmdp = catalog["/Perms"]["/DocMDP"]
     if 0:

@@ -1,4 +1,4 @@
-from endesive.pdf.PyPDF2 import generic as pdf
+from pypdf import generic as pdf
 
 
 def makeObject(obj):
@@ -9,7 +9,7 @@ def makeObject(obj):
     if isinstance(obj, float):
         return pdf.NumberObject(obj)
     if isinstance(obj, str):
-        return pdf.createStringObject(obj)
+        return pdf.create_string_object(obj)
     if isinstance(obj, (list, tuple)):
         result = pdf.ArrayObject()
         for v in obj:
@@ -55,7 +55,7 @@ def PdfName(name):
 
 
 def PdfString(s):
-    return pdf.createStringObject(s)
+    return pdf.create_string_object(s)
 
 
 def PdfArray(l):
