@@ -17,6 +17,14 @@ from endesive import signer
 from pypdf import PdfReader, PdfWriter
 from pypdf import generic as po
 
+def b_(s):
+    """Encode str to bytes (pass bytes through unchanged).
+    """
+    if isinstance(s, bytes):
+        return s
+    return s.encode("latin-1")
+
+
 
 def EncodedString(s):
     return po.create_string_object(codecs.BOM_UTF16_BE + s.encode("utf-16be"))
@@ -69,7 +77,7 @@ class SignedData(PdfWriter):
         self._encrypt_key = key
 
     def write(self, stream, prev, startdata):
-        stream.write(pdf.b_("\r\n"))
+        stream.write(b_("\r\n"))
         positions = {}
         for i in range(len(self._objects)):
             idnum = i + 1
@@ -78,7 +86,7 @@ class SignedData(PdfWriter):
                 positions[idnum] = 0
                 continue
             positions[idnum] = startdata + stream.tell()
-            stream.write(pdf.b_(str(idnum) + " 0 obj\n"))
+            stream.write(b_(str(idnum) + " 0 obj\n"))
             key = None
             if self._encrypt_key is not None:
                 pack1 = struct.pack("<i", i + 1)[:3]
@@ -87,8 +95,8 @@ class SignedData(PdfWriter):
                 assert len(key) == (len(self._encrypt_key) + 5)
                 md5_hash = hashlib.md5(key).digest()
                 key = md5_hash[: min(16, len(self._encrypt_key) + 5)]
-            stream.write(pdf.b_("\nendobj\n"))
             obj.write_to_stream(stream)
+            stream.write(b_("\nendobj\n"))
 
         xref_location = startdata + stream.tell()
         if not prev.xrefstream:
@@ -113,7 +121,7 @@ class SignedData(PdfWriter):
             trailer[po.NameObject("/Info")] = self.x_info
 
         if not xrefstream:
-            stream.write(pdf.b_("xref\n"))
+            stream.write(b_("xref\n"))
             positions[0] = 1
             keys = sorted(positions.keys())
             i = 0
@@ -121,21 +129,21 @@ class SignedData(PdfWriter):
                 start = i
                 while i < len(keys) and positions[keys[i]] != 0:
                     i += 1
-                stream.write(pdf.b_("%d %d \n" % (keys[start], i - start)))
+                stream.write(b_("%d %d \n" % (keys[start], i - start)))
                 i = start
                 while i < len(keys) and positions[keys[i]] != 0:
                     if i == 0:
-                        stream.write(pdf.b_("0000000000 65535 f \n"))
+                        stream.write(b_("0000000000 65535 f \n"))
                     else:
                         stream.write(
-                            pdf.b_("%010d %05d n \n" % (positions[keys[i]], 0))
+                            b_("%010d %05d n \n" % (positions[keys[i]], 0))
                         )
                     i += 1
                 while i < len(keys) and positions[keys[i]] == 0:
                     i += 1
 
             # trailer
-            stream.write(pdf.b_("trailer\n"))
+            stream.write(b_("trailer\n"))
             trailer.write_to_stream(stream, None)
         else:
 
@@ -165,12 +173,12 @@ class SignedData(PdfWriter):
             retval = trailer.flate_encode()
             trailer.update(retval)
             trailer._data = retval._data
-            stream.write(pdf.b_("%d 0 obj\n" % (len(self._objects))))
-            stream.write(pdf.b_("\nendobj"))
+            stream.write(b_("%d 0 obj\n" % (len(self._objects))))
             trailer.write_to_stream(stream, None)
+            stream.write(b_("\nendobj"))
 
         # eof
-        stream.write(pdf.b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
+        stream.write(b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
 
     def _extend(self, obj):
         stream = getattr(obj, "stream", None)
