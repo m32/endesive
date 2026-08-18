@@ -25,6 +25,30 @@ def b_(s):
     return s.encode("latin-1")
 
 
+def _prev_uses_xref_stream(prev):
+    """Whether the previous revision's outermost (most recent) cross-
+    reference section is a cross-reference *stream* (PDF 1.5+,
+    ``/Type /XRef``) rather than a classic ``xref`` table.
+
+    This determines which format the newly-appended incremental update
+    should use, matching the format the previous revision was already
+    using. Older PyPDF2 exposed this as ``PdfFileReader.xrefstream``,
+    tracked internally while parsing; pypdf keeps no equivalent flag, so
+    it is recovered here by looking at the marker byte at the previous
+    xref's file offset (``x`` starts a classic ``xref`` table; a digit
+    starts an indirect object holding a cross-reference stream).
+    """
+    stream = prev.stream
+    saved_pos = stream.tell()
+    try:
+        stream.seek(prev._startxref, 0)
+        x = stream.read(1)
+        if x in b"\r\n":
+            x = stream.read(1)
+        return x.isdigit()
+    finally:
+        stream.seek(saved_pos, 0)
+
 
 def EncodedString(s):
     return po.create_string_object(codecs.BOM_UTF16_BE + s.encode("utf-16be"))
@@ -99,7 +123,8 @@ class SignedData(PdfWriter):
             stream.write(b_("\nendobj\n"))
 
         xref_location = startdata + stream.tell()
-        if not prev.xrefstream:
+        xrefstream = _prev_uses_xref_stream(prev)
+        if not xrefstream:
             trailer = po.DictionaryObject()
         else:
             trailer = po.StreamObject()
