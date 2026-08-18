@@ -1,21 +1,20 @@
 #!/usr/bin/env vpython3
-import sys
-import time
-import random
-import io
-import struct
-import datetime
-import hashlib
 import codecs
+import hashlib
+import io
+import random
 import struct
-from cryptography.hazmat import backends
+import time
+
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import ObjectIdentifier
-from endesive import signer
 from pypdf import PdfReader, PdfWriter
 from pypdf import generic as po
+from pypdf._encryption import AlgV4
+
+from endesive import signer
+
 
 def b_(s):
     """Encode str to bytes (pass bytes through unchanged).
@@ -23,6 +22,15 @@ def b_(s):
     if isinstance(s, bytes):
         return s
     return s.encode("latin-1")
+
+
+def encode_password(password):
+    if isinstance(password, str):
+        try:
+            pwd = password.encode("latin-1")
+        except Exception:
+            pwd = password.encode("utf-8")  # Fallback logic for wider unicode support
+    return pwd
 
 
 def _prev_uses_xref_stream(prev):
@@ -73,30 +81,22 @@ class WNumberObject(po.NumberObject):
 class SignedData(PdfWriter):
     def encrypt(self, prev, password, rc):
         encrypt = prev.trailer["/Encrypt"].get_object()
+        pwd = encode_password(password)
         if encrypt["/V"] == 2:
             rev = 3
-            keylen = 128 // 8
+            keybits = 128
         else:
             rev = 2
-            keylen = 40 // 8
-        P = encrypt["/P"].getObject()
-        O = encrypt["/O"].getObject()
-        ID_1 = prev.trailer["/ID"].getObject()[0]
-        real_U = encrypt["/U"].getObject().original_bytes
-        if rev == 2:
-            U, key = pdf._alg34(password, O, P, ID_1)
-        else:
-            assert rev == 3
-            U, key = pdf._alg35(
-                password,
-                rev,
-                keylen,
-                O,
-                P,
-                ID_1,
-                encrypt.get("/EncryptMetadata", pdf.BooleanObject(False)).getObject(),
-            )
-            U, real_U = U[:16], real_U[:16]
+            keybits = 40
+        P = encrypt["/P"].get_object()
+        O = encrypt["/O"].get_object()
+        ID_1 = prev.trailer["/ID"].get_object()[0].original_bytes
+        real_U = encrypt["/U"].get_object().original_bytes
+        metadata_encrypted = bool(encrypt.get("/EncryptMetadata", po.BooleanObject(False)).get_object())
+        key = AlgV4.compute_key(
+            pwd, rev, keybits, O, P & 0xFFFFFFFF, ID_1, metadata_encrypted)
+        U = AlgV4.compute_U_value(key, rev, ID_1)
+        U, real_U = U[:16], real_U[:16]
         assert U == real_U
         self._encrypt_key = key
 
@@ -119,8 +119,8 @@ class SignedData(PdfWriter):
                 assert len(key) == (len(self._encrypt_key) + 5)
                 md5_hash = hashlib.md5(key).digest()
                 key = md5_hash[: min(16, len(self._encrypt_key) + 5)]
-            obj.write_to_stream(stream)
             stream.write(b_("\nendobj\n"))
+            obj.write_to_stream(stream)
 
         xref_location = startdata + stream.tell()
         xrefstream = _prev_uses_xref_stream(prev)
@@ -199,8 +199,8 @@ class SignedData(PdfWriter):
             trailer.update(retval)
             trailer._data = retval._data
             stream.write(b_("%d 0 obj\n" % (len(self._objects))))
-            trailer.write_to_stream(stream, None)
             stream.write(b_("\nendobj"))
+            trailer.write_to_stream(stream, None)
 
         # eof
         stream.write(b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
