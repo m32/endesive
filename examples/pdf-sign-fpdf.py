@@ -3,31 +3,29 @@
 import datetime
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
-from endesive.pdf import pdf
+import fpdf
 
 
 def main():
-    date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
-    date = date.strftime('%Y%m%d%H%M%S+00\'00\'')
-    dct = {
-        'sigflags': 3,
-        'contact': 'mak@trisoft.com.pl',
-        'location': 'Szczecin',
-        'signingdate': date,
-        'reason': 'Dokument podpisany cyfrowo',
-    }
     with open('ca/demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
-    doc = pdf.FPDF()
-    doc.pkcs11_setup(dct,
-        p12[0], p12[1], p12[2],
-        'sha256'
-    )
+
+    pdf = fpdf.FPDF()
     for i in range(2):
-        doc.add_page()
-        doc.set_font('helvetica', '', 13.0)
-        doc.cell(w=75.0, h=22.0, align='C', txt='Hello, world page=%d.' % i, border=0, ln=0)
-    doc.output('pdf-signed-fpdf.pdf', "F")
+        pdf.add_page()
+        pdf.set_font('helvetica', '', 13.0)
+        pdf.cell(w=75.0, h=22.0, align='C', text='Hello, world page=%d.' % i, border=0, new_x=fpdf.XPos.RIGHT, new_y=fpdf.YPos.TOP)
+    pdf.sign(
+        key=p12[0],
+        cert=p12[1],
+        extra_certs=p12[2],
+        hashalgo="sha256",
+        contact_info="mak@trisoft.com.pl",
+        location="Szczecin",
+        signing_time=datetime.datetime.now(datetime.UTC),
+        reason="Dokument podpisany cyfrowo",
+    )
+    pdf.output('pdf-signed-fpdf.pdf')
 
 
 main()
