@@ -3,45 +3,17 @@
 import sys
 import base64
 import json
+import PyKCS11 as PK11
 from asn1crypto import pem as asn1pem
 from endesive import hsm
+from hsm_config_softhsm import DLLPATH
 
-import os
-import sysconfig
-
-os.environ["SOFTHSM2_CONF"] = "softhsm2.conf"
-if not os.path.exists(os.path.join(os.getcwd(), "softhsm2.conf")):
-    open("softhsm2.conf", "wt").write(
-        """\
-log.level = DEBUG
-directories.tokendir = %s/softhsm2/
-objectstore.backend = file
-slots.removable = false
-"""
-        % os.getcwd()
-    )
-if not os.path.exists(os.path.join(os.getcwd(), "softhsm2")):
-    os.mkdir(os.path.join(os.getcwd(), "softhsm2"))
-
-#
-#!/bin/bash
-# SOFTHSM2_CONF=softhsm2.conf
-# softhsm2-util --label "endesive" --slot 1 --init-token --pin secret1 --so-pin secret2
-# softhsm2-util --show-slots
-#
-
-if sys.platform == "win32":
-    dllpath = r"W:\binw\SoftHSM2\lib\softhsm2-x64.dll"
-else:
-    dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), "softhsm/libsofthsm2.so")
-
-import PyKCS11 as PK11
 
 
 class Signer(hsm.HSM):
     def certificate(self):
         self.login("endesieve", "secret1")
-        keyid = bytes((0x66, 0x66, 0x90))
+        keyid = bytes((0x66, 0x66, 0x01))
         try:
             pk11objects = self.session.findObjects(
                 [(PK11.CKA_CLASS, PK11.CKO_CERTIFICATE)]
@@ -93,7 +65,7 @@ def main():
 
     tosign = base64.decodebytes(config['tosign'].encode('ascii'))
 
-    clshsm = Signer(dllpath)
+    clshsm = Signer(DLLPATH)
     keyid, cert = clshsm.certificate()
     signed_bytes = clshsm.sign(keyid, tosign, "sha256")
 

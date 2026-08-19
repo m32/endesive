@@ -1,29 +1,20 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
+import sys
 from lxml import etree
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
 from endesive import xades, signer, hsm
-
-import os
-import sys
-import sysconfig
-
-os.environ["SOFTHSM2_CONF"] = "softhsm2.conf"
-if sys.platform == "win32":
-    dllpath = r"W:\binw\SoftHSM2\lib\softhsm2-x64.dll"
-else:
-    dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), "softhsm/libsofthsm2.so")
-
 import PyKCS11 as PK11
+from hsm_config_softhsm import DLLPATH
 
 
 class Signer(hsm.HSM):
     def certificate(self):
         self.login("endesieve", "secret1")
-        keyid = bytes((0x66, 0x66, 0x90))
+        keyid = bytes((0x66, 0x66, 0x01))
         try:
             pk11objects = self.session.findObjects(
                 [(PK11.CKA_CLASS, PK11.CKO_CERTIFICATE)]
@@ -67,7 +58,7 @@ class Signer(hsm.HSM):
 
 
 def main():
-    clshsm = Signer(dllpath)
+    clshsm = Signer(DLLPATH)
     keyid, cert = clshsm.certificate()
 
     def signproc(tosign, algosig):

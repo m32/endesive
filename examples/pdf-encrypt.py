@@ -1,14 +1,13 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
-import sys
-from PyPDF2 import PdfFileReader, PdfFileWriter
+from pypdf import PdfReader, PdfWriter
 
 fname = "pdf.pdf"
 with open(fname, "rb") as in_file:
-    input_pdf = PdfFileReader(in_file)
+    input_pdf = PdfReader(in_file)
 
-    output_pdf = PdfFileWriter()
-    output_pdf.appendPagesFromReader(input_pdf)
+    output_pdf = PdfWriter()
+    output_pdf.append_pages_from_reader(input_pdf)
     output_pdf.encrypt("1234", "1234")
 
     fname = fname.replace('.pdf', '-encrypted.pdf')

@@ -20,7 +20,6 @@ def main():
 
         "pdf-signed-cms.pdf",
         "pdf-signed-cms-hash.pdf",
-        "pdf-signed-cms-ltv.pdf",
         "pdf-signed-cms-m32-actalis.pdf",
         "pdf-signed-cms-m32-unizeto.pdf",
         "pdf-signed-cms-pfx.pdf",
@@ -53,7 +52,10 @@ def main():
                 print("signature ok?", signatureok)
                 print("hash ok?", hashok)
                 print("cert ok?", certok)
+                no += 1
         except Exception as exc:
             print(exc)
+            import traceback
+            traceback.print_exc()
 
 main()

@@ -4,8 +4,10 @@ import unittest
 import os
 import sys
 import io
+import base64
 from subprocess import PIPE, Popen
 from datetime import datetime
+from email import message_from_string
 
 from cryptography import x509
 from cryptography.hazmat import backends
@@ -26,6 +28,42 @@ def fixture(fname):
 
 
 class EMAILTests(unittest.TestCase):
+    def _encrypt_for_cert(self, cert_path=test_cert.cert1_cert, algo='aes256_ofb', oaep=False):
+        certs = (test_cert.CA().cert_load(cert_path),)
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        datae = email.encrypt(datau, certs, algo, oaep)
+        return datau, datae
+
+    def _tamper_smime_cms(self, datae, mutator):
+        msg = message_from_string(datae)
+        cms_der = msg.get_payload(decode=True)
+        cms_info = cms.ContentInfo.load(cms_der)
+        mutator(cms_info)
+        msg.set_payload(base64.encodebytes(cms_info.dump()).decode('ascii'))
+        return msg.as_string()
+
+    def _tamper_padding_value(self, datae, original_pad, target_pad):
+        def mutator(cms_info):
+            encrypted_data = cms_info['content']
+            encrypted_content_info = encrypted_data['encrypted_content_info']
+            encrypted_content = bytearray(encrypted_content_info['encrypted_content'].native)
+            encrypted_content[-1] ^= (original_pad ^ target_pad)
+            encrypted_content_info['encrypted_content'] = bytes(encrypted_content)
+
+        return self._tamper_smime_cms(datae, mutator)
+
+    def _tamper_inconsistent_padding(self, datae, original_pad, target_last_pad, target_prev_byte):
+        def mutator(cms_info):
+            encrypted_data = cms_info['content']
+            encrypted_content_info = encrypted_data['encrypted_content_info']
+            encrypted_content = bytearray(encrypted_content_info['encrypted_content'].native)
+            encrypted_content[-1] ^= (original_pad ^ target_last_pad)
+            encrypted_content[-2] ^= (original_pad ^ target_prev_byte)
+            encrypted_content_info['encrypted_content'] = bytes(encrypted_content)
+
+        return self._tamper_smime_cms(datae, mutator)
+
     def test_email_signed_attr(self):
         p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
 
@@ -103,16 +141,17 @@ class EMAILTests(unittest.TestCase):
         datau1 = datau.replace(b'\n', b'\r\n')
         hashalgo = 'sha256'
         signed_value = getattr(hashlib, hashalgo)(datau1).digest()
-        attrs = [
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType('content_type'),
-                'values': ('data',),
-            }),
-            cms.CMSAttribute({
-                'type': cms.CMSAttributeType('message_digest'),
-                'values': (signed_value,),
-            }),
-        ]
+        def attrs(_):
+            return [
+                cms.CMSAttribute({
+                    'type': cms.CMSAttributeType('content_type'),
+                    'values': ('data',),
+                }),
+                cms.CMSAttribute({
+                    'type': cms.CMSAttributeType('message_digest'),
+                    'values': (signed_value,),
+                }),
+            ]
 
         datas = email.sign(datau,
             p12[0], p12[1], p12[2],
@@ -175,6 +214,115 @@ class EMAILTests(unittest.TestCase):
         datad = email.decrypt(datae, key)
 
         assert datau == datad
+
+    def test_email_decrypt_rejects_non_base64_encoding(self):
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        msg = (
+            'Content-Type: application/pkcs7-mime\n'
+            'Content-Transfer-Encoding: 7bit\n\n'
+            'Zm9v\n'
+        )
+        with self.assertRaises(Exception):
+            email.decrypt(msg, key)
+
+    def test_email_decrypt_rejects_invalid_content_type(self):
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        msg = (
+            'Content-Type: text/plain\n'
+            'Content-Transfer-Encoding: base64\n\n'
+            'Zm9v\n'
+        )
+        with self.assertRaises(Exception):
+            email.decrypt(msg, key)
+
+    def test_email_decrypt_rejects_wrong_private_key(self):
+        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert)
+        wrong_key = test_cert.CA().key_load(test_cert.cert2_key, '1234')
+        try:
+            decrypted = email.decrypt(datae, wrong_key)
+        except Exception:
+            return
+        assert decrypted != datau
+
+    def test_email_decrypt_rejects_invalid_cms_payload(self):
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        msg = (
+            'Content-Type: application/pkcs7-mime\n'
+            'Content-Transfer-Encoding: base64\n\n'
+            'Zm9v\n'
+        )
+        with self.assertRaises(Exception):
+            email.decrypt(msg, key)
+
+    def test_email_decrypt_tampered_ciphertext_does_not_match_plaintext(self):
+        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert)
+
+        def mutator(cms_info):
+            encrypted_data = cms_info['content']
+            encrypted_content_info = encrypted_data['encrypted_content_info']
+            encrypted_content = bytearray(encrypted_content_info['encrypted_content'].native)
+            encrypted_content[len(encrypted_content) // 2] ^= 0x01
+            encrypted_content_info['encrypted_content'] = bytes(encrypted_content)
+
+        tampered = self._tamper_smime_cms(datae, mutator)
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+
+        try:
+            decrypted = email.decrypt(tampered, key)
+        except Exception:
+            return
+
+        assert decrypted != datau
+
+    def test_email_decrypt_tampered_algorithm_is_rejected(self):
+        certs = (
+            test_cert.CA().cert_load(test_cert.cert1_cert),
+        )
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        datae = email.encrypt(datau, certs, 'aes256_ofb')
+
+        def mutator(cms_info):
+            encrypted_data = cms_info['content']
+            encrypted_content_info = encrypted_data['encrypted_content_info']
+            encrypted_content_info['content_encryption_algorithm']['algorithm'] = cms.EncryptionAlgorithmId('des')
+
+        tampered = self._tamper_smime_cms(datae, mutator)
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        with self.assertRaises(Exception):
+            email.decrypt(tampered, key)
+
+    def test_email_decrypt_invalid_padding_zero_byte(self):
+        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert, algo='aes256_ofb')
+        original_pad = 16 - (len(datau) % 16)
+        tampered = self._tamper_padding_value(datae, original_pad, 0)
+
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        decrypted = email.decrypt(tampered, key)
+        assert decrypted != datau
+
+    def test_email_decrypt_invalid_padding_too_large(self):
+        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert, algo='aes256_ofb')
+        original_pad = 16 - (len(datau) % 16)
+        tampered = self._tamper_padding_value(datae, original_pad, 17)
+
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        decrypted = email.decrypt(tampered, key)
+        assert decrypted != datau
+
+    def test_email_decrypt_invalid_padding_inconsistent_bytes(self):
+        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert, algo='aes256_ofb')
+        original_pad = 16 - (len(datau) % 16)
+        tampered = self._tamper_inconsistent_padding(
+            datae,
+            original_pad,
+            target_last_pad=2,
+            target_prev_byte=1,
+        )
+
+        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        decrypted = email.decrypt(tampered, key)
+        assert decrypted != datau
 
     def _test_email_ssl_decrypt(self, algo, mode, oaep):
         certs = (

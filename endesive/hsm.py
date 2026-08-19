@@ -54,7 +54,7 @@ class HSM(BaseHSM):
         """
         self.pkcs11 = PyKCS11.PyKCS11Lib()
         self.pkcs11.load(dllpath)
-        self.session = None
+        self.session: PyKCS11.Session|None = None
 
     def getSlot(self, label):
         """
@@ -131,6 +131,8 @@ class HSM(BaseHSM):
         #     when importing the certificate, to ensure it is linked with these keys.
         # key_length - key-length in bits
 
+        assert self.session, "Session is not initialized. Call login() first."
+
         public_template = [
             (PyKCS11.CKA_CLASS, PyKCS11.CKO_PUBLIC_KEY),
             (PyKCS11.CKA_TOKEN, PyKCS11.CK_TRUE),
@@ -171,6 +173,8 @@ class HSM(BaseHSM):
         :param subject: certificate subject
         :param key_id: key ID
         """
+        assert self.session, "Session is not initialized. Call login() first."
+
         cert_template = [
             (PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE),
             (PyKCS11.CKA_CERTIFICATE_TYPE, PyKCS11.CKC_X_509),
@@ -203,6 +207,8 @@ class HSM(BaseHSM):
 
         :param keyID: key ID
         """
+        assert self.session, "Session is not initialized. Call login() first."
+
         rec = self.session.findObjects(
             [(PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE), (PyKCS11.CKA_ID, keyID)]
         )
@@ -210,274 +216,6 @@ class HSM(BaseHSM):
             return None
         value = bytes(rec[0].to_dict()["CKA_VALUE"])
         return value
-
-    def certsign(self, sn, pubKey, subject, until, caprivKey, ca):
-        """
-        Sign certificate
-
-        :param sn: serial number
-        :param pubKey: public key
-        :param subject: common name for certificate subject
-        :param until: until when is the certificate valid
-        :param caprivKey: signing key
-        :param ca:
-
-            None: create self signed root CA certificate
-
-            True: create indirect CA certificate
-
-            False: create user certificate
-        """
-        args = {
-            "version": "v3",
-            "serial_number": sn,
-            "issuer": asn1x509.Name.build({
-                "common_name": "hsm Root CA",
-            }),
-            "subject": asn1x509.Name.build({
-                "common_name": subject,
-            }),
-            "signature": {
-                "algorithm": "sha256_rsa",
-                "parameters": None,
-            },
-            "validity": {
-                "not_before": asn1x509.Time({
-                    "utc_time": asn1x509.UTCTime((datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)).strftime('%y%m%d%H%M%SZ')),
-                }),
-                "not_after": asn1x509.Time({
-                    "utc_time": asn1x509.UTCTime(until.strftime('%y%m%d%H%M%SZ')),
-                }),
-            },
-            "subject_public_key_info": {
-                "algorithm": {
-                    "algorithm": "rsa",
-                    "parameters": None,
-                },
-                "public_key": pubKey,
-            },
-        }
-        if ca is None:
-            args["issuer"] = asn1x509.Name.build({
-                "common_name": subject,
-            })
-            args.update({
-                "extensions": [
-                    {
-                        "extn_id": "basic_constraints",
-                        "critical": True,
-                        "extn_value": {"ca": True, "path_len_constraint": None},
-                    },
-                    {
-                        "extn_id": "key_usage",
-                        "critical": True,
-                        "extn_value": set(
-                            [
-                                "crl_sign",
-                                "digital_signature",
-                                "key_cert_sign",
-                            ]
-                        ),
-                    },
-                ]
-            })
-        elif ca:
-            extensions = [
-                {
-                #    'extn_id': 'crl_distribution_points',
-                #    'critical': False,
-                #    'extn_value': [
-                #        asn1util.OrderedDict([
-                #            ('distribution_point', ['http://ca.trisoft.com.pl/crl']),
-                #            ('reasons', None),
-                #            ('crl_issuer', None),
-                #        ]),
-                #    ]
-                #}, {
-                #    'extn_id':'authority_information_access',
-                #    'critical': False,
-                #    'extn_value': [
-                #        {
-                #            'access_method': 'ca_issuers',
-                #            'access_location': asn1x509.URI('http://ca.trisoft.com.pl/cacert'),
-                #        }, {
-                #            'access_method': 'ocsp',
-                #            'access_location': asn1x509.URI('http://ca.trisoft.com.pl/ocsp'),
-                #        }
-                #    ]
-                #}, {
-                    'extn_id': 'authority_key_identifier',
-                    'critical': False,
-                    'extn_value': {
-                        'key_identifier': None,
-                        'authority_cert_issuer': None,
-                        'authority_cert_serial_number': 1,
-                    }
-                #}, {
-                #    'extn_id': 'key_identifier',
-                #    'critical': False,
-                #    'extn_value': b'',
-                }, {
-                    "extn_id": "basic_constraints",
-                    "critical": True,
-                    "extn_value": {"ca": True, "path_len_constraint": 0},
-                }, {
-                    "extn_id": "key_usage",
-                    "critical": True,
-                    "extn_value": set([
-                        "crl_sign",
-                        "digital_signature",
-                        "key_cert_sign",
-                    ]),
-                },
-            ]
-            args.update({
-                "extensions": extensions
-            })
-        else:
-            extensions = [
-                #asn1util.OrderedDict([
-                #    ('extn_id', 'subject_alt_name'),
-                #    ('critical', False),
-                #    ('extn_value', ['demo1@trisoft.com.pl'])
-                #]),
-                {
-                #    'extn_id': 'subject_alt_name',
-                #    'critical': False,
-                #    'extn_value': {'rfc822_name' : 'demo1@trisoft.com.pl'},
-                #}, {
-                    'extn_id': 'authority_key_identifier',
-                    'critical': False,
-                    'extn_value': {
-                        'key_identifier': None,
-                        'authority_cert_issuer': None,
-                        'authority_cert_serial_number': 2,
-                    }
-                #}, {
-                #    'extn_id': 'key_identifier',
-                #    'critical': False,
-                #    'extn_value': b'',
-                }, {
-                    "extn_id": "basic_constraints",
-                    "critical": True,
-                    "extn_value": {"ca": False},
-                }, {
-                    "extn_id": "key_usage",
-                    "critical": True,
-                    "extn_value": set([
-                            "digital_signature",
-                            "key_agreement",
-                            "key_encipherment",
-                            "non_repudiation",
-                    ]),
-                },
-            ]
-            args.update({
-                "issuer": asn1x509.Name.build({
-                    "common_name": "hsm Indirect CA",
-                }),
-                "extensions": extensions,
-            })
-
-        tbs = asn1x509.TbsCertificate(args)
-
-        # Sign the TBS Certificate
-        data = tbs.dump()
-        value = self.session.sign(
-            caprivKey, data, PyKCS11.Mechanism(PyKCS11.CKM_SHA256_RSA_PKCS, None)
-        )
-        value = bytes(bytearray(value))
-
-        cert = asn1x509.Certificate(
-            {
-                "tbs_certificate": tbs,
-                "signature_algorithm": {
-                    "algorithm": "sha256_rsa",
-                    "parameters": None,
-                },
-                "signature_value": value,
-            }
-        )
-        return cert.dump()
-
-    def ca_gen(self, label, keyID, subject):
-        """
-        Initiate root CA certificate
-
-        :param label: HSM key label
-        :param keyID: HSM key ID
-        :param subject: common name in certificate subject
-        """
-        privKey = self.session.findObjects(
-            [(PyKCS11.CKA_CLASS, PyKCS11.CKO_PRIVATE_KEY), (PyKCS11.CKA_ID, keyID)]
-        )[0]
-        pubKey = self.session.findObjects(
-            [(PyKCS11.CKA_CLASS, PyKCS11.CKO_PUBLIC_KEY), (PyKCS11.CKA_ID, keyID)]
-        )[0]
-
-        modulus = self.session.getAttributeValue(pubKey, [PyKCS11.CKA_MODULUS])[0]
-        modulus = binascii.hexlify(bytearray(modulus)).decode("utf-8")
-        exponent = self.session.getAttributeValue(
-            pubKey, [PyKCS11.CKA_PUBLIC_EXPONENT]
-        )[0]
-        exponent = binascii.hexlify(bytearray(exponent)).decode("utf-8")
-        pubKey = asn1keys.RSAPublicKey(
-            {
-                "modulus": int("0x" + modulus, 16),
-                "public_exponent": int("0x" + exponent, 16),
-            }
-        )
-        # pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
-            days=365 * 40
-        )
-        der_bytes = self.certsign(1, pubKey, subject, until, privKey, None)
-        self.cert_save(der_bytes, label, subject, keyID)
-
-    def ca_sign(self, keyID, label, sn, subject, days, cakeyID):
-        """
-        Sign certificate
-
-        :param keyID: HSM key identifier of the signed certificate
-        :param label: HSM label
-        :param sn: certificate serial number
-        :param subject: HSM subject, common name stored in subject fiel of the signed certificate
-        :param days: validity day of certificate
-        :param cakeyID: HSM key identifier of the signing key
-        """
-        caprivKey = self.session.findObjects(
-            [(PyKCS11.CKA_CLASS, PyKCS11.CKO_PRIVATE_KEY), (PyKCS11.CKA_ID, cakeyID)]
-        )[0]
-
-        pubKey = self.session.findObjects(
-            [(PyKCS11.CKA_CLASS, PyKCS11.CKO_PUBLIC_KEY), (PyKCS11.CKA_ID, keyID)]
-        )[0]
-        modulus = self.session.getAttributeValue(pubKey, [PyKCS11.CKA_MODULUS])[0]
-        modulus = binascii.hexlify(bytearray(modulus)).decode("utf-8")
-        exponent = self.session.getAttributeValue(
-            pubKey, [PyKCS11.CKA_PUBLIC_EXPONENT]
-        )[0]
-        exponent = binascii.hexlify(bytearray(exponent)).decode("utf-8")
-        pubKey = asn1keys.RSAPublicKey(
-            {
-                "modulus": int("0x" + modulus, 16),
-                "public_exponent": int("0x" + exponent, 16),
-            }
-        )
-        # pubKey = asn1keys.RSAPublicKey.load(pubKey.dump())
-        until = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
-            days=days
-        )
-        der_bytes = self.certsign(sn, pubKey, subject, until, caprivKey, keyID == b'\x02')
-        self.cert_save(der_bytes, label, subject, keyID)
-
-    def cert_export(self, fname, keyID):
-        der_bytes = self.cert_load(keyID)
-        pem_bytes = asn1pem.armor("CERTIFICATE", der_bytes)
-        with open(fname + ".der", "wb") as fp:
-            fp.write(der_bytes)
-        with open(fname + ".pem", "wb") as fp:
-            fp.write(pem_bytes)
 
 
 class SSHAgentHSM(BaseHSM):

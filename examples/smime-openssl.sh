@@ -1,11 +1,11 @@
 #!/bin/bash
 
 sign1() {
-    openssl smime -sign -CAfile ca/root.pem -signer $1 -inkey $2 -passin pass:1234 -outform SMIME -in $3 -out $4
+    openssl smime -sign -certfile ca/demo2_ca.sub.crt.pem -signer $1 -inkey $2 -passin pass:1234 -outform SMIME -in $3 -out $4
 }
 
 sign2() {
-    openssl smime -sign -noattr -CAfile ca/root.pem -signer $1 -inkey $2 -passin pass:1234 -outform SMIME -in $3 -out $4
+    openssl smime -sign -noattr -certfile ca/demo2_ca.sub.crt.pem -signer $1 -inkey $2 -passin pass:1234 -outform SMIME -in $3 -out $4
 }
 
 encrypt() {
@@ -17,15 +17,15 @@ decrypt() {
 }
 
 verify() {
-    openssl smime -verify -CAfile ca/root.pem -in $1 -inform SMIME
+    openssl smime -verify -CAfile ca/demo2_ca.root.crt.pem -in $1 -inform SMIME
 }
 
 psssign() {
-    openssl cms -sign -signer $1 -inkey $2 -passin pass:1234 -in $3 -out $4 -keyopt rsa_padding_mode:pss -md sha512
+    openssl cms -sign -certfile ca/demo2_ca.sub.crt.pem -signer $1 -inkey $2 -passin pass:1234 -in $3 -out $4 -keyopt rsa_padding_mode:pss -md sha512
 }
 
 pssverify() {
-    openssl cms -verify -signer $1 -CAfile ca/root.pem -in $2 -keyopt rsa_padding_mode:pss -md sha512
+    openssl cms -verify -signer $1 -CAfile ca/demo2_ca.root.crt.pem -in $2 -keyopt rsa_padding_mode:pss -md sha512
 }
 
 oaepencrypt() {
@@ -37,11 +37,11 @@ oaepdecrypt() {
 }
 
 detached() {
-    openssl smime -sign -in $3 -signer $1 -inkey $2 -passin pass:1234 -outform der -binary -out $4
+    openssl smime -sign -certfile ca/demo2_ca.sub.crt.pem -in $3 -signer $1 -inkey $2 -passin pass:1234 -outform der -binary -out $4
 }
 
 detachedverify() {
-    openssl smime -verify -in $2 -inform der -content $1 -CAfile ca/root.pem
+    openssl smime -verify -in $2 -inform der -content $1 -CAfile ca/demo2_ca.root.crt.pem
 }
 
 if [ -z "$1" ]; then

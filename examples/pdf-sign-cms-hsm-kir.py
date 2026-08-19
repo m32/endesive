@@ -2,11 +2,12 @@
 # *-* coding: utf-8 *-*
 import sys
 import datetime
-from kir import dllpath
 from cryptography import x509
 from cryptography.hazmat import backends
 import PyKCS11 as PK11
 from endesive import pdf, hsm
+
+from hsm_config_kir import DLLPATH
 
 
 class Signer(hsm.HSM):
@@ -71,7 +72,7 @@ def main():
     ocspissuer = open('CertumDigitalIdentificationCASHA2.crt', 'rb').read()
     ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
 
-    clshsm = Signer(dllpath)
+    clshsm = Signer(DLLPATH)
     fname = 'pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]

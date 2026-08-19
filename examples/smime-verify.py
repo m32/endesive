@@ -5,7 +5,7 @@ from endesive import email
 
 
 def main():
-    trusted_cert_pems = (open('ca/root.pem', 'rb').read(),)
+    trusted_cert_pems = (open('ca/demo2_ca.root.crt.pem', 'rb').read(),)
 
     for fname in (
         'smime-signed-attr.txt',

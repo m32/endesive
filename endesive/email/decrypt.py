@@ -10,11 +10,19 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as 
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
+from .exceptions import EncodingException, ContentTypeException
 
 class DecryptedData(object):
 
     def decrypt(self, data: str, key: PrivateKeyTypes) -> bytes:
         msg = message_from_string(data)
+        if msg.get('Content-Transfer-Encoding') != 'base64':
+            raise EncodingException()
+        if msg.get_content_type() not in (
+            'application/x-pkcs7-mime',
+            'application/pkcs7-mime'
+        ):
+            raise ContentTypeException()
         data = None
         for part in msg.walk():
             # multipart/* are just containers
@@ -25,8 +33,9 @@ class DecryptedData(object):
                 'application/pkcs7-mime',
             ):
                 continue
+            if data is not None:
+                raise ContentTypeException()
             data = part.get_payload(decode=True)
-            break
         if data is None:
             raise ValueError('No encrypted part found in the message')
 

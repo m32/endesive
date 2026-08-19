@@ -56,6 +56,9 @@ force = "--force" in sys.argv
 
 
 class Main(object):
+    def __init__(self, ca_url_prefix: str):
+        self.ca_url_prefix = ca_url_prefix
+
     def key_create(self) -> rsa.RSAPrivateKey:
         return rsa.generate_private_key(
             public_exponent=65537, key_size=2048, backend=default_backend()
@@ -109,8 +112,8 @@ class Main(object):
 
     def csr_create(
         self,
-        email: str,
         key: rsa.RSAPrivateKey,
+        email: str,
         country: typing.Union[str, None] = None,
         state: typing.Union[str, None] = None,
         locality: typing.Union[str, None] = None,
@@ -119,6 +122,7 @@ class Main(object):
     ) -> x509.CertificateSigningRequest:
         names = []
         for t, v in (
+            (NameOID.EMAIL_ADDRESS, email),
             (NameOID.COUNTRY_NAME, country),
             (NameOID.STATE_OR_PROVINCE_NAME, state),
             (NameOID.LOCALITY_NAME, locality),
@@ -127,7 +131,6 @@ class Main(object):
         ):
             if v:
                 names.append(x509.NameAttribute(t, v))
-        names.append(x509.NameAttribute(NameOID.EMAIL_ADDRESS, email))
         return (
             x509.CertificateSigningRequestBuilder()
             .subject_name(x509.Name(names))
@@ -141,8 +144,9 @@ class Main(object):
 
     def csr_sign(self, csr: x509.CertificateSigningRequest) -> x509.Certificate:
         emails = csr.subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)
+        assert emails and len(emails) > 0
         names = [
-            x509.RFC822Name(emails[0].value),
+            #x509.RFC822Name(emails[0].value)
             #x509.OtherName(
             #    x509.ObjectIdentifier('1.3.6.1.4.1.311.20.2.3'),
             #    #'john.doe@domain.tld'.encode("utf-8")
@@ -150,6 +154,21 @@ class Main(object):
             #),
             #x509.DNSName('trisoft.com.pl'),
         ]
+        for t in (
+            NameOID.EMAIL_ADDRESS,
+            NameOID.COUNTRY_NAME,
+            NameOID.STATE_OR_PROVINCE_NAME,
+            NameOID.LOCALITY_NAME,
+            NameOID.ORGANIZATION_NAME,
+            NameOID.COMMON_NAME,
+        ):
+            v = csr.subject.get_attributes_for_oid(t)
+            if v is not None and len(v) > 0:
+                names.append(
+                    x509.OtherName(v[0].oid, UTF8String(v[0].value).dump())
+                    #x509.NameAttribute(t, v[0].value)
+                )
+
         return (
             x509.CertificateBuilder()
             .subject_name(csr.subject)
@@ -172,7 +191,7 @@ class Main(object):
                         x509.DistributionPoint(
                             full_name=[
                                 x509.UniformResourceIdentifier(
-                                    "http://ca.trisoft.com.pl/crl"
+                                    f"{self.ca_url_prefix}/crl"
                                 )
                             ],
                             relative_name=None,
@@ -188,20 +207,20 @@ class Main(object):
                         x509.AccessDescription(
                             x509.OID_CA_ISSUERS,
                             x509.UniformResourceIdentifier(
-                                "http://ca.trisoft.com.pl/cacert"
+                                f"{self.ca_url_prefix}/ca"
                             ),
                         ),
                         x509.AccessDescription(
                             x509.OID_OCSP,
                             x509.UniformResourceIdentifier(
-                                "http://ca.trisoft.com.pl/ocsp"
+                                f"{self.ca_url_prefix}/ocsp"
                             ),
                         ),
                     ]
                 ),
                 critical=False,
             ).add_extension(
-                x509.SubjectAlternativeName(names),
+                x509.SubjectAlternativeName([x509.RFC822Name(emails[0].value)]),
                 critical=False,
             ).add_extension(
                 # certificate_policies
@@ -211,7 +230,7 @@ class Main(object):
                     x509.OID_EMAIL_PROTECTION,
                     x509.ObjectIdentifier("1.3.6.1.4.1.311.10.3.12"), # document signing
                     x509.ObjectIdentifier("1.3.6.1.5.5.7.3.36"), # document signing
-                    #x509.ObjectIdentifier("1.3.6.1.5.5.7.3.21"), # ssh client
+                    x509.ObjectIdentifier("1.3.6.1.5.5.7.3.21"), # ssh client
                     #x509.ObjectIdentifier("1.3.6.1.5.5.7.3.22"), # ssh server
                     #1.2.840.113583.1.1.7.1.0 .. 11 # https://www.adobe.com/devnet-docs/acrobatetk/tools/DigSigDC/oids.html
                 ]),
@@ -275,12 +294,27 @@ class Main(object):
                 fp.read(), password.encode("utf-8"), default_backend()
             )
 
-    def ca_createroot(self, key: rsa.RSAPrivateKey) -> x509.Certificate:
-        subject = issuer = x509.Name(
-            [
-            x509.NameAttribute(NameOID.COMMON_NAME, "AA TriSoft Root CA"),
-            ]
-        )
+    def ca_createroot(
+        self,
+        key: rsa.RSAPrivateKey,
+        country: typing.Union[str, None] = None,
+        state: typing.Union[str, None] = None,
+        locality: typing.Union[str, None] = None,
+        organization: typing.Union[str, None] = None,
+        commonname: typing.Union[str, None] = None,
+    ) -> x509.Certificate:
+        names = []
+        for t, v in (
+            (NameOID.COUNTRY_NAME, country),
+            (NameOID.STATE_OR_PROVINCE_NAME, state),
+            (NameOID.LOCALITY_NAME, locality),
+            (NameOID.ORGANIZATION_NAME, organization),
+            (NameOID.COMMON_NAME, commonname),
+        ):
+            if v:
+                names.append(x509.NameAttribute(t, v))
+
+        subject = issuer = x509.Name(names)
         return (
             x509.CertificateBuilder()
             .subject_name(subject)
@@ -326,12 +360,30 @@ class Main(object):
             )
         )
 
-    def ca_createsub(self, key: rsa.RSAPrivateKey, rootcert: x509.Certificate, rootkey: rsa.RSAPrivateKey) -> x509.Certificate:
-        subject = x509.Name(
-            [
-            x509.NameAttribute(NameOID.COMMON_NAME, "AA TriSoft Intermediate CA"),
-            ]
-        )
+    def ca_createsub(
+        self,
+        key: rsa.RSAPrivateKey,
+        rootcert: x509.Certificate,
+        rootkey: rsa.RSAPrivateKey,
+        country: typing.Union[str, None] = None,
+        state: typing.Union[str, None] = None,
+        locality: typing.Union[str, None] = None,
+        organization: typing.Union[str, None] = None,
+        commonname: typing.Union[str, None] = None,
+    ) -> x509.Certificate:
+        names = []
+        for t, v in (
+            (NameOID.COUNTRY_NAME, country),
+            (NameOID.STATE_OR_PROVINCE_NAME, state),
+            (NameOID.LOCALITY_NAME, locality),
+            (NameOID.ORGANIZATION_NAME, organization),
+            (NameOID.COMMON_NAME, commonname),
+        ):
+            if v:
+                names.append(x509.NameAttribute(t, v))
+
+        subject = x509.Name(names)
+
         return (
             x509.CertificateBuilder()
             .subject_name(subject)
@@ -355,7 +407,7 @@ class Main(object):
                         x509.DistributionPoint(
                             full_name=[
                                 x509.UniformResourceIdentifier(
-                                    "http://ca.trisoft.com.pl/crl"
+                                    f"{self.ca_url_prefix}/crl"
                                 )
                             ],
                             relative_name=None,
@@ -371,13 +423,13 @@ class Main(object):
                         x509.AccessDescription(
                             x509.OID_CA_ISSUERS,
                             x509.UniformResourceIdentifier(
-                                "http://ca.trisoft.com.pl/cacert"
+                                f"{self.ca_url_prefix}/ca"
                             ),
                         ),
                         x509.AccessDescription(
                             x509.OID_OCSP,
                             x509.UniformResourceIdentifier(
-                                "http://ca.trisoft.com.pl/ocsp"
+                                f"{self.ca_url_prefix}/ocsp"
                             ),
                         ),
                     ]
@@ -423,13 +475,17 @@ class Main(object):
                 os.unlink(fqname)
             print("CA generating certificate")
             ca_root_pk = self.key_create()
-            ca_root_cert = self.ca_createroot(ca_root_pk)
+            ca_root_cert = self.ca_createroot(ca_root_pk,
+                organization='TriSoft',
+                commonname="AA TriSoft Root CA")
 
             self.key_save(ca_root_key, ca_root_pk, "1234")
             self.cert_save(ca_root, ca_root_cert)
 
             ca_sub_pk = self.key_create()
-            ca_sub_cert = self.ca_createsub(ca_sub_pk, ca_root_cert, ca_root_pk)
+            ca_sub_cert = self.ca_createsub(ca_sub_pk, ca_root_cert, ca_root_pk,
+                organization='TriSoft',
+                commonname="AA TriSoft Intermediate CA")
 
             self.key_save(ca_sub_key, ca_sub_pk, "1234")
             self.cert_save(ca_sub, ca_sub_cert)
@@ -455,9 +511,9 @@ class Main(object):
         if create:
             client_pk = self.key_create()
             client_csr = self.csr_create(
-                "demo%d@trisoft.com.pl" % no,
                 client_pk,
-                commonname='trisoft.com.pl',
+                email="demo%d@trisoft.com.pl" % no,
+                organization='TriSoft',
             )
             client_cert = self.csr_sign(client_csr)
             self.cert_save(cert, client_cert)
@@ -476,6 +532,8 @@ class Main(object):
 
 
 print("Generating certificates")
-cls = Main()
+if not os.path.exists('ca'):
+    os.mkdir('ca')
+cls = Main('https://ca.trisoft.com.pl/api')
 cls.CA()
 cls.USERs()

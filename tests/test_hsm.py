@@ -33,7 +33,8 @@ dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), 'softhsm/libsofthsm2.
 
 os.makedirs(os.path.join(fixtures_dir, 'softhsm2'), exist_ok=True)
 os.environ['SOFTHSM2_CONF'] = fixture('softhsm2.conf')
-open(fixture('softhsm2.conf'), 'wt').write('''\
+with open(fixture('softhsm2.conf'), 'wt') as _f:
+    _f.write('''\
 log.level = DEBUG
 directories.tokendir = %s/softhsm2/
 objectstore.backend = file

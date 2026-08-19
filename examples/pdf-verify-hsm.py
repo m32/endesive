@@ -1,42 +1,13 @@
 #!/usr/bin/env vpython3
 # coding: utf-8
 
-import os
 import sys
-import sysconfig
-
-os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2.conf')):
-    open('softhsm2.conf', 'wt').write('''\
-log.level = DEBUG
-directories.tokendir = %s/softhsm2/
-objectstore.backend = file
-slots.removable = false
-''' % os.getcwd())
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
-    os.mkdir(os.path.join(os.getcwd(), 'softhsm2'))
-
-#
-#!/bin/bash
-#SOFTHSM2_CONF=softhsm2.conf
-#softhsm2-util --label "endesive" --slot 1 --init-token --pin secret1 --so-pin secret2
-#softhsm2-util --show-slots
-#
-
-if sys.platform == 'win32':
-    dllpath = r'W:\binw\SoftHSM2\lib\softhsm2-x64.dll'
-else:
-    dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), "softhsm/libsofthsm2.so")
-
 from endesive import hsm, pdf
 import PyKCS11 as PK11
 from asn1crypto import pem as asn1pem
 
-'''
-Create two certificates:
-1. self signed CA certificate with serial equal to HSM keyID=0x01
-2. USER 1 certificate with serial equal to HSM keyID=0x666690
-'''
+from hsm_config_softhsm import DLLPATH
+
 class HSM(hsm.HSM):
     def main(self):
         cakeyID = bytes((0x1,))
@@ -44,7 +15,6 @@ class HSM(hsm.HSM):
         trusted_cert_pems = [ca_cert_pem]
         for fname in (
             'pdf-signed-cms-hsm.pdf',
-            'pdf-signed-cms-hsm-signed-cms-hsm.pdf',
             "pdf-signed-cms-hsm-signature_appearance.pdf",
             "pdf-signed-cms-hsm-signature_manual.pdf",
         ):
@@ -63,7 +33,7 @@ class HSM(hsm.HSM):
                 print('cert ok?', certok)
 
 def main():
-    cls = HSM(dllpath)
+    cls = HSM(DLLPATH)
     cls.login("endesieve", "secret1")
     try:
         cls.main()

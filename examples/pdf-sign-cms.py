@@ -14,6 +14,9 @@ from endesive.pdf import cms
 
 
 def main():
+    #tspurl = "http://time.certum.pl"
+    tspurl = "http://public-qlts.certum.pl/qts-17"
+    tspurl = None
     date = datetime.datetime.now(datetime.UTC)
     date = date.strftime("D:%Y%m%d%H%M%S+00'00'")
     dct = {
@@ -42,7 +45,13 @@ def main():
     if len(sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, "rb").read()
-    datas = cms.sign(datau, dct, p12[0], p12[1], p12[2], "sha256")
+    datas = cms.sign(
+        datau,
+        dct,
+        p12[0], p12[1], p12[2], "sha256",
+        None,
+        tspurl,
+    )
     fname = fname.replace(".pdf", "-signed-cms.pdf")
     with open(fname, "wb") as fp:
         fp.write(datau)

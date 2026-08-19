@@ -32,25 +32,22 @@ def main():
             fp.read(), b"1234", backends.default_backend()
         )
 
-    ocspurl = 'http://ca.trisoft.com.pl/'
-
     ocspissuerurl = get_from_cert(p12[1], x509.OID_OCSP)
     rootcerturl = get_from_cert(p12[1], x509.OID_CA_ISSUERS)
     crlurl = get_crl_from_cert(p12[1])
 
     print('crlurl', crlurl)
     response = requests.get(crlurl)
-    with open('t-ocsp-crl.der', 'wb') as fp:
+    with open('t-ocsp-crl.pem', 'wb') as fp:
         fp.write(response.content)
 
-    print('ocspissuerurl', ocspissuerurl)
-    response = requests.get(ocspissuerurl)
+    print('rootcerturl', rootcerturl)
+    response = requests.get(rootcerturl)
     ocspissuer = response.content
     with open('t-ocsp-issuer.der', 'wb') as fp:
         fp.write(ocspissuer)
 
     ocspissuer = x509.load_der_x509_certificate(ocspissuer, backends.default_backend())
-
     builder = ocsp.OCSPRequestBuilder()
     builder = builder.add_certificate(p12[1], ocspissuer, hashes.SHA1())
     req = builder.build()
@@ -58,7 +55,7 @@ def main():
 
     open("t-ocsp-req.bin", "wb").write(data)
     response = requests.post(
-        ocspurl,
+        ocspissuerurl,
         headers={"Content-Type": "application/ocsp-request"},
         data=data,
     )

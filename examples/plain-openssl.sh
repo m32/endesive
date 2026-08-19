@@ -6,10 +6,10 @@ sign1() {
     openssl smime -sign \
 -md sha256 \
 -binary \
--CAfile ca/demo2_ca.sub.crt.pem \
 -in $1 -out $2 -outform der \
 -inkey ca/demo2_user1.key.pem -passin pass:1234 \
--signer ca/demo2_user1.crt.pem
+-signer ca/demo2_user1.crt.pem \
+-certfile ca/demo2_ca.sub.crt.pem
 }
 
 sign2() {
@@ -17,7 +17,6 @@ sign2() {
     openssl smime -sign \
 -md sha256 \
 -binary -noattr \
--CAfile ca/demo2_ca.root.crt.pem \
 -in $1 -out $2 -outform der \
 -inkey ca/demo2_user1.key.pem -passin pass:1234 \
 -signer x-cert.tmp
@@ -26,7 +25,7 @@ sign2() {
 
 verify() {
     openssl smime -verify \
--CAfile ca/root.pem \
+-CAfile ca/demo2_ca.root.crt.pem \
 -content $1 \
 -in $2 -inform der
 }
@@ -36,7 +35,7 @@ if [ -z "$1" ]; then
     sign1 plain-unsigned.txt plain-ssl-signed-attr.txt
     verify plain-unsigned.txt plain-ssl-signed-attr.txt
     echo "************************** noattr"
-    sign2 plain-unsigned.txt plain-ssl-signed-noattr.txt
+    sign1 plain-unsigned.txt plain-ssl-signed-noattr.txt
     verify plain-unsigned.txt plain-ssl-signed-noattr.txt
 else
     echo "************************** verify"

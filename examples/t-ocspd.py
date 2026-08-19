@@ -146,9 +146,7 @@ class Handler(server.SimpleHTTPRequestHandler):
         print(self.headers)
 
         try:
-            if self.path == "/":
-                return self.do_POST_ocsp()
-            elif self.path == "/ocsp":
+            if self.path == "/api/ocsp":
                 return self.do_POST_ocsp()
         except:
             import traceback
@@ -160,20 +158,6 @@ class Handler(server.SimpleHTTPRequestHandler):
         data = self.rfile.read(length)
         print("*" * 10, "data")
         print(data)
-
-    def do_GET_ocsp(self):
-        f = open("ca/demo2_ca.root.crt.pem.cer", "rb")
-        fs = os.fstat(f.fileno())
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-type", "application/pkix-cert")
-        self.send_header("Content-Length", str(fs[6]))
-        self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
-        self.end_headers()
-        try:
-            self.copyfile(f, self.wfile)
-        finally:
-            f.close()
-        return
 
     def do_GET_crl(self):
         today = datetime.now(tz=timezone.utc)-timedelta(days=3)
@@ -198,15 +182,31 @@ class Handler(server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.copyfile(f, self.wfile)
 
+    def do_GET_ca(self):
+        f = open("ca/demo2_ca.root.crt.pem.cer", "rb")
+        fs = os.fstat(f.fileno())
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-type", "application/pkix-cert")
+        self.send_header("Content-Length", str(fs[6]))
+        self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
+        self.end_headers()
+        try:
+            self.copyfile(f, self.wfile)
+        finally:
+            f.close()
+        return
+
     def do_GET(self):
         print("*" * 20, self.requestline)
         print(self.headers)
 
         try:
-            if self.path == "/ocsp":
+            if self.path == "/api/ocsp":
                 return self.do_GET_ocsp()
-            if self.path == "/crl":
+            if self.path == "/api/crl":
                 return self.do_GET_crl()
+            if self.path == "/api/ca":
+                return self.do_GET_ca()
         except:
             import traceback
             traceback.print_exc()

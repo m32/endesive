@@ -1,40 +1,16 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
-import sys
-from endesive import pdf, hsm
-
-import os
-import sysconfig
-
-os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2.conf')):
-    open('softhsm2.conf', 'wt').write('''\
-log.level = DEBUG
-directories.tokendir = %s/softhsm2/
-objectstore.backend = file
-slots.removable = false
-''' % os.getcwd())
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
-    os.mkdir(os.path.join(os.getcwd(), 'softhsm2'))
-
-#
-#!/bin/bash
-#SOFTHSM2_CONF=softhsm2.conf
-#softhsm2-util --label "endesive" --slot 1 --init-token --pin secret1 --so-pin secret2
-#softhsm2-util --show-slots
-#
-
-if sys.platform == 'win32':
-    dllpath = r'W:\binw\SoftHSM2\lib\softhsm2-x64.dll'
-else:
-    dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), "softhsm/libsofthsm2.so")
+import pprint
 
 import PyKCS11 as PK11
+from endesive import pdf, hsm
+from hsm_config_softhsm import DLLPATH
+
 
 class Signer(hsm.HSM):
     def certificate(self):
         self.login("endesieve", "secret1")
-        keyid = bytes((0x66,0x66,0x90))
+        keyid = bytes((0x66,0x66,0x01))
         try:
             pk11objects = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_CERTIFICATE)])
             all_attributes = [
@@ -90,12 +66,15 @@ def cert2asn(cert, cert_bytes=True):
     return x509.Certificate.load(cert_bytes)
 
 def main():
-    hsm = Signer(dllpath)
+    hsm = Signer(DLLPATH)
     hsm.login("endesieve", "secret1")
-    keyid = bytes((0x66,0x66,0x90))
+    keyid = bytes((0x66,0x66,0x01))
     ic = hsm.cert_load(keyid)
     hsm.logout()
-    print(ic)
-    ic = cert2asn(ic, False)
-    print(ic)
+    if ic is None:
+        print(f'cert for key: {[hex(int(i)) for i in keyid]} not found')
+    else:
+        ic = cert2asn(ic, False)
+        print('cert:')
+        pprint.pprint(ic.native)
 main()

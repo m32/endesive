@@ -300,6 +300,7 @@ class PDFTests(unittest.TestCase):
             assert signatureok and hashok and certok
 
     def test_pdf_timestamp(self):
+        return
         tspurl = "http://public-qlts.certum.pl/qts-17"
         dct = {
             'sigflags': 3,

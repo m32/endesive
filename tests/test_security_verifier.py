@@ -111,7 +111,7 @@ class SecurityVerifierTests(unittest.TestCase):
             ],
         }
 
-        verify_data = object.__new__(generic_verifier.VerifyData)
+        verify_data = object.__new__(generic_verifier.SignatureVerifier)
         verify_data.verifier = mock.Mock()
 
         with mock.patch("endesive.verifier.cms.ContentInfo.load", return_value={"content": signed_data}):
@@ -135,7 +135,7 @@ class SecurityVerifierTests(unittest.TestCase):
             ],
         }
 
-        verify_data = object.__new__(generic_verifier.VerifyData)
+        verify_data = object.__new__(generic_verifier.SignatureVerifier)
         verify_data.verifier = mock.Mock()
 
         with mock.patch("endesive.verifier.cms.ContentInfo.load", return_value={"content": signed_data}):

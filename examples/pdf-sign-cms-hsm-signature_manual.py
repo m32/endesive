@@ -1,42 +1,15 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
 import sys
-from endesive import pdf, hsm
-
-import os
-import sys
-import sysconfig
 import datetime
-
-os.environ['SOFTHSM2_CONF'] = 'softhsm2.conf'
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2.conf')):
-    open('softhsm2.conf', 'wt').write('''\
-log.level = DEBUG
-directories.tokendir = %s/softhsm2/
-objectstore.backend = file
-slots.removable = false
-''' % os.getcwd())
-if not os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
-    os.mkdir(os.path.join(os.getcwd(), 'softhsm2'))
-
-#
-#!/bin/bash
-#SOFTHSM2_CONF=softhsm2.conf
-#softhsm2-util --label "endesive" --slot 1 --init-token --pin secret1 --so-pin secret2
-#softhsm2-util --show-slots
-#
-
-if sys.platform == 'win32':
-    dllpath = r'W:\binw\SoftHSM2\lib\softhsm2-x64.dll'
-else:
-    dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), "softhsm/libsofthsm2.so")
-
 import PyKCS11 as PK11
+from endesive import pdf, hsm, signer
+from hsm_config_softhsm import DLLPATH
 
 class Signer(hsm.HSM):
     def certificate(self):
         self.login("endesieve", "secret1")
-        keyid = bytes((0x66,0x66,0x90))
+        keyid = bytes((0x66,0x66,0x01))
         try:
             pk11objects = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_CERTIFICATE)])
             all_attributes = [
@@ -109,14 +82,17 @@ def main():
         "reason": f"Investment in {user.company} by {user.company_full_name}",
     }
 
-    clshsm = Signer(dllpath)
+    othercerts = [
+        signer.cert2asn(open('cert-hsm-ca-sub.pem', 'rb').read(), False),
+    ]
+
+    clshsm = Signer(DLLPATH)
     fname = 'pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, 'rb').read()
     datas = pdf.cms.sign(datau, dct,
-        None, None,
-        [],
+        None, None, othercerts,
         'sha256',
         clshsm,
     )

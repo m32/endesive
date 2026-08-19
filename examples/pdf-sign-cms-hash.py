@@ -77,7 +77,7 @@ def main():
         when = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         config = {
             'when': when,
-            'certificate': open("cert-hsm-user1.pem", "rt").read(),
+            'certificate': open("cert-hsm-user-1.pem", "rt").read(),
             'signed_bytes': None,
             'tosign': None,
             'id': hashlib.md5(when.encode()).hexdigest()

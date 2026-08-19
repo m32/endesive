@@ -1,30 +1,71 @@
 #!/usr/bin/env vpython3
-import sys
-import time
-import random
-import io
-import struct
-import datetime
-import hashlib
 import codecs
+import hashlib
+import io
+import random
 import struct
-from cryptography.hazmat import backends
+import time
+
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import ObjectIdentifier
+from pypdf import PdfReader, PdfWriter
+from pypdf import generic as po
+from pypdf._encryption import AlgV4
+
 from endesive import signer
-from endesive.pdf.PyPDF2 import pdf, generic as po
+
+
+def b_(s):
+    """Encode str to bytes (pass bytes through unchanged).
+    """
+    if isinstance(s, bytes):
+        return s
+    return s.encode("latin-1")
+
+
+def encode_password(password):
+    if isinstance(password, str):
+        try:
+            pwd = password.encode("latin-1")
+        except Exception:
+            pwd = password.encode("utf-8")  # Fallback logic for wider unicode support
+    return pwd
+
+
+def _prev_uses_xref_stream(prev):
+    """Whether the previous revision's outermost (most recent) cross-
+    reference section is a cross-reference *stream* (PDF 1.5+,
+    ``/Type /XRef``) rather than a classic ``xref`` table.
+
+    This determines which format the newly-appended incremental update
+    should use, matching the format the previous revision was already
+    using. Older PyPDF2 exposed this as ``PdfFileReader.xrefstream``,
+    tracked internally while parsing; pypdf keeps no equivalent flag, so
+    it is recovered here by looking at the marker byte at the previous
+    xref's file offset (``x`` starts a classic ``xref`` table; a digit
+    starts an indirect object holding a cross-reference stream).
+    """
+    stream = prev.stream
+    saved_pos = stream.tell()
+    try:
+        stream.seek(prev._startxref, 0)
+        x = stream.read(1)
+        if x in b"\r\n":
+            x = stream.read(1)
+        return x.isdigit()
+    finally:
+        stream.seek(saved_pos, 0)
 
 
 def EncodedString(s):
-    return po.createStringObject(codecs.BOM_UTF16_BE + s.encode("utf-16be"))
+    return po.create_string_object(codecs.BOM_UTF16_BE + s.encode("utf-16be"))
 
 
-class UnencryptedBytes(po.utils.bytes_type, po.PdfObject):
+class UnencryptedBytes(bytes, po.PdfObject):
     original_bytes = property(lambda self: self)
 
-    def writeToStream(self, stream, encryption_key):
+    def write_to_stream(self, stream, encryption_key=None):
         stream.write(b"<")
         stream.write(self)
         stream.write(b">")
@@ -33,42 +74,34 @@ class UnencryptedBytes(po.utils.bytes_type, po.PdfObject):
 class WNumberObject(po.NumberObject):
     Format = b"%08d"
 
-    def writeToStream(self, stream, encryption_key):
+    def write_to_stream(self, stream, encryption_key=None):
         stream.write(self.Format % self)
 
 
-class SignedData(pdf.PdfFileWriter):
+class SignedData(PdfWriter):
     def encrypt(self, prev, password, rc):
-        encrypt = prev.trailer["/Encrypt"].getObject()
+        encrypt = prev.trailer["/Encrypt"].get_object()
+        pwd = encode_password(password)
         if encrypt["/V"] == 2:
             rev = 3
-            keylen = 128 // 8
+            keybits = 128
         else:
             rev = 2
-            keylen = 40 // 8
-        P = encrypt["/P"].getObject()
-        O = encrypt["/O"].getObject()
-        ID_1 = prev.trailer["/ID"].getObject()[0]
-        real_U = encrypt["/U"].getObject().original_bytes
-        if rev == 2:
-            U, key = pdf._alg34(password, O, P, ID_1)
-        else:
-            assert rev == 3
-            U, key = pdf._alg35(
-                password,
-                rev,
-                keylen,
-                O,
-                P,
-                ID_1,
-                encrypt.get("/EncryptMetadata", pdf.BooleanObject(False)).getObject(),
-            )
-            U, real_U = U[:16], real_U[:16]
+            keybits = 40
+        P = encrypt["/P"].get_object()
+        O = encrypt["/O"].get_object()
+        ID_1 = prev.trailer["/ID"].get_object()[0].original_bytes
+        real_U = encrypt["/U"].get_object().original_bytes
+        metadata_encrypted = bool(encrypt.get("/EncryptMetadata", po.BooleanObject(False)).get_object())
+        key = AlgV4.compute_key(
+            pwd, rev, keybits, O, P & 0xFFFFFFFF, ID_1, metadata_encrypted)
+        U = AlgV4.compute_U_value(key, rev, ID_1)
+        U, real_U = U[:16], real_U[:16]
         assert U == real_U
         self._encrypt_key = key
 
     def write(self, stream, prev, startdata):
-        stream.write(pdf.b_("\r\n"))
+        stream.write(b_("\r\n"))
         positions = {}
         for i in range(len(self._objects)):
             idnum = i + 1
@@ -77,7 +110,7 @@ class SignedData(pdf.PdfFileWriter):
                 positions[idnum] = 0
                 continue
             positions[idnum] = startdata + stream.tell()
-            stream.write(pdf.b_(str(idnum) + " 0 obj\n"))
+            stream.write(b_(str(idnum) + " 0 obj\n"))
             key = None
             if self._encrypt_key is not None:
                 pack1 = struct.pack("<i", i + 1)[:3]
@@ -86,33 +119,34 @@ class SignedData(pdf.PdfFileWriter):
                 assert len(key) == (len(self._encrypt_key) + 5)
                 md5_hash = hashlib.md5(key).digest()
                 key = md5_hash[: min(16, len(self._encrypt_key) + 5)]
-            obj.writeToStream(stream, key)
-            stream.write(pdf.b_("\nendobj\n"))
+            obj.write_to_stream(stream)
+            stream.write(b_("\nendobj\n"))
 
         xref_location = startdata + stream.tell()
-        if not prev.xrefstream:
+        xrefstream = _prev_uses_xref_stream(prev)
+        if not xrefstream:
             trailer = po.DictionaryObject()
         else:
             trailer = po.StreamObject()
-            self._addObject(trailer)
+            self._add_object(trailer)
         # xref table
         trailer.update(
             {
                 po.NameObject("/Size"): po.NumberObject(len(self._objects) + 1),
                 po.NameObject("/Root"): self.x_root,
-                po.NameObject("/Prev"): po.NumberObject(prev.startxref),
+                po.NameObject("/Prev"): po.NumberObject(prev._startxref),
                 po.NameObject("/ID"): self._ID,
             }
         )
 
-        if prev.isEncrypted:
+        if prev.is_encrypted:
             trailer[po.NameObject("/Encrypt")] = prev.trailer.raw_get("/Encrypt")
 
         if self.x_info:
             trailer[po.NameObject("/Info")] = self.x_info
 
-        if not prev.xrefstream:
-            stream.write(pdf.b_("xref\n"))
+        if not xrefstream:
+            stream.write(b_("xref\n"))
             positions[0] = 1
             keys = sorted(positions.keys())
             i = 0
@@ -120,22 +154,22 @@ class SignedData(pdf.PdfFileWriter):
                 start = i
                 while i < len(keys) and positions[keys[i]] != 0:
                     i += 1
-                stream.write(pdf.b_("%d %d \n" % (keys[start], i - start)))
+                stream.write(b_("%d %d \n" % (keys[start], i - start)))
                 i = start
                 while i < len(keys) and positions[keys[i]] != 0:
                     if i == 0:
-                        stream.write(pdf.b_("0000000000 65535 f \n"))
+                        stream.write(b_("0000000000 65535 f \n"))
                     else:
                         stream.write(
-                            pdf.b_("%010d %05d n \n" % (positions[keys[i]], 0))
+                            b_("%010d %05d n \n" % (positions[keys[i]], 0))
                         )
                     i += 1
                 while i < len(keys) and positions[keys[i]] == 0:
                     i += 1
 
             # trailer
-            stream.write(pdf.b_("trailer\n"))
-            trailer.writeToStream(stream, None)
+            stream.write(b_("trailer\n"))
+            trailer.write_to_stream(stream, None)
         else:
 
             def pack(offset):
@@ -161,15 +195,15 @@ class SignedData(pdf.PdfFileWriter):
             trailer[po.NameObject("/W")] = po.NameObject("[1 8 0]")
             trailer[po.NameObject("/Index")] = po.NameObject("[%s]" % dataindex)
             trailer._data = dataxref
-            retval = trailer.flateEncode()
+            retval = trailer.flate_encode()
             trailer.update(retval)
             trailer._data = retval._data
-            stream.write(pdf.b_("%d 0 obj\n" % (len(self._objects))))
-            trailer.writeToStream(stream, None)
-            stream.write(pdf.b_("\nendobj"))
+            stream.write(b_("%d 0 obj\n" % (len(self._objects))))
+            stream.write(b_("\nendobj"))
+            trailer.write_to_stream(stream, None)
 
         # eof
-        stream.write(pdf.b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
+        stream.write(b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
 
     def _extend(self, obj):
         stream = getattr(obj, "stream", None)
@@ -177,26 +211,26 @@ class SignedData(pdf.PdfFileWriter):
             # stream = stream.encode("utf-16be")
             d = {"__streamdata__": stream, "/Length": len(stream)}
             d.update(obj)
-            dct = pdf.StreamObject.initializeFromDictionary(d)
+            dct = po.StreamObject.initialize_from_dictionary(d)
             if "/Filter" in obj and obj["/Filter"] == "/FlatDecode":
                 del dct["/Filter"]
-                dct = dct.flateEncode()
+                dct = dct.flate_encode()
         else:
-            dct = pdf.DictionaryObject()
+            dct = po.DictionaryObject()
         for k, v in obj.items():
-            if isinstance(v, pdf.DictionaryObject):
+            if isinstance(v, po.DictionaryObject):
                 if v.indirect:
                     v = self._extend(v)
-                    v = self._addObject(v)
+                    v = self._add_object(v)
                 else:
                     v = self._extend(v)
             elif isinstance(v, list):
-                result = pdf.ArrayObject()
+                result = po.ArrayObject()
                 for va in v:
-                    if isinstance(va, pdf.DictionaryObject):
+                    if isinstance(va, po.DictionaryObject):
                         if va.indirect:
                             va = self._extend(va)
-                            va = self._addObject(va)
+                            va = self._add_object(va)
                         else:
                             va = self._extend(va)
                     result.append(va)
@@ -206,7 +240,7 @@ class SignedData(pdf.PdfFileWriter):
 
     def _make_signature(self, Contents=None, Type=None, SubFilter=None):
         sig = po.DictionaryObject()
-        sig_ref = self._addObject(sig)
+        sig_ref = self._add_object(sig)
 
         sig.update(
             {
@@ -228,7 +262,7 @@ class SignedData(pdf.PdfFileWriter):
 
     def _make_sig_annotation(self, F=None, Vref=None, T=None, Pref=None):
         annot = po.DictionaryObject()
-        annot_ref = self._addObject(annot)
+        annot_ref = self._add_object(annot)
         annot.update(
             {
                 po.NameObject("/FT"): po.NameObject("/Sig"),
@@ -376,7 +410,7 @@ class SignedData(pdf.PdfFileWriter):
 
         pdfa = annotation.as_pdf_object(identity(), page=page0ref)
         objapn = self._extend(pdfa["/AP"]["/N"])
-        objapnref = self._addObject(objapn)
+        objapnref = self._add_object(objapn)
 
         objap = po.DictionaryObject()
         objap[po.NameObject("/N")] = objapnref
@@ -391,11 +425,11 @@ class SignedData(pdf.PdfFileWriter):
                     ]
                 ),
                 po.NameObject("/AP"): objap,
-                # po.NameObject("/SM"): po.createStringObject("TabletPOSinline"),
+                # po.NameObject("/SM"): po.create_string_object("TabletPOSinline"),
             }
         )
 
-        page0 = page0ref.getObject()
+        page0 = page0ref.get_object()
         if new_13:
             annots = po.ArrayObject([obj13ref])
             if "/Annots" in page0:
@@ -413,8 +447,8 @@ class SignedData(pdf.PdfFileWriter):
     def makepdf(self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
-        pages = catalog["/Pages"].getObject()
-        page0ref = prev.getPage(udct.get("sigpage", 0)).indirectRef
+        pages = catalog["/Pages"].get_object()
+        page0ref = prev.pages[udct.get("sigpage", 0)].indirect_reference
 
         self._objects = []
         while len(self._objects) < size - 1:
@@ -463,9 +497,9 @@ class SignedData(pdf.PdfFileWriter):
 
         obj12.update(
             {
-                po.NameObject("/Prop_Build"): pdf.DictionaryObject(
+                po.NameObject("/Prop_Build"): po.DictionaryObject(
                     {
-                        po.NameObject("/App"): pdf.DictionaryObject(
+                        po.NameObject("/App"): po.DictionaryObject(
                             {
                                 po.NameObject("/Name"): po.NameObject(
                                     "/" + udct.get("application", "endesive")
@@ -495,9 +529,9 @@ class SignedData(pdf.PdfFileWriter):
         ):
             v = udct.get(v, None)
             if v is not None:
-                d12[po.NameObject(k)] = po.createStringObject(v)
+                d12[po.NameObject(k)] = po.create_string_object(v)
         if params.get("use_signingdate"):
-            d12[po.NameObject("/M")] = po.createStringObject(udct["signingdate"])
+            d12[po.NameObject("/M")] = po.create_string_object(udct["signingdate"])
         if d12:
             obj12.update(d12)
 
@@ -507,15 +541,15 @@ class SignedData(pdf.PdfFileWriter):
         if udct.get("signform", False):
             # Attaching signature to existing field in AcroForm
             if "/AcroForm" in catalog:
-                form = catalog["/AcroForm"].getObject()
+                form = catalog["/AcroForm"].get_object()
                 if "/Fields" in form:
-                    fields = form["/Fields"].getObject()
+                    fields = form["/Fields"].get_object()
                     obj13ref = [
                         f
                         for f in fields
-                        if f.getObject()["/T"] == udct.get("sigfield", "Signature1")
+                        if f.get_object()["/T"] == udct.get("sigfield", "Signature1")
                     ][0]
-                    obj13 = obj13ref.getObject()
+                    obj13 = obj13ref.get_object()
                     self._objects[obj13ref.idnum - 1] = obj13
                     new_13 = False
 
@@ -545,7 +579,7 @@ class SignedData(pdf.PdfFileWriter):
         else:
             # invisible signature
             objap = po.DictionaryObject()
-            objapref = self._addObject(objap)
+            objapref = self._add_object(objap)
             objform = po.DictionaryObject({
                 po.NameObject("/Length"): po.NumberObject(0),
                 po.NameObject("/Type"): po.NameObject("/XObject"),
@@ -557,17 +591,17 @@ class SignedData(pdf.PdfFileWriter):
                     po.FloatObject(0.0),
                 ]),
             })
-            objformref = self._addObject(objform)
+            objformref = self._add_object(objform)
             objap.update({po.NameObject("/N"): objformref})
             obj13.update({po.NameObject("/AP"): objapref})
 
         if udct.get("sigandcertify", False) and "/Perms" not in catalog:
             obj10 = po.DictionaryObject()
-            obj10ref = self._addObject(obj10)
+            obj10ref = self._add_object(obj10)
             obj11 = po.DictionaryObject()
-            obj11ref = self._addObject(obj11)
+            obj11ref = self._add_object(obj11)
             obj14 = po.DictionaryObject()
-            obj14ref = self._addObject(obj14)
+            obj14ref = self._add_object(obj14)
             obj14.update({po.NameObject("/DocMDP"): obj12ref})
             obj10.update(
                 {
@@ -588,10 +622,10 @@ class SignedData(pdf.PdfFileWriter):
             catalog[po.NameObject("/Perms")] = obj14ref
 
         if "/AcroForm" in catalog:
-            form = catalog["/AcroForm"].getObject()
+            form = catalog["/AcroForm"].get_object()
             if "/Fields" in form:
                 fields = form["/Fields"]
-                old_field_names = [f.getObject()["/T"] for f in fields]
+                old_field_names = [f.get_object()["/T"] for f in fields]
             else:
                 fields = po.ArrayObject()
                 old_field_names = []
@@ -655,7 +689,7 @@ class SignedData(pdf.PdfFileWriter):
                 po.NameObject("/OCSPs"): ocsps,
                 po.NameObject("/CRLs"): crls,
             })
-            catalog[po.NameObject("/DSS")] = self._addObject(dss)
+            catalog[po.NameObject("/DSS")] = self._add_object(dss)
 
             if ocspurl is None:
                 ocspurl = signer.extract_ocsp_url_from_cert(cert)
@@ -670,14 +704,14 @@ class SignedData(pdf.PdfFileWriter):
             if ocspresp is not None:
                 obj = po.StreamObject()
                 obj._data = ocspresp
-                ocsps.append(self._addObject(obj))
+                ocsps.append(self._add_object(obj))
             obj = po.StreamObject()
             obj._data = cert.public_bytes(serialization.Encoding.DER)
-            certs.append(self._addObject(obj))
+            certs.append(self._add_object(obj))
             for cert in othercerts:
                 obj = po.StreamObject()
                 obj._data = cert.public_bytes(serialization.Encoding.DER)
-                certs.append(self._addObject(obj))
+                certs.append(self._add_object(obj))
 
         x_root = prev.trailer.raw_get("/Root")
         self._objects[x_root.idnum - 1] = catalog
@@ -706,8 +740,8 @@ class SignedData(pdf.PdfFileWriter):
         fi = io.BytesIO(datau)
 
         # read end decrypt
-        prev = pdf.PdfFileReader(fi)
-        if prev.isEncrypted:
+        prev = PdfReader(fi)
+        if prev.is_encrypted:
             rc = prev.decrypt(udct["password"])
         else:
             rc = 0
@@ -719,7 +753,7 @@ class SignedData(pdf.PdfFileWriter):
                 obj = obj[k]
                 if isinstance(obj, po.ArrayObject):
                     obj = obj[0]
-                obj = obj.getObject()
+                obj = obj.get_object()
             else:
                 obj = None
                 break
@@ -769,7 +803,7 @@ class SignedData(pdf.PdfFileWriter):
         self.makepdf(prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params)
 
         # if document was encrypted, encrypt this version too
-        if prev.isEncrypted:
+        if prev.is_encrypted:
             self.encrypt(prev, udct["password"], rc)
         else:
             self._encrypt_key = None
@@ -779,7 +813,7 @@ class SignedData(pdf.PdfFileWriter):
         if ID is None:
             ID = udct.get("id") or hashlib.md5(repr(time.time()).encode()).digest()
         else:
-            ID = ID.getObject()[0].original_bytes
+            ID = ID.get_object()[0].original_bytes
         newID = udct.get("newid", repr(random.random()))
         self._ID = po.ArrayObject(
             [
