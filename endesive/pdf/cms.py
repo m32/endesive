@@ -199,8 +199,8 @@ class SignedData(PdfWriter):
             trailer.update(retval)
             trailer._data = retval._data
             stream.write(b_("%d 0 obj\n" % (len(self._objects))))
-            stream.write(b_("\nendobj"))
             trailer.write_to_stream(stream, None)
+            stream.write(b_("\nendobj"))
 
         # eof
         stream.write(b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
