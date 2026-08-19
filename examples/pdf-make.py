@@ -2,7 +2,7 @@
 # *-* coding: utf-8 *-*
 import sys
 from optparse import OptionParser
-from endesive.pdf import fpdf
+import fpdf
 
 parser = OptionParser()
 parser.add_option("-f", "--file", dest="filename", default="pdf.pdf",
@@ -32,7 +32,7 @@ for i in range(2):
     if options.link and i == 0:
         link = doc.add_link()
         doc.set_link(link, page=2)
-    doc.cell(w=75.0, h=22.0, align='C', txt='Hello, world page=%d.' % i, border=0, ln=2, link=link)
+    doc.cell(w=75.0, h=22.0, align='C', text='Hello, world page=%d.' % i, border=0, link=link, new_x=fpdf.XPos.RIGHT, new_y=fpdf.YPos.TOP)
     if font != 'helvetica':
-        doc.cell(w=75.0, h=22.0, align='C', txt='ąćęłńóśżź', border=0, ln=2)
-doc.output(options.filename, "F")
+        pdf.cell(w=75.0, h=22.0, align='C', text='Hello, world page=%d.' % i, border=0, new_x=fpdf.XPos.RIGHT, new_y=fpdf.YPos.TOP)
+doc.output(options.filename)
