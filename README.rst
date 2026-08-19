@@ -42,6 +42,7 @@ the top distribution directory for the full license text.
 * `lxml`_
 * `pykcs11`_
 * `Pillow`_
+* `pypdf`_
 
 
 Examples
@@ -119,3 +120,4 @@ Validate electronic signatures: `ec_europa`_ or `pkitools_net`_.
 .. _pdfbox: https://pdfbox.apache.org/
 .. _ec_europa: https://ec.europa.eu/cefdigital/DSS/webapp-demo/validation
 .. _pkitools_net: https://pkitools.net/pages/validator/pdf.html
+.. _pypdf: https://github.com/py-pdf/pypdf
