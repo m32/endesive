@@ -48,13 +48,16 @@ class PDFVerifier(verifier.SignatureVerifier):
             stop = self.pdf_data.find(b"]", start)
             if start == -1 or stop == -1:
                 raise ValueError("Invalid ByteRange data")
-            n = stop + 1
             try:
                 br = [int(i, 10) for i in self.pdf_data[start + 1 : stop].split()]
             except Exception as exc:
                 raise ValueError("Invalid ByteRange data") from exc
             if len(br) != 4 or self.pdf_data[br[1]] != 60 or self.pdf_data[br[2] - 1] != 62:
                 raise ValueError("Invalid ByteRange markers")
+            if br[2]+br[3] < stop + 1:
+                raise ValueError("Invalid ByteRange data")
+            else:
+                n = br[2] + br[3]
             self.byte_ranges.append(br)
 
         if len(self.byte_ranges) == 0:
