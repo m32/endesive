@@ -79,27 +79,6 @@ class WNumberObject(po.NumberObject):
 
 
 class SignedData(PdfWriter):
-    def encrypt(self, prev, password, rc):
-        encrypt = prev.trailer["/Encrypt"].get_object()
-        pwd = encode_password(password)
-        if encrypt["/V"] == 2:
-            rev = 3
-            keybits = 128
-        else:
-            rev = 2
-            keybits = 40
-        P = encrypt["/P"].get_object()
-        O = encrypt["/O"].get_object()
-        ID_1 = prev.trailer["/ID"].get_object()[0].original_bytes
-        real_U = encrypt["/U"].get_object().original_bytes
-        metadata_encrypted = bool(encrypt.get("/EncryptMetadata", po.BooleanObject(False)).get_object())
-        key = AlgV4.compute_key(
-            pwd, rev, keybits, O, P & 0xFFFFFFFF, ID_1, metadata_encrypted)
-        U = AlgV4.compute_U_value(key, rev, ID_1)
-        U, real_U = U[:16], real_U[:16]
-        assert U == real_U
-        self._encrypt_key = key
-
     def write(self, stream, prev, startdata):
         stream.write(b_("\r\n"))
         positions = {}
@@ -111,14 +90,8 @@ class SignedData(PdfWriter):
                 continue
             positions[idnum] = startdata + stream.tell()
             stream.write(b_(str(idnum) + " 0 obj\n"))
-            key = None
-            if self._encrypt_key is not None:
-                pack1 = struct.pack("<i", i + 1)[:3]
-                pack2 = struct.pack("<i", 0)[:2]
-                key = self._encrypt_key + pack1 + pack2
-                assert len(key) == (len(self._encrypt_key) + 5)
-                md5_hash = hashlib.md5(key).digest()
-                key = md5_hash[: min(16, len(self._encrypt_key) + 5)]
+            if prev.is_encrypted:
+                obj = prev._encryption.encrypt_object(obj, idnum, 0)
             obj.write_to_stream(stream)
             stream.write(b_("\nendobj\n"))
 
@@ -742,9 +715,7 @@ class SignedData(PdfWriter):
         # read end decrypt
         prev = PdfReader(fi)
         if prev.is_encrypted:
-            rc = prev.decrypt(udct["password"])
-        else:
-            rc = 0
+            prev.decrypt(udct["password"])
 
         # digest method must remain unchanged from prevoius signatures
         obj = prev.trailer
@@ -802,11 +773,6 @@ class SignedData(PdfWriter):
 
         self.makepdf(prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params)
 
-        # if document was encrypted, encrypt this version too
-        if prev.is_encrypted:
-            self.encrypt(prev, udct["password"], rc)
-        else:
-            self._encrypt_key = None
 
         # ID[0] is used in password protection, must be unchanged
         ID = prev.trailer.get("/ID", None)
@@ -815,12 +781,16 @@ class SignedData(PdfWriter):
         else:
             ID = ID.get_object()[0].original_bytes
         newID = udct.get("newid", repr(random.random()))
+        id1_entry = hashlib.md5(newID.encode()).digest()
         self._ID = po.ArrayObject(
             [
                 po.ByteStringObject(ID),
-                po.ByteStringObject(hashlib.md5(newID.encode()).digest()),
+                po.ByteStringObject(id1_entry),
             ]
         )
+        # if document was encrypted, encrypt this version too
+        if prev.is_encrypted:
+            prev._encryption.id1_entry = id1_entry
 
         fo = io.BytesIO()
         self.write(fo, prev, startdata)
