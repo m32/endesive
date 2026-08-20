@@ -45,7 +45,7 @@ def main():
         'signingdate': date.encode(),
         'reason': 'Test',
     }
-    fname = 'pdf.pdf'
+    fname = 'generated/pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, 'rb').read()

@@ -28,7 +28,7 @@ def main():
     }
     with open('ca/demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
-    fname = 'pdf.pdf'
+    fname = 'generated/pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, 'rb').read()

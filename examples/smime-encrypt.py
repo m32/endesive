@@ -14,11 +14,11 @@ def main():
     certs = (
         load_cert('ca/demo2_user1.crt.pem'),
     )
-    datau = open('smime-unsigned.txt', 'rb').read()
+    datau = open('generated/smime-unsigned.txt', 'rb').read()
     datae = email.encrypt(datau, certs, 'aes256_ofb')
-    open('smime-encrypted.txt', 'wt').write(datae)
+    open('generated/smime-encrypted.txt', 'wt').write(datae)
     datae = email.encrypt(datau, certs, 'aes256_ofb', True)
-    open('smime-encrypted-oaep.txt', 'wt').write(datae)
+    open('generated/smime-encrypted-oaep.txt', 'wt').write(datae)
 
 
 main()

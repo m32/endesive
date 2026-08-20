@@ -73,7 +73,7 @@ def main():
     ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
 
     clshsm = Signer(DLLPATH)
-    fname = 'pdf.pdf'
+    fname = 'generated/pdf.pdf'
     if len (sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, 'rb').read()

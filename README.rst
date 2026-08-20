@@ -43,18 +43,27 @@ the top distribution directory for the full license text.
 * `pykcs11`_
 * `Pillow`_
 * `pypdf`_
+* `attrs`_
 
 
 Examples
 ========
 
-cert-make.py
+make-cert-ca.py
     Create required certificates (password is 1234)
-cert-make-hsm.py
+make-cert-hsm.py
     Create required certificates for SoftHSM (password is secret1)
+make-pdf.py
+    Create simple two paged PDF document which is used in pdf-*.py examples.
+make-pdf-*.py
+    Create other *.pdf files used in pdf-*.py examples
+make-plain.py
+    Create simple UTF-8 text file for use in plain-*.py examples.
+make-smime.py
+    Create simple UTF-8 text file for use in smime-*.py examples.
+make-xml.py
+    Create simple xml file for use in xml-*.py examples.
 
-pdf-make.py
-    Create simple two paged PDF document which is used in pdf-sign-cms.py.
 pdf-sign-cms.py
     Create signature in externally created PDF.
 pdf-sign-cms-hsm.py
@@ -64,8 +73,6 @@ pdf-sign-fpdf.py
 pdf-verify.py
     Verify prevously generated files (cms/pdf).
 
-plain-make.py
-    Create simple UTF-8 text file.
 plain-openssl.sh
     Sign, encrypt and decrypt text file with help of openssl executable.
 plain-sign-attr.py
@@ -75,8 +82,6 @@ plain-sign-noattr.py
 plain-verify.py
     Verify all generated signatures for text file.
 
-smime-make.py
-    Create simple UTF-8 text file for use in following examples.
 smime-openssl.sh
     Create signed S/MIME file, encrypted S/MIME file and decrypt generated S/MIME file
     with help of openssl executable.
@@ -91,8 +96,6 @@ smime-sign-noattr.py
 smime-verify.py
     Verify all generated S/MIME files.
 
-xml-make.py
-    Create simple xml file for use in following examples.
 xml-hsm-certum-enveloped.py
     XADES enveloped mode with real certificate (BES/T).
 xml-hsm-certum-enveloping.py
@@ -115,9 +118,10 @@ Validate electronic signatures: `ec_europa`_ or `pkitools_net`_.
 .. _lxml: https://pypi.org/project/lxml/
 .. _pykcs11: https://pypi.org/project/pykcs11/
 .. _Pillow: https://pypi.org/project/Pillow/
+.. _pypdf: https://github.com/py-pdf/pypdf
+.. _attrs: https://github.com/python-attrs/attrs
 .. _pdfvalidator: https://www.pdf-online.com/osa/validate.aspx
 .. _verapdf: https://demo.verapdf.org/
 .. _pdfbox: https://pdfbox.apache.org/
 .. _ec_europa: https://ec.europa.eu/cefdigital/DSS/webapp-demo/validation
 .. _pkitools_net: https://pkitools.net/pages/validator/pdf.html
-.. _pypdf: https://github.com/py-pdf/pypdf

@@ -64,7 +64,7 @@ def main():
     def signproc(tosign, algosig):
         return clshsm.sign(keyid, tosign, algosig)
 
-    data = open("xml.xml", "rb").read()
+    data = open("generated/xml.xml", "rb").read()
 
     cert = x509.load_der_x509_certificate(cert, backend=default_backend())
     certcontent = cert.public_bytes(serialization.Encoding.DER)
@@ -73,7 +73,7 @@ def main():
     doc = cls.enveloped(data, cert, certcontent, signproc, None, None)
 
     data = etree.tostring(doc, encoding="UTF-8", xml_declaration=True, standalone=False)
-    open("xml-hsm-softhsm2-enveloped.xml", "wb").write(data)
+    open("generated/xml-hsm-softhsm2-enveloped.xml", "wb").write(data)
 
 
 if __name__ == "__main__":

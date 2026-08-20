@@ -46,23 +46,23 @@ detachedverify() {
 
 if [ -z "$1" ]; then
     echo "************************** attr"
-    sign1 ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-attr.txt
-    verify smime-ssl-signed-attr.txt
+    sign1 ca/demo2_user1.crt.pem ca/demo2_user1.key.pem generated/smime-unsigned.txt generated/smime-ssl-signed-attr.txt
+    verify generated/smime-ssl-signed-attr.txt
     echo "************************** noattr"
-    sign2 ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-noattr.txt
-    verify smime-ssl-signed-noattr.txt
+    sign2 ca/demo2_user1.crt.pem ca/demo2_user1.key.pem generated/smime-unsigned.txt generated/smime-ssl-signed-noattr.txt
+    verify generated/smime-ssl-signed-noattr.txt
     echo "************************** detached"
-    detached ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-signed-detached.p7s
-    detachedverify smime-unsigned.txt smime-ssl-signed-detached.p7s
+    detached ca/demo2_user1.crt.pem ca/demo2_user1.key.pem generated/smime-unsigned.txt generated/smime-ssl-signed-detached.p7s
+    detachedverify generated/smime-unsigned.txt generated/smime-ssl-signed-detached.p7s
     echo "************************** encrypt"
-    encrypt ca/demo2_user1.crt.pem smime-unsigned.txt smime-ssl-encrypted.txt
-    decrypt ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-ssl-encrypted.txt
+    encrypt ca/demo2_user1.crt.pem generated/smime-unsigned.txt generated/smime-ssl-encrypted.txt
+    decrypt ca/demo2_user1.crt.pem ca/demo2_user1.key.pem generated/smime-ssl-encrypted.txt
     echo "************************** pss sign"
-    psssign ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-unsigned.txt smime-ssl-pss-signed.txt
-    pssverify ca/demo2_user1.crt.pem smime-ssl-pss-signed.txt
+    psssign ca/demo2_user1.crt.pem ca/demo2_user1.key.pem generated/smime-unsigned.txt generated/smime-ssl-pss-signed.txt
+    pssverify ca/demo2_user1.crt.pem generated/smime-ssl-pss-signed.txt
     echo "************************** oaep encrypt"
-    oaepencrypt ca/demo2_user1.crt.pem smime-unsigned.txt smime-ssl-oaep-encrypted.txt
-    oaepdecrypt ca/demo2_user1.crt.pem ca/demo2_user1.key.pem smime-ssl-oaep-encrypted.txt
+    oaepencrypt ca/demo2_user1.crt.pem generated/smime-unsigned.txt generated/smime-ssl-oaep-encrypted.txt
+    oaepdecrypt ca/demo2_user1.crt.pem ca/demo2_user1.key.pem generated/smime-ssl-oaep-encrypted.txt
 else
     if [ -z "$2" ]; then
         echo "************************** $1"

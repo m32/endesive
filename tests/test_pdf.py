@@ -8,14 +8,14 @@ from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import pdf
 
-tests_root = os.path.dirname(__file__)
-fixtures_dir = os.path.join(tests_root, 'fixtures')
-
-
-import test_cert
-
-def fixture(fname):
-    return os.path.join(fixtures_dir, fname)
+from test_cert import (
+    fixture, CA, HSM,
+    ca_root_cert,
+    ca_sub_cert,
+    cert1_key, cert1_cert, cert1_p12,
+    cert2_key, cert2_cert, cert2_p12,
+    cert3_key, cert3_cert, cert3_p12,
+)
 
 
 class PDFTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class PDFTests(unittest.TestCase):
             'signingdate': '20180731082642+02\'00\'',
             'reason': 'Dokument podpisany cyfrowo',
         }
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -40,7 +40,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
@@ -59,7 +59,7 @@ class PDFTests(unittest.TestCase):
             'reason': 'Dokument podpisany cyfrowo',
             'pss': True,
         }
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -72,7 +72,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
@@ -91,7 +91,7 @@ class PDFTests(unittest.TestCase):
             'reason': 'Dokument podpisany cyfrowo',
             'aligned': 0,
         }
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -104,7 +104,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
@@ -124,7 +124,7 @@ class PDFTests(unittest.TestCase):
             'aligned': 0,
             'password': '1234',
         }
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         fname = fixture('pdf-encrypted.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -137,7 +137,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
@@ -170,7 +170,7 @@ class PDFTests(unittest.TestCase):
                 'display': ['date']
             }
         }
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -183,7 +183,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
@@ -216,7 +216,7 @@ class PDFTests(unittest.TestCase):
                 'display': ['date']
             }
         }
-        p12 = test_cert.CA().pk12_load(test_cert.cert3_p12, '1234')
+        p12 = CA().pk12_load(cert3_p12, '1234')
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -229,7 +229,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
@@ -276,7 +276,7 @@ class PDFTests(unittest.TestCase):
             "reason": f"Investment in {user.company} by {user.company_full_name}",
         }
 
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -289,7 +289,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
@@ -309,7 +309,7 @@ class PDFTests(unittest.TestCase):
             'signingdate': '20180731082642+02\'00\'',
             'reason': 'Dokument podpisany cyfrowo',
         }
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         fname = fixture('pdf.pdf')
         with open(fname, 'rb') as fh:
             datau = fh.read()
@@ -324,7 +324,7 @@ class PDFTests(unittest.TestCase):
             fp.write(datau)
             fp.write(datas)
 
-        with open(test_cert.ca_root_cert, 'rb') as fh:
+        with open(ca_root_cert, 'rb') as fh:
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()

@@ -1,8 +1,8 @@
-cert-hsm-*
-demo2_*
-root.pem
-softhsm2/
 softhsm2.conf
+
+demo2_user1.key.nopass.pem
+demo2_user1.key.nopass.pem.pub
+
 pdf-signed-cms.pdf
 pdf-signed-cms-pss.pdf
 pdf-encrypted-signed.pdf

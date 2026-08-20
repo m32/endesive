@@ -6,7 +6,7 @@ import signxml
 cert = open("ca/demo2_user1.crt.pem").read()
 key = open("ca/demo2_user1.key.pem").read()
 cert1 = open("ca/demo2_ca.sub.crt.pem").read()
-data = open('xml.xml', 'rb').read()
+data = open('generated/xml.xml', 'rb').read()
 
 root = etree.fromstring(data)
 
@@ -32,4 +32,4 @@ xml = etree.tostring(
     standalone=False,
     pretty_print=True
 )
-open("xml-xmlsigner-enveloping.xml", "wb").write(xml)
+open("generated/xml-xmlsigner-enveloping.xml", "wb").write(xml)

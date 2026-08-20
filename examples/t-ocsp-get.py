@@ -38,13 +38,13 @@ def main():
 
     print('crlurl', crlurl)
     response = requests.get(crlurl)
-    with open('t-ocsp-crl.pem', 'wb') as fp:
+    with open('generated/t-ocsp-crl.pem', 'wb') as fp:
         fp.write(response.content)
 
     print('rootcerturl', rootcerturl)
     response = requests.get(rootcerturl)
     ocspissuer = response.content
-    with open('t-ocsp-issuer.der', 'wb') as fp:
+    with open('generated/t-ocsp-issuer.der', 'wb') as fp:
         fp.write(ocspissuer)
 
     ocspissuer = x509.load_der_x509_certificate(ocspissuer, backends.default_backend())
@@ -53,13 +53,13 @@ def main():
     req = builder.build()
     data = req.public_bytes(serialization.Encoding.DER)
 
-    open("t-ocsp-req.bin", "wb").write(data)
+    open("generated/t-ocsp-req.bin", "wb").write(data)
     response = requests.post(
         ocspissuerurl,
         headers={"Content-Type": "application/ocsp-request"},
         data=data,
     )
-    open("t-ocsp-resp.bin", "wb").write(response.content)
+    open("generated/t-ocsp-resp.bin", "wb").write(response.content)
 
 
 main()

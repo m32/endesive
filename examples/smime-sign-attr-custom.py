@@ -10,7 +10,7 @@ from asn1crypto import cms, algos, core, pem, x509
 def main():
     with open('ca/demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
-    datau = open('smime-unsigned.txt', 'rb').read()
+    datau = open('generated/smime-unsigned.txt', 'rb').read()
 
     datau1 = datau.replace(b'\n', b'\r\n')
     hashalgo = 'sha256'
@@ -32,7 +32,7 @@ def main():
         'sha256',
         attrs=attrs_callback
     )
-    open('smime-signed-attr-custom.txt', 'wb').write(datas)
+    open('generated/smime-signed-attr-custom.txt', 'wb').write(datas)
 
 
 main()

@@ -8,14 +8,14 @@ def main():
     trusted_cert_pems = (open('ca/demo2_ca.root.crt.pem', 'rb').read(),)
 
     for fname in (
-        'smime-signed-attr.txt',
-        'smime-signed-attr-custom.txt',
-        'smime-signed-hsm.txt',
-        'smime-signed-noattr.txt',
-        'smime-signed-pss.txt',
-        'smime-ssl-pss-signed.txt',
-        'smime-ssl-signed-attr.txt',
-        'smime-ssl-signed-noattr.txt',
+        'generated/smime-signed-attr.txt',
+        'generated/smime-signed-attr-custom.txt',
+        'generated/smime-signed-hsm.txt',
+        'generated/smime-signed-noattr.txt',
+        'generated/smime-signed-pss.txt',
+        'generated/smime-ssl-pss-signed.txt',
+        'generated/smime-ssl-signed-attr.txt',
+        'generated/smime-ssl-signed-noattr.txt',
     ):
         print('*' * 20, fname)
         try:

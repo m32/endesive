@@ -68,12 +68,12 @@ class Main:
         self.byterange()
 
 for fname in (
-    #"pdf-certum.pdf",
-    #"pdf-acrobat.pdf",
-    'pdf-signed-java.pdf',
-    'pdf-signed-pypdf.pdf',
-    'pdf-encrypted-signed-java.pdf',
-    'pdf-encrypted-signed-pypdf.pdf',
+    #"generated/pdf-certum.pdf",
+    #"generated/pdf-acrobat.pdf",
+    'generated/pdf-signed-java.pdf',
+    'generated/pdf-signed-pypdf.pdf',
+    'generated/pdf-encrypted-signed-java.pdf',
+    'generated/pdf-encrypted-signed-pypdf.pdf',
 ):
     print('*'*20, fname)
     try:

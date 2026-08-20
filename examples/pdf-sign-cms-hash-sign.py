@@ -57,7 +57,7 @@ class Signer(hsm.HSM):
 
 
 def main():
-    pdfname = 'pdf.pdf'
+    pdfname = 'generated/pdf.pdf'
     if len (sys.argv) > 1:
         pdfname = sys.argv[1]
     config = open(pdfname + ".json", "rt").read()

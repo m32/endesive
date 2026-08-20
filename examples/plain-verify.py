@@ -5,13 +5,13 @@ from endesive import plain
 
 def main():
     trusted_cert_pems = (open('ca/demo2_ca.root.crt.pem', 'rb').read(),)
-    datau = open('plain-unsigned.txt', 'rb').read()
+    datau = open('generated/plain-unsigned.txt', 'rb').read()
     for fname in (
-            'plain-ssl-signed-attr.txt',
-            'plain-ssl-signed-noattr.txt',
-            'plain-signed-attr.txt',
-            'plain-signed-noattr.txt',
-            'plain-signed-pss.txt',
+            'generated/plain-ssl-signed-attr.txt',
+            'generated/plain-ssl-signed-noattr.txt',
+            'generated/plain-signed-attr.txt',
+            'generated/plain-signed-noattr.txt',
+            'generated/plain-signed-pss.txt',
     ):
         print('*' * 20, fname)
         try:

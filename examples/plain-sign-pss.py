@@ -8,14 +8,14 @@ from endesive import plain
 def main():
     with open('ca/demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
-    datau = open('plain-unsigned.txt', 'rb').read()
+    datau = open('generated/plain-unsigned.txt', 'rb').read()
     datas = plain.sign(datau,
         p12[0], p12[1], p12[2],
         'sha512',
         attrs=True,
         pss=True
     )
-    open('plain-signed-pss.txt', 'wb').write(datas)
+    open('generated/plain-signed-pss.txt', 'wb').write(datas)
 
 
 main()

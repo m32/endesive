@@ -3,7 +3,7 @@ from pdf_annotate import PdfAnnotator, Location, Appearance
 
 annotationtext = "some text"
 
-a = PdfAnnotator("pdf.pdf")
+a = PdfAnnotator("generated/pdf.pdf")
 a.add_annotation(
     "text",
     Location(x1=50, y1=50, x2=200, y2=100, page=0),
@@ -15,4 +15,4 @@ a.add_annotation(
         content=annotationtext,
     ),
 )
-a.write("pdf-a.pdf")
+a.write("generated/pdf-annotate.pdf")

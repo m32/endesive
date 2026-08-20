@@ -41,7 +41,7 @@ def main():
             fp.read(), b"1234", backends.default_backend()
         )
     for algorithm in ["RC4-40", "RC4-128", "AES-128", "AES-256-R5", "AES-256"]:
-        fname = f"pdf-encrypted-{algorithm}.pdf"
+        fname = f"generated/pdf-encrypted-{algorithm}.pdf"
         datau = open(fname, "rb").read()
         datas = cms.sign(
             datau,
@@ -55,7 +55,7 @@ def main():
             fp.write(datau)
             fp.write(datas)
 
-    fname = f"pdf-qpdf.pdf"
+    fname = f"generated/pdf-qpdf.pdf"
     datau = open(fname, "rb").read()
     datas = cms.sign(
         datau,

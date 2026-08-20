@@ -25,7 +25,7 @@ def main():
         signing_time=datetime.datetime.now(datetime.UTC),
         reason="Dokument podpisany cyfrowo",
     )
-    pdf.output('pdf-signed-fpdf.pdf')
+    pdf.output('generated/pdf-signed-fpdf.pdf')
 
 
 main()

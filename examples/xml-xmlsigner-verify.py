@@ -7,7 +7,7 @@ import signxml
 if sys.argv[1:]:
     fname = sys.argv[1]
 else:
-    fname = "xml-xmlsigner-enveloped.xml"
+    fname = "generated/xml-xmlsigner-enveloped.xml"
     #fname = "xml-xmlsigner-enveloping.xml"
     #fname = 'xml-xades-bes-enveloped.xml'
 data = open(fname, "rb").read()

@@ -32,12 +32,12 @@ verify() {
 
 if [ -z "$1" ]; then
     echo "************************** attr"
-    sign1 plain-unsigned.txt plain-ssl-signed-attr.txt
-    verify plain-unsigned.txt plain-ssl-signed-attr.txt
+    sign1  generated/plain-unsigned.txt generated/plain-ssl-signed-attr.txt
+    verify generated/plain-unsigned.txt generated/plain-ssl-signed-attr.txt
     echo "************************** noattr"
-    sign1 plain-unsigned.txt plain-ssl-signed-noattr.txt
-    verify plain-unsigned.txt plain-ssl-signed-noattr.txt
+    sign1  generated/plain-unsigned.txt generated/plain-ssl-signed-noattr.txt
+    verify generated/plain-unsigned.txt generated/plain-ssl-signed-noattr.txt
 else
     echo "************************** verify"
-    verify plain-unsigned.txt $1
+    verify generated/plain-unsigned.txt $1
 fi

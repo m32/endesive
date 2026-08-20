@@ -24,7 +24,7 @@ def main():
         "password": "1234",
         "signingdate": "2025-06-11",
     }
-    fname = "pdf.pdf"
+    fname = "generated/pdf.pdf"
     if len(sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, "rb").read()

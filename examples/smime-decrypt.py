@@ -10,10 +10,10 @@ def main():
     with open('ca/demo2_user1.p12', 'rb') as fp:
         p12 = pkcs12.load_key_and_certificates(fp.read(), b'1234', backends.default_backend())
     for fname in (
-        'smime-ssl-encrypted.txt',
-        'smime-ssl-oaep-encrypted.txt',
-        'smime-encrypted.txt',
-        'smime-encrypted-oaep.txt',
+        'generated/smime-ssl-encrypted.txt',
+        'generated/smime-ssl-oaep-encrypted.txt',
+        'generated/smime-encrypted.txt',
+        'generated/smime-encrypted-oaep.txt',
     ):
         print('*' * 20, fname)
         try:

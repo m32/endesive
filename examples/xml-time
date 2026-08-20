@@ -1,5 +1,5 @@
 #!/bin/bash
-cat >xml-time.txt <<-EOF
+cat >generated/xml-time.txt <<-EOF
 MIIL/gYJKoZIhvcNAQcCoIIL7zCCC+sCAQMxDTALBglghkgBZQMEAgEwggEOBgsq
 hkiG9w0BCRABBKCB/gSB+zCB+AIBAQYLKoRoAYb2dwIEAQ4wMTANBglghkgBZQME
 AgEFAAQgVSguaHYYcACxv0j4mVPwtXOLK385JKGLJxdOiBIxHbICBxHDeUu0XvMY
@@ -65,6 +65,6 @@ gtTufoThgkqVAVXKQBRMsTiOgqs6OYEfu/Mze2thZZewC5cyrAFDT+9VrfcJrnS5
 A3BssrCatKdN5pkU1wnsnHmoWYFbEFLr/uC2RcNxitM4qBnWb+wn+4Idm2615uCj
 VOH0r21u1y+nWjOXHLjzz5QfxLsftLixUyPPI9mQm/0TgUtzMa16lxUXTR984GGW10A=
 EOF
-base64 --decode <xml-time.txt >xml-time.raw
-openssl cms -in xml-time.raw -inform DER -cmsout -print >xml-time.txt
+base64 --decode <generated/xml-time.txt >generated/xml-time.raw
+openssl cms -in generated/xml-time.raw -inform DER -cmsout -print >generated/xml-time.txt
 #rm xml-time.txt xml-time.raw

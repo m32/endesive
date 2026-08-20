@@ -4,7 +4,6 @@ import unittest
 import os
 import stat
 import subprocess
-import sysconfig
 import datetime
 import base64
 import email
@@ -21,44 +20,14 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import hsm, signer, verifier
 import PyKCS11 as PK11
 
-import test_cert
-
-tests_root = os.path.dirname(__file__)
-fixtures_dir = os.path.join(tests_root, 'fixtures')
-
-def fixture(fname):
-    return os.path.join(fixtures_dir, fname)
-
-dllpath = os.path.join(sysconfig.get_config_var('LIBDIR'), 'softhsm/libsofthsm2.so')
-
-os.makedirs(os.path.join(fixtures_dir, 'softhsm2'), exist_ok=True)
-os.environ['SOFTHSM2_CONF'] = fixture('softhsm2.conf')
-with open(fixture('softhsm2.conf'), 'wt') as _f:
-    _f.write('''\
-log.level = DEBUG
-directories.tokendir = %s/softhsm2/
-objectstore.backend = file
-slots.removable = false
-''' % fixtures_dir)
-
-class HSM(hsm.HSM):
-    def main(self):
-        cakeyID = bytes((0x1,))
-        rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, cakeyID)])
-        if len(rec) == 0:
-            label = 'hsm CA'
-            self.gen_privkey(label, cakeyID)
-            self.ca_gen(label, cakeyID, 'hsm CA')
-
-        keyID = bytes((0x66,0x66,0x90))
-        rec = self.session.findObjects([(PK11.CKA_CLASS, PK11.CKO_PRIVATE_KEY), (PK11.CKA_ID, keyID)])
-        if len(rec) == 0:
-            label = 'hsm USER 1'
-            self.gen_privkey(label, keyID)
-            self.ca_sign(keyID, label, 0x666690, "hsm USER 1", 365, cakeyID)
-
-        self.cert_export(fixture('cert-hsm-ca'), cakeyID)
-        self.cert_export(fixture('cert-hsm-user1'), keyID)
+from test_cert import (
+    fixture, CA, HSM,
+    ca_root_cert,
+    ca_sub_cert,
+    cert1_key, cert1_cert, cert1_p12,
+    cert2_key, cert2_cert, cert2_p12,
+    cert3_key, cert3_cert, cert3_p12,
+)
 
 def compose(From, To, Subject, Body, Attachment, signer):
     # create message object instance
@@ -113,26 +82,15 @@ class HSMTests(unittest.TestCase):
         except NotImplementedError:
             pass
 
-    def test_create(self):
-        cls = HSM(dllpath)
-        cls.create("endesieve", "secret1", "secret2")
-        cls.login("endesieve", "secret1")
-        try:
-            cls.main()
-        finally:
-            cls.logout()
-
     def test_load(self):
-        cls = HSM(dllpath)
+        cls = HSM()
         cls.login("endesieve", "secret1")
-        cakeyID = bytes((0x1,))
-        cls.cert_load(cakeyID)
-        keyID = bytes((0x66,0x66,0x90))
-        cls.cert_load(keyID)
+        cls.cert_load(cls.ca_id_root)
+        cls.cert_load(cls.ca_id_user+bytes([1]))
         cls.logout()
 
     def test_ssh_sign(self):
-        key, cert, othercerts = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        key, cert, othercerts = CA().pk12_load(cert1_p12, '1234')
 
         agent = hsm.SSHAgentHSM(cert)
 
@@ -193,7 +151,7 @@ class HSMTests(unittest.TestCase):
         agent.close()
 
     def test_ssh_verify(self):
-        with open(test_cert.cert1_cert, 'rb') as fp:
+        with open(cert1_cert, 'rb') as fp:
             cert = fp.read()
         with open(fixture('smime-signed-hsm-ssh.txt'), 'rt') as fp:
             datas = fp.read()

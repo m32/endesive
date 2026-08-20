@@ -1,0 +1,17 @@
+{
+    "actionButtons": {
+        "reloadButton": null,
+        "loadNpmCommands": false,
+        "commands": [
+            {
+                "name": "Run Cargo",
+                "singleInstance": true,
+                "color": "#af565c",
+                "command": "cargo run ${file}",
+            },
+        ]
+    },
+    "python.pythonPath": "/devel/bin/python3/bin/python",
+    "python.languageServer": "Pylance",
+    "python.formatting.provider": "black"
+}

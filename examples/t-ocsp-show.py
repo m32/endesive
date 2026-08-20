@@ -11,17 +11,17 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 def main():
     if 0:
         print("*" * 20, "crl")
-        data = open("t-ocsp-crl.pem", "rb").read()
+        data = open("generated/t-ocsp-crl.pem", "rb").read()
         crlr = aocrl.CertificateList.load(data)
         print(crlr.debug())
 
     print("*" * 20, "req")
-    data = open("t-ocsp-req.bin", "rb").read()
+    data = open("generated/t-ocsp-req.bin", "rb").read()
     ocspr = aocsp.OCSPRequest.load(data)
     print(ocspr.debug())
 
     print("*" * 20, "resp")
-    data = open("t-ocsp-resp.bin", "rb").read()
+    data = open("generated/t-ocsp-resp.bin", "rb").read()
     ocspresp = aocsp.OCSPResponse.load(data)
     print(ocspresp.debug())
 

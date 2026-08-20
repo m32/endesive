@@ -17,19 +17,18 @@ from endesive import email
 import hashlib
 from asn1crypto import cms, algos, core, pem
 
-import test_cert
-
-tests_root = os.path.dirname(__file__)
-fixtures_dir = os.path.join(tests_root, 'fixtures')
-
-
-def fixture(fname):
-    return os.path.join(fixtures_dir, fname)
-
+from test_cert import (
+    fixture, CA, HSM,
+    ca_root_cert,
+    ca_sub_cert,
+    cert1_key, cert1_cert, cert1_p12,
+    cert2_key, cert2_cert, cert2_p12,
+    cert3_key, cert3_cert, cert3_p12,
+)
 
 class EMAILTests(unittest.TestCase):
-    def _encrypt_for_cert(self, cert_path=test_cert.cert1_cert, algo='aes256_ofb', oaep=False):
-        certs = (test_cert.CA().cert_load(cert_path),)
+    def _encrypt_for_cert(self, cert_path=cert1_cert, algo='aes256_ofb', oaep=False):
+        certs = (CA().cert_load(cert_path),)
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datae = email.encrypt(datau, certs, algo, oaep)
@@ -65,7 +64,7 @@ class EMAILTests(unittest.TestCase):
         return self._tamper_smime_cms(datae, mutator)
 
     def test_email_signed_attr(self):
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
 
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -80,14 +79,14 @@ class EMAILTests(unittest.TestCase):
 
         with io.open(fname, 'rt', encoding='utf-8') as fp:
             datas = fp.read()
-        with open(test_cert.ca_sub_cert, 'rb') as fp:
+        with open(ca_sub_cert, 'rb') as fp:
             cert = fp.read()
         (hashok, signatureok, certok) = email.verify(datas, [cert,])
         assert hashok and signatureok and certok
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('root.pem'),
+            '-CAfile', ca_root_cert,
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -97,7 +96,7 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_attr_pss(self):
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
 
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -113,16 +112,16 @@ class EMAILTests(unittest.TestCase):
 
         with io.open(fname, 'rt', encoding='utf-8') as fp:
             datas = fp.read()
-        with open(test_cert.ca_sub_cert, 'rb') as fp:
+        with open(ca_sub_cert, 'rb') as fp:
             cert = fp.read()
         (hashok, signatureok, certok) = email.verify(datas, [cert,])
         assert hashok and signatureok and certok
 
         cmd = [
             'openssl', 'cms', '-verify',
-            '-signer', test_cert.cert1_cert,
+            '-signer', cert1_cert,
             '-keyopt', 'rsa_padding_mode:pss', '-md', 'sha512',
-            '-CAfile', fixture('root.pem'),
+            '-CAfile', ca_root_cert,
             '-in', fname
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -134,7 +133,7 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_attr_custom(self):
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
 
@@ -164,7 +163,7 @@ class EMAILTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('root.pem'),
+            '-CAfile', ca_root_cert,
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -174,7 +173,7 @@ class EMAILTests(unittest.TestCase):
         assert datau.replace(b'\n', b'\r\n') == stdout
 
     def test_email_signed_noattr(self):
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = email.sign(datau,
@@ -188,7 +187,7 @@ class EMAILTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('root.pem'),
+            '-CAfile', ca_root_cert,
             '-in', fname, '-inform', 'SMIME',
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -199,7 +198,7 @@ class EMAILTests(unittest.TestCase):
 
     def test_email_crypt(self):
         certs = (
-            test_cert.CA().cert_load(test_cert.cert1_cert),
+            CA().cert_load(cert1_cert),
         )
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -208,7 +207,7 @@ class EMAILTests(unittest.TestCase):
         with open(fname, 'wt') as fh:
             fh.write(datae)
 
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
@@ -216,7 +215,7 @@ class EMAILTests(unittest.TestCase):
         assert datau == datad
 
     def test_email_decrypt_rejects_non_base64_encoding(self):
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         msg = (
             'Content-Type: application/pkcs7-mime\n'
             'Content-Transfer-Encoding: 7bit\n\n'
@@ -226,7 +225,7 @@ class EMAILTests(unittest.TestCase):
             email.decrypt(msg, key)
 
     def test_email_decrypt_rejects_invalid_content_type(self):
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         msg = (
             'Content-Type: text/plain\n'
             'Content-Transfer-Encoding: base64\n\n'
@@ -236,8 +235,8 @@ class EMAILTests(unittest.TestCase):
             email.decrypt(msg, key)
 
     def test_email_decrypt_rejects_wrong_private_key(self):
-        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert)
-        wrong_key = test_cert.CA().key_load(test_cert.cert2_key, '1234')
+        datau, datae = self._encrypt_for_cert(cert1_cert)
+        wrong_key = CA().key_load(cert2_key, '1234')
         try:
             decrypted = email.decrypt(datae, wrong_key)
         except Exception:
@@ -245,7 +244,7 @@ class EMAILTests(unittest.TestCase):
         assert decrypted != datau
 
     def test_email_decrypt_rejects_invalid_cms_payload(self):
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         msg = (
             'Content-Type: application/pkcs7-mime\n'
             'Content-Transfer-Encoding: base64\n\n'
@@ -255,7 +254,7 @@ class EMAILTests(unittest.TestCase):
             email.decrypt(msg, key)
 
     def test_email_decrypt_tampered_ciphertext_does_not_match_plaintext(self):
-        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert)
+        datau, datae = self._encrypt_for_cert(cert1_cert)
 
         def mutator(cms_info):
             encrypted_data = cms_info['content']
@@ -265,7 +264,7 @@ class EMAILTests(unittest.TestCase):
             encrypted_content_info['encrypted_content'] = bytes(encrypted_content)
 
         tampered = self._tamper_smime_cms(datae, mutator)
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
 
         try:
             decrypted = email.decrypt(tampered, key)
@@ -276,7 +275,7 @@ class EMAILTests(unittest.TestCase):
 
     def test_email_decrypt_tampered_algorithm_is_rejected(self):
         certs = (
-            test_cert.CA().cert_load(test_cert.cert1_cert),
+            CA().cert_load(cert1_cert),
         )
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -288,30 +287,30 @@ class EMAILTests(unittest.TestCase):
             encrypted_content_info['content_encryption_algorithm']['algorithm'] = cms.EncryptionAlgorithmId('des')
 
         tampered = self._tamper_smime_cms(datae, mutator)
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         with self.assertRaises(Exception):
             email.decrypt(tampered, key)
 
     def test_email_decrypt_invalid_padding_zero_byte(self):
-        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert, algo='aes256_ofb')
+        datau, datae = self._encrypt_for_cert(cert1_cert, algo='aes256_ofb')
         original_pad = 16 - (len(datau) % 16)
         tampered = self._tamper_padding_value(datae, original_pad, 0)
 
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         decrypted = email.decrypt(tampered, key)
         assert decrypted != datau
 
     def test_email_decrypt_invalid_padding_too_large(self):
-        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert, algo='aes256_ofb')
+        datau, datae = self._encrypt_for_cert(cert1_cert, algo='aes256_ofb')
         original_pad = 16 - (len(datau) % 16)
         tampered = self._tamper_padding_value(datae, original_pad, 17)
 
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         decrypted = email.decrypt(tampered, key)
         assert decrypted != datau
 
     def test_email_decrypt_invalid_padding_inconsistent_bytes(self):
-        datau, datae = self._encrypt_for_cert(test_cert.cert1_cert, algo='aes256_ofb')
+        datau, datae = self._encrypt_for_cert(cert1_cert, algo='aes256_ofb')
         original_pad = 16 - (len(datau) % 16)
         tampered = self._tamper_inconsistent_padding(
             datae,
@@ -320,13 +319,13 @@ class EMAILTests(unittest.TestCase):
             target_prev_byte=1,
         )
 
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         decrypted = email.decrypt(tampered, key)
         assert decrypted != datau
 
     def _test_email_ssl_decrypt(self, algo, mode, oaep):
         certs = (
-            test_cert.CA().cert_load(test_cert.cert1_cert),
+            CA().cert_load(cert1_cert),
         )
 
         with open(fixture('smime-unsigned.txt'), 'rb') as fh:
@@ -338,22 +337,22 @@ class EMAILTests(unittest.TestCase):
             fh.write(datae)
 
         if 0:
-            key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+            key = CA().key_load(cert1_key, '1234')
             datau = email.decrypt(datae, key)
 
         if not oaep:
             cmd = [
                 'openssl', 'smime', '-decrypt',
-                '-recip', test_cert.cert1_cert,
-                '-inkey', test_cert.cert1_key,
+                '-recip', cert1_cert,
+                '-inkey', cert1_key,
                 '-passin', 'pass:1234',
                 '-in', fname,
             ]
         else:
             cmd = [
                 'openssl', 'cms', '-decrypt',
-                '-recip', test_cert.cert1_cert,
-                '-inkey', test_cert.cert1_key,
+                '-recip', cert1_cert,
+                '-inkey', cert1_key,
                 '-passin', 'pass:1234',
                 '-in', fname,
             ]
@@ -408,14 +407,14 @@ class EMAILTests(unittest.TestCase):
             'openssl', 'smime', '-encrypt', '-'+algo,
             '-in', fixture('smime-unsigned.txt'),
             '-out', fname,
-            test_cert.cert1_cert,
+            cert1_cert,
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         assert stderr == b''
         assert stdout == b''
 
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)
@@ -431,7 +430,7 @@ class EMAILTests(unittest.TestCase):
         fname = fixture('smime-ssl-encrypted-cms-{}.txt'.format(mode))
         cmd = [
             'openssl', 'cms', '-encrypt',
-            '-recip', test_cert.cert1_cert,
+            '-recip', cert1_cert,
             '-in', fixture('smime-unsigned.txt'),
             '-out', fname,
             '-md', 'sha512'
@@ -445,7 +444,7 @@ class EMAILTests(unittest.TestCase):
         assert stderr == b''
         assert stdout == b''
 
-        key = test_cert.CA().key_load(test_cert.cert1_key, '1234')
+        key = CA().key_load(cert1_key, '1234')
         with io.open(fname, 'rt', encoding='utf-8') as fh:
             datae = fh.read()
         datad = email.decrypt(datae, key)

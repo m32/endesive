@@ -3,7 +3,7 @@ import sys
 import pdfbox
 from jnius import autoclass
 
-pdfname = 'pdf.pdf'
+pdfname = 'generated/pdf.pdf'
 if len(sys.argv) > 1:
     pdfname = sys.argv[1]
 signature = autoclass('org.apache.pdfbox.examples.examples.ShowSignature')

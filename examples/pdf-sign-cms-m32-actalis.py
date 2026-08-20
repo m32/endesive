@@ -37,7 +37,7 @@ def main():
             fp.read(), pk12pass, backends.default_backend()
         )
 
-    fname = "pdf.pdf"
+    fname = "generated/pdf.pdf"
     if len(sys.argv) > 2:
         fname = sys.argv[2]
     datau = open(fname, "rb").read()

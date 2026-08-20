@@ -1,0 +1,71 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "cert-make-hsm.py",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/cert-make-hsm.py",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--force",
+            ]
+        },
+        {
+            "name": "cert-verify-hsm.py",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/cert-verify-hsm.py",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "pdf-sign-cms.py",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/pdf-sign-cms.py",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "pdf-verify.py",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/pdf-verify.py",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "pdf-sign-cms-hsm.py",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/pdf-sign-cms-hsm.py",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "pdf-verify-hsm.py",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/pdf-verify-hsm.py",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "pdf-verify-pypdf.py",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "program": "${workspaceFolder}/pdf-verify-pypdf.py",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+        },
+    ]
+}

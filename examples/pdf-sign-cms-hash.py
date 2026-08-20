@@ -67,7 +67,7 @@ def main():
         "newid": "1",
     }
 
-    pdfname = 'pdf.pdf'
+    pdfname = 'generated/pdf.pdf'
     if len (sys.argv) > 1:
         pdfname = sys.argv[1]
     try:
@@ -77,7 +77,7 @@ def main():
         when = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         config = {
             'when': when,
-            'certificate': open("cert-hsm-user-1.pem", "rt").read(),
+            'certificate': open("softhsm2/cert-hsm-user-1.pem", "rt").read(),
             'signed_bytes': None,
             'tosign': None,
             'id': hashlib.md5(when.encode()).hexdigest()

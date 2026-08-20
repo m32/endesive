@@ -108,7 +108,7 @@ def main():
         agent = SSHAgentHSM(cert)
 
 
-    datau = open('smime-unsigned.txt', 'rb').read()
+    datau = open('generated/smime-unsigned.txt', 'rb').read()
 
     msg, env, sig = compose(
         From='root+from@localhost',
@@ -119,7 +119,7 @@ def main():
         signer=lambda data: sign(data, None, cert, othercerts, 'sha256', agent)
     )
     datas = msg.as_bytes(unixfrom=True)
-    open('smime-signed-hsm.txt', 'wb').write(datas)
+    open('generated/smime-signed-hsm.txt', 'wb').write(datas)
 
     # we added, so we remove the key from ssh-agent
     if keyfile:

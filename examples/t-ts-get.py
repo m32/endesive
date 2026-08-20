@@ -23,7 +23,7 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
         #'extensions': tsp.Extensions()
         })
     tspreq = tspreq.dump()
-    open('t-ts-req.bin', 'wb').write(tspreq)
+    open('generated/t-ts-req.bin', 'wb').write(tspreq)
 
     tspheaders = {"Content-Type": "application/timestamp-query"}
     username = credentials.get("username", None)
@@ -34,7 +34,7 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
 
     tspresp = requests.post(url, data=tspreq, headers=tspheaders, **req_options)
     if tspresp.headers.get('Content-Type', None) == 'application/timestamp-reply':
-        open('t-ts-resp.bin','wb').write(tspresp.content)
+        open('generated/t-ts-resp.bin','wb').write(tspresp.content)
         tspresp = tsp.TimeStampResp.load(tspresp.content)
 
         if tspresp['status']['status'].native == 'granted':

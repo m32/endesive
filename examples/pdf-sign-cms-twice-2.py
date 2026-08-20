@@ -38,7 +38,7 @@ def main():
         p12 = pkcs12.load_key_and_certificates(
             fp.read(), b"1234", backends.default_backend()
         )
-    fname = "pdf-signed-cms-twice-1.pdf"
+    fname = "generated/pdf-signed-cms-twice-1.pdf"
     if len(sys.argv) > 1:
         fname = sys.argv[1]
     datau = open(fname, "rb").read()

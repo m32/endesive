@@ -10,19 +10,19 @@ from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 from endesive import plain
 
-import test_cert
-
-tests_root = os.path.dirname(__file__)
-fixtures_dir = os.path.join(tests_root, 'fixtures')
-
-
-def fixture(fname):
-    return os.path.join(fixtures_dir, fname)
+from test_cert import (
+    fixture, CA, HSM,
+    ca_root_cert,
+    ca_sub_cert,
+    cert1_key, cert1_cert, cert1_p12,
+    cert2_key, cert2_cert, cert2_p12,
+    cert3_key, cert3_cert, cert3_p12,
+)
 
 
 class PLAINTests(unittest.TestCase):
     def test_plain_signed_attr(self):
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = plain.sign(datau,
@@ -36,7 +36,7 @@ class PLAINTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('root.pem'),
+            '-CAfile', ca_root_cert,
             '-content', fixture('plain-unsigned.txt'),
             '-in', fname,
             '-inform', 'der',
@@ -47,7 +47,7 @@ class PLAINTests(unittest.TestCase):
         assert datau == stdout
 
     def test_plain_signed_noattr(self):
-        p12 = test_cert.CA().pk12_load(test_cert.cert1_p12, '1234')
+        p12 = CA().pk12_load(cert1_p12, '1234')
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
         datas = plain.sign(datau,
@@ -61,7 +61,7 @@ class PLAINTests(unittest.TestCase):
 
         cmd = [
             'openssl', 'smime', '-verify',
-            '-CAfile', fixture('root.pem'),
+            '-CAfile', ca_root_cert,
             '-content', fixture('plain-unsigned.txt'),
             '-in', fname,
             '-inform', 'der',
@@ -76,13 +76,13 @@ class PLAINTests(unittest.TestCase):
             'openssl', 'smime', '-sign',
             '-md', 'sha256',
             '-binary',
-            '-CAfile', fixture('root.pem'),
+            '-certfile', ca_sub_cert,
             '-in', fixture('plain-unsigned.txt'),
             '-out', fixture('plain-ssl-signed-attr.txt'),
             '-outform', 'der',
-            '-inkey', test_cert.cert1_key,
+            '-inkey', cert1_key,
             '-passin', 'pass:1234',
-            '-signer', test_cert.cert1_cert,
+            '-signer', cert1_cert,
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
@@ -90,7 +90,7 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stderr
 
         trusted_cert_pems = []
-        with open(fixture('root.pem'), 'rb') as fp:
+        with open(ca_root_cert, 'rb') as fp:
             trusted_cert_pems.append(fp.read())
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -104,13 +104,13 @@ class PLAINTests(unittest.TestCase):
             'openssl', 'smime', '-sign',
             '-md', 'sha256',
             '-binary', '-noattr',
-            '-CAfile', fixture('root.pem'),
+            '-certfile', ca_sub_cert,
             '-in', fixture('plain-unsigned.txt'),
             '-out', fixture('plain-ssl-signed-noattr.txt'),
             '-outform', 'der',
-            '-inkey', test_cert.cert1_key,
+            '-inkey', cert1_key,
             '-passin', 'pass:1234',
-            '-signer', test_cert.cert1_cert,
+            '-signer', cert1_cert,
         ]
         process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
@@ -118,7 +118,7 @@ class PLAINTests(unittest.TestCase):
         assert b'' == stderr
 
         trusted_cert_pems = []
-        with open(fixture('root.pem'), 'rb') as fp:
+        with open(ca_root_cert, 'rb') as fp:
             trusted_cert_pems.append(fp.read())
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
