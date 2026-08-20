@@ -2,7 +2,7 @@ import os
 import re
 import zlib
 
-from ..fpdf.ttfonts import TTFontFile
+from .ttfonts import TTFontFile
 from .pdfrw import PdfDict, PdfName, PdfString, PdfArray, IndirectPdfDict
 
 
