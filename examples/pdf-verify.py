@@ -23,6 +23,8 @@ def main():
         "pdf-encrypted-AES-256-signed-cms.pdf",
         "pdf-encrypted-RC4-128-signed-cms.pdf",
         "pdf-encrypted-RC4-40-signed-cms.pdf",
+        "pdf-qpdf-signed-cms.pdf",
+        #
         "pdf-signed-cms.pdf",
         "pdf-signed-cms-hash.pdf",
         "pdf-signed-cms-m32-actalis.pdf",

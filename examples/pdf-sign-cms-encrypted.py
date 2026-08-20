@@ -55,5 +55,18 @@ def main():
             fp.write(datau)
             fp.write(datas)
 
+    fname = f"pdf-qpdf.pdf"
+    datau = open(fname, "rb").read()
+    datas = cms.sign(
+        datau,
+        dct,
+        p12[0], p12[1], p12[2], "sha256",
+        None,
+        tspurl,
+    )
+    fname = fname.replace(".pdf", "-signed-cms.pdf")
+    with open(fname, "wb") as fp:
+        fp.write(datau)
+        fp.write(datas)
 
 main()
