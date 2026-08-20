@@ -30,8 +30,6 @@ exclude_patterns = [
     '.DS_Store',
     'examples',
     'tests',
-    'endesive/pdf/fpdf*',
-    'endesive/pdf/PyPDF2*',
     'endesive/pdf/PyPDF2_annotate*',
 ]
 
