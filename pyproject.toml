@@ -33,7 +33,8 @@ dependencies = [
     "Pillow",
     "requests",
     "paramiko",
-    "pypdf"
+    "pypdf",
+    "attrs",
 ]
 
 [project.urls]
