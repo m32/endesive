@@ -16,7 +16,7 @@ from pypdf._encryption import AlgV4
 from endesive import signer
 
 
-def b_(s):
+def _b_(s):
     """Encode str to bytes (pass bytes through unchanged).
     """
     if isinstance(s, bytes):
@@ -24,7 +24,7 @@ def b_(s):
     return s.encode("latin-1")
 
 
-def encode_password(password):
+def _encode_password(password):
     if isinstance(password, str):
         try:
             pwd = password.encode("latin-1")
@@ -58,11 +58,11 @@ def _prev_uses_xref_stream(prev):
         stream.seek(saved_pos, 0)
 
 
-def EncodedString(s):
+def _EncodedString(s):
     return po.create_string_object(codecs.BOM_UTF16_BE + s.encode("utf-16be"))
 
 
-class UnencryptedBytes(bytes, po.PdfObject):
+class _UnencryptedBytes(bytes, po.PdfObject):
     original_bytes = property(lambda self: self)
 
     def write_to_stream(self, stream, encryption_key=None):
@@ -71,7 +71,7 @@ class UnencryptedBytes(bytes, po.PdfObject):
         stream.write(b">")
 
 
-class WNumberObject(po.NumberObject):
+class _WNumberObject(po.NumberObject):
     Format = b"%08d"
 
     def write_to_stream(self, stream, encryption_key=None):
@@ -79,8 +79,8 @@ class WNumberObject(po.NumberObject):
 
 
 class SignedData(PdfWriter):
-    def write(self, stream, prev, startdata):
-        stream.write(b_("\r\n"))
+    def _write(self, stream, prev, startdata):
+        stream.write(_b_("\r\n"))
         positions = {}
         for i in range(len(self._objects)):
             idnum = i + 1
@@ -89,11 +89,11 @@ class SignedData(PdfWriter):
                 positions[idnum] = 0
                 continue
             positions[idnum] = startdata + stream.tell()
-            stream.write(b_(str(idnum) + " 0 obj\n"))
+            stream.write(_b_(str(idnum) + " 0 obj\n"))
             if prev.is_encrypted:
                 obj = prev._encryption.encrypt_object(obj, idnum, 0)
             obj.write_to_stream(stream)
-            stream.write(b_("\nendobj\n"))
+            stream.write(_b_("\nendobj\n"))
 
         xref_location = startdata + stream.tell()
         xrefstream = _prev_uses_xref_stream(prev)
@@ -119,7 +119,7 @@ class SignedData(PdfWriter):
             trailer[po.NameObject("/Info")] = self.x_info
 
         if not xrefstream:
-            stream.write(b_("xref\n"))
+            stream.write(_b_("xref\n"))
             positions[0] = 1
             keys = sorted(positions.keys())
             i = 0
@@ -127,21 +127,21 @@ class SignedData(PdfWriter):
                 start = i
                 while i < len(keys) and positions[keys[i]] != 0:
                     i += 1
-                stream.write(b_("%d %d \n" % (keys[start], i - start)))
+                stream.write(_b_("%d %d \n" % (keys[start], i - start)))
                 i = start
                 while i < len(keys) and positions[keys[i]] != 0:
                     if i == 0:
-                        stream.write(b_("0000000000 65535 f \n"))
+                        stream.write(_b_("0000000000 65535 f \n"))
                     else:
                         stream.write(
-                            b_("%010d %05d n \n" % (positions[keys[i]], 0))
+                            _b_("%010d %05d n \n" % (positions[keys[i]], 0))
                         )
                     i += 1
                 while i < len(keys) and positions[keys[i]] == 0:
                     i += 1
 
             # trailer
-            stream.write(b_("trailer\n"))
+            stream.write(_b_("trailer\n"))
             trailer.write_to_stream(stream, None)
         else:
 
@@ -171,12 +171,12 @@ class SignedData(PdfWriter):
             retval = trailer.flate_encode()
             trailer.update(retval)
             trailer._data = retval._data
-            stream.write(b_("%d 0 obj\n" % (len(self._objects))))
+            stream.write(_b_("%d 0 obj\n" % (len(self._objects))))
             trailer.write_to_stream(stream, None)
-            stream.write(b_("\nendobj"))
+            stream.write(_b_("\nendobj"))
 
         # eof
-        stream.write(b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
+        stream.write(_b_("\nstartxref\n%s\n%%%%EOF\n" % (xref_location)))
 
     def _extend(self, obj):
         stream = getattr(obj, "stream", None)
@@ -222,10 +222,10 @@ class SignedData(PdfWriter):
                 po.NameObject("/SubFilter"): SubFilter,
                 po.NameObject("/ByteRange"): po.ArrayObject(
                     [
-                        WNumberObject(0),
-                        WNumberObject(0),
-                        WNumberObject(0),
-                        WNumberObject(0),
+                        _WNumberObject(0),
+                        _WNumberObject(0),
+                        _WNumberObject(0),
+                        _WNumberObject(0),
                     ]
                 ),
                 po.NameObject("/Contents"): Contents,
@@ -259,7 +259,7 @@ class SignedData(PdfWriter):
         )
         return annot, annot_ref
 
-    def addAnnotation(self, cert, udct, box, page0ref, obj13, obj13ref, new_13):
+    def _addAnnotation(self, cert, udct, box, page0ref, obj13, obj13ref, new_13):
         from endesive.pdf.PyPDF2_annotate.annotations.signature import Signature
         from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
         from endesive.pdf.PyPDF2_annotate.config.location import Location
@@ -417,7 +417,7 @@ class SignedData(PdfWriter):
         page0.update({po.NameObject("/Annots"): annots})
         self._objects[page0ref.idnum - 1] = page0
 
-    def makepdf(self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params):
+    def _makepdf(self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].get_object()
@@ -465,7 +465,7 @@ class SignedData(PdfWriter):
         obj12, obj12ref = self._make_signature(
             Type=po.NameObject("/Sig"),
             SubFilter=SubFilter,
-            Contents=UnencryptedBytes(zeros),
+            Contents=_UnencryptedBytes(zeros),
         )
 
         obj12.update(
@@ -532,7 +532,7 @@ class SignedData(PdfWriter):
         if new_13:
             obj13, obj13ref = self._make_sig_annotation(
                 F=po.NumberObject(udct.get("sigflagsft", 132)),
-                T=EncodedString(udct.get("sigfield", "Signature1")),
+                T=_EncodedString(udct.get("sigfield", "Signature1")),
                 Vref=obj12ref,
                 Pref=page0ref,
             )
@@ -548,7 +548,7 @@ class SignedData(PdfWriter):
 
         # add an annotation if there is a field to fill
         if box is not None:
-            self.addAnnotation(cert, udct, box, page0ref, obj13, obj13ref, new_13)
+            self._addAnnotation(cert, udct, box, page0ref, obj13, obj13ref, new_13)
         else:
             # invisible signature
             objap = po.DictionaryObject()
@@ -615,7 +615,7 @@ class SignedData(PdfWriter):
                         continue
 
                     new_name = "{}{}".format(name_base, suffix)
-                    obj13.update({po.NameObject("/T"): EncodedString(new_name)})
+                    obj13.update({po.NameObject("/T"): _EncodedString(new_name)})
                     break
 
             old_flags = int(form.get("/SigFlags", 0))
@@ -771,7 +771,7 @@ class SignedData(PdfWriter):
         if not timestampurl:
             params["use_signingdate"] = True
 
-        self.makepdf(prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params)
+        self._makepdf(prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params)
 
 
         # ID[0] is used in password protection, must be unchanged
@@ -793,11 +793,11 @@ class SignedData(PdfWriter):
             prev._encryption.id1_entry = id1_entry
 
         fo = io.BytesIO()
-        self.write(fo, prev, startdata)
+        self._write(fo, prev, startdata)
         datas = fo.getvalue()
 
         br = [0, 0, 0, 0]
-        bfrom = (b"[ " + b" ".join([WNumberObject.Format] * 4) + b" ]") % tuple(br)
+        bfrom = (b"[ " + b" ".join([_WNumberObject.Format] * 4) + b" ]") % tuple(br)
 
         pdfbr1 = datas.find(zeros)
         pdfbr2 = pdfbr1 + len(zeros)
@@ -937,6 +937,8 @@ def sign(
     use_signingdate=True,
 ):
     """
+    Sign PDF file
+
     parameters:
         datau: pdf bytes being signed
         udct: dictionary with signing parameters

@@ -9,7 +9,7 @@ from endesive import signer
 
 class SignedData(object):
 
-    def email(self, hashalgo, datau, datas, prefix):
+    def _email(self, hashalgo, datau, datas, prefix):
         s = b'''\
 MIME-Version: 1.0
 Content-Type: multipart/signed; protocol="application/%spkcs7-signature"; micalg="%s"; boundary="----46F1AAD10BE922477643C0A33C40D389"
@@ -29,7 +29,7 @@ Content-Disposition: attachment; filename="smime.p7s"
 ''' % (prefix, hashalgo, datau, prefix, datas)
         return s
 
-    def build(self, datau, key, cert, othercerts, hashalgo, attrs, pss=False):
+    def sign(self, datau, key, cert, othercerts, hashalgo, attrs, pss=False):
         datau = datau.replace(b'\n', b'\r\n')
         datas = signer.sign(datau, key, cert, othercerts, hashalgo, attrs, pss=pss)
         datas = base64.encodebytes(datas)
@@ -40,7 +40,7 @@ Content-Disposition: attachment; filename="smime.p7s"
         elif hashalgo == 'sha512':
             hashalgo = b'sha-512'
         prefix = [b'x-', b''][pss]
-        data = self.email(hashalgo, datau, datas, prefix)
+        data = self._email(hashalgo, datau, datas, prefix)
         return data
 
 
@@ -58,4 +58,4 @@ def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[
     :return: Signed data as bytes.
     """
     cls = SignedData()
-    return cls.build(datau, key, cert, certs, hashalgo, attrs, pss)
+    return cls.sign(datau, key, cert, certs, hashalgo, attrs, pss)

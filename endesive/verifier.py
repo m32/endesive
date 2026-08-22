@@ -361,6 +361,7 @@ def verify(
     ) -> tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]:
     """
     Verify signed data.
+
     :return:
         hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata
 

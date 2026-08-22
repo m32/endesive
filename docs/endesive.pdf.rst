@@ -18,14 +18,6 @@ endesive.pdf.cms module
    :undoc-members:
    :show-inheritance:
 
-endesive.pdf.pdf module
------------------------
-
-.. automodule:: endesive.pdf.pdf
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 endesive.pdf.verify module
 --------------------------
 

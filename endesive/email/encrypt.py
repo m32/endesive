@@ -15,7 +15,7 @@ from endesive import signer
 
 class EncryptedData(object):
 
-    def email(self, data: bytes, oaep: bool) -> str:
+    def _email(self, data: bytes, oaep: bool) -> str:
         prefix = ['x-', ''][oaep]
         msg = MIMEApplication(data)
         del msg['Content-Type']
@@ -25,7 +25,7 @@ class EncryptedData(object):
         data = msg.as_string()
         return data
 
-    def pad(self, s, block_size):
+    def _pad(self, s, block_size):
         n = block_size - len(s) % block_size
         if n == 0:
             n = block_size
@@ -33,7 +33,7 @@ class EncryptedData(object):
         n = bytes([n] * n)
         return s + n
 
-    def recipient_info(self, cert, session_key, oaep):
+    def _recipient_info(self, cert, session_key, oaep):
         public_key = cert.public_key()
         cert = signer.cert2asn(cert)
 
@@ -84,7 +84,7 @@ class EncryptedData(object):
         )
         return result
 
-    def build(self, data, certs, algo, oaep):
+    def encrypt(self, data, certs, algo, oaep):
         key_size = {
             'aes128': 16,
             'aes192': 24,
@@ -103,14 +103,14 @@ class EncryptedData(object):
             default_backend()
         )
 
-        data = self.pad(data, block_size)
+        data = self._pad(data, block_size)
 
         encryptor = cipher.encryptor()
         data = encryptor.update(data) + encryptor.finalize()
 
         recipient_infos = []
         for cert in certs:
-            recipient_info = self.recipient_info(cert, session_key, oaep)
+            recipient_info = self._recipient_info(cert, session_key, oaep)
             recipient_infos.append(recipient_info)
 
         enveloped_data = cms.ContentInfo({
@@ -128,7 +128,7 @@ class EncryptedData(object):
                 }
             }
         })
-        data = self.email(enveloped_data.dump(), oaep)
+        data = self._email(enveloped_data.dump(), oaep)
         return data
 
 
@@ -144,4 +144,4 @@ def encrypt(data:bytes, certs:list[x509.Certificate], algo:str='aes256_cbc', oae
     """
     assert algo[:3] == 'aes' and algo.split('_', 1)[1] in ('cbc', 'ofb')
     cls = EncryptedData()
-    return cls.build(data, certs, algo, oaep)
+    return cls.encrypt(data, certs, algo, oaep)

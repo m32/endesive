@@ -91,16 +91,28 @@ class PDFVerifier(verifier.SignatureVerifier):
     def verify(self) -> list[tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]]:
         """
         Verify PDF signature.
+
+        :param pdfdata: PDF document as bytes.
+        :param certs: Optional list of system independent trusted certificates used to verify signature.
+
         :return:
-            hashok: True if hash is valid, False otherwise.
-            signatureok: True if signature is valid, False otherwise.
-            certok: True if certificate is valid, False otherwise.
-            ocspok: True if OCSP is valid, False if invalid, None if not present.
-            ocspdata: List of OCSP produced_at and next_check_at datetimes,
+            list[hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata]
+
+            hashok: bool
+                True if hash is matches, False otherwise.
+            signatureok: bool
+                True if signature is valid, False otherwise.
+            certok: bool
+                True if certificate is valid, False otherwise.
+            ocspok: bool|None
+                True if OCSP is valid, False if invalid, None if not present.
+            ocspdata: list[datetime.datetime]|None
+                List of OCSP produced_at and next_check_at datetimes,
                 or None if not present.
-            tspok: True if TSP is valid, False if invalid, None if not present.
-            tspdata: TSP produced_at datetime, or None if not present.
-        """
+            tspok: bool|None
+                True if TSP is valid, False if invalid, None if not present.
+            tspdata: datetime.datetime|None
+                TSP produced_at datetime, or None if not present."""
         if not self._is_valid_pdf():
             raise ValueError("Invalid PDF")
         if not self._is_signed():
@@ -129,27 +141,7 @@ def verify(
     certs:list[bytes]|None=None
 ) -> list[tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]]:
     """
-    Verify PDF signature.
-    :param pdfdata: PDF document as bytes.
-    :param certs: Optional list of system independent certificates used to verify signature.
-    :return:
-        list[hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata]
-
-        hashok: bool
-            True if hash is matches, False otherwise.
-        signatureok: bool
-            True if signature is valid, False otherwise.
-        certok: bool
-            True if certificate is valid, False otherwise.
-        ocspok: bool|None
-            True if OCSP is valid, False if invalid, None if not present.
-        ocspdata: list[datetime.datetime]|None
-            List of OCSP produced_at and next_check_at datetimes,
-            or None if not present.
-        tspok: bool|None
-            True if TSP is valid, False if invalid, None if not present.
-        tspdata: datetime.datetime|None
-            TSP produced_at datetime, or None if not present.
+    Deprecated shortcut to PDFVerifier.verify
     """
     cls = PDFVerifier(pdfdata, certs)
     return cls.verify()

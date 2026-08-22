@@ -9,12 +9,14 @@ import hashlib
 import io
 import uuid
 import secrets
+import logging
 
 from cryptography.x509.oid import NameOID
 from lxml import etree, builder
 import requests
 from asn1crypto import cms, algos, core, keys, pem, tsp, x509, util
 
+logger = logging.getLogger(__name__)
 
 DEFAULT_HTTP_TIMEOUT = 10
 
@@ -83,17 +85,15 @@ OID_NAMES = {
 
 
 class BES:
-    debug = False
-
     def __init__(self):
         self.guid = str(uuid.uuid4())
         self.time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def sha256(self, data):
+    def _sha256(self, data):
         h = hashlib.sha256(data).digest()
         return base64.b64encode(h).decode()
 
-    def base64(self, data):
+    def _base64(self, data):
         b64 = b"".join(base64.encodebytes(data).split())
         data = []
         for i in range(0, len(b64), 64):
@@ -101,7 +101,7 @@ class BES:
         data = b"\n".join(data).decode()
         return data
 
-    def get_rdns_name(self, rdns):
+    def _get_rdns_name(self, rdns):
         name = ""
         for rdn in rdns:
             for attr in rdn._attributes:
@@ -143,10 +143,10 @@ class BES:
 
         return c14n
 
-    def unsignedpropertied(self, signed_value, tspurl, tspcred, hashalgo="sha256"):
+    def _unsignedproperties(self, signed_value, tspurl, tspcred, hashalgo="sha256"):
         if tspurl is None:
             unsignedproperties = UnsignedProperties(
-                Id="UnsignedProperties_" + self.guid + self.mapa["_5d"]
+                Id="UnsignedProperties_" + self.guid + self._mapa["_5d"]
             )
         else:
             tspreq = tsp.TimeStampReq(
@@ -190,7 +190,7 @@ class BES:
                 tspresp = tsp.TimeStampResp.load(tspresp.content)
 
                 if tspresp["status"]["status"].native == "granted":
-                    attr = self.base64(tspresp["time_stamp_token"].dump())
+                    attr = self._base64(tspresp["time_stamp_token"].dump())
                 else:
                     raise ValueError("TimeStampResponse status is not granted")
             else:
@@ -208,11 +208,11 @@ class BES:
                         Id="SignatureTimeStamp_" + self.guid,
                     )
                 ),
-                Id="UnsignedProperties_" + self.guid + self.mapa["_5d"],
+                Id="UnsignedProperties_" + self.guid + self._mapa["_5d"],
             )
         return unsignedproperties
 
-    mapa = {
+    _mapa = {
         "_02": "_5d",
         "_2f": "_70",
         "_43": "_1c",
@@ -230,7 +230,7 @@ class BES:
         tree = etree.parse(io.BytesIO(data))
         signedobj = tree.getroot()
         canonicalizedxml = self._c14n(signedobj, "")
-        digestvalue1 = self.sha256(canonicalizedxml)
+        digestvalue1 = self._sha256(canonicalizedxml)
 
         nsmap = signedobj.nsmap.copy()
         nsmap.update(
@@ -251,14 +251,10 @@ class BES:
         )
         SignedInfo = siDS.SignedInfo
 
-        certdigest = self.sha256(certcontent)
-        certcontent = self.base64(certcontent)
+        certdigest = self._sha256(certcontent)
+        certcontent = self._base64(certcontent)
         certserialnumber = "%d" % cert.serial_number
-        certissuer = self.get_rdns_name(cert.issuer.rdns)
-        if self.debug:
-            self.guid = "279d6285-779c-4449-9c92-6bf3f7edacc2"
-            self.time = "2020-11-24T00:32:43Z"
-            certissuer = "2.5.4.97=#0C10564154504C2D35313730333539343538,CN=Certum QCA 2017,O=Asseco Data Systems S.A.,C=PL"
+        certissuer = self._get_rdns_name(cert.issuer.rdns)
 
         signedproperties = SignedProperties(
             SignedSignatureProperties(
@@ -277,7 +273,7 @@ class BES:
                         ),
                     )
                 ),
-                Id="SignedSignatureProperties_" + self.guid + self.mapa["_02"],
+                Id="SignedSignatureProperties_" + self.guid + self._mapa["_02"],
             ),
             SignedDataObjectProperties(
                 DataObjectFormat(
@@ -302,21 +298,19 @@ Content-Disposition: filename="document.xml"\
                         ),
                     ),
                     MimeType("text/xml"),
-                    ObjectReference="#Reference1_" + self.guid + self.mapa["_2f"],
+                    ObjectReference="#Reference1_" + self.guid + self._mapa["_2f"],
                 ),
-                Id="SignedDataObjectProperties_" + self.guid + self.mapa["_43"],
+                Id="SignedDataObjectProperties_" + self.guid + self._mapa["_43"],
             ),
-            Id="SignedProperties_" + self.guid + self.mapa["_46"],
+            Id="SignedProperties_" + self.guid + self._mapa["_46"],
         )
 
         canonicalizedxml = self._c14n(signedproperties, "")
-        digestvalue2 = self.sha256(canonicalizedxml)
-        if self.debug:
-            print("*" * 20, "enveloped signedproperties")
-            print(canonicalizedxml)
-            print("digest:", digestvalue2)
+        digestvalue2 = self._sha256(canonicalizedxml)
+        logger.debug("canonicalizedxml: %s", canonicalizedxml)
+        logger.debug("digestvalue2: %s", digestvalue2)
 
-        unsignedproperties = self.unsignedpropertied(
+        unsignedproperties = self._unsignedproperties(
             digestvalue2, tspurl, tspcred, "sha256"
         )
 
@@ -338,23 +332,22 @@ Content-Disposition: filename="document.xml"\
                 ),
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue1),
-                Id="Reference1_" + self.guid + self.mapa["_2f"],
+                Id="Reference1_" + self.guid + self._mapa["_2f"],
                 URI="",
             ),
             Reference(
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue2),
-                Id="SignedProperties-Reference_" + self.guid + self.mapa["_20"],
+                Id="SignedProperties-Reference_" + self.guid + self._mapa["_20"],
                 Type="http://uri.etsi.org/01903#SignedProperties",
-                URI="#SignedProperties_" + self.guid + self.mapa["_46"],
+                URI="#SignedProperties_" + self.guid + self._mapa["_46"],
             ),
-            Id="SignedInfo_" + self.guid + self.mapa["_49"],
+            Id="SignedInfo_" + self.guid + self._mapa["_49"],
         )
 
         canonicalizedxml = self._c14n(signedinfo, "")
-        if self.debug:
-            print("*" * 20, "enveloped signedinfo")
-            print(canonicalizedxml)
+        logger.debug("canonicalizedxml: %s", canonicalizedxml)
+
         signature = signproc(canonicalizedxml, "sha256")
         actualdigestencoded = base64.b64encode(signature).decode()
         digestvalue3 = []
@@ -365,21 +358,21 @@ Content-Disposition: filename="document.xml"\
         DOC = Signature(
             signedinfo,
             SignatureValue(
-                digestvalue3, Id="SignatureValue_" + self.guid + self.mapa["_5a"]
+                digestvalue3, Id="SignatureValue_" + self.guid + self._mapa["_5a"]
             ),
             KeyInfo(
                 X509Data(X509Certificate(certcontent)),
-                Id="KeyInfo_" + self.guid + self.mapa["_2c"],
+                Id="KeyInfo_" + self.guid + self._mapa["_2c"],
             ),
             Object(
                 QualifyingProperties(
                     signedproperties,
                     unsignedproperties,
-                    Id="QualifyingProperties_" + self.guid + self.mapa["_4b"],
-                    Target="#Signature_" + self.guid + self.mapa["_11"],
+                    Id="QualifyingProperties_" + self.guid + self._mapa["_4b"],
+                    Target="#Signature_" + self.guid + self._mapa["_11"],
                 )
             ),
-            Id="Signature_" + self.guid + self.mapa["_11"],
+            Id="Signature_" + self.guid + self._mapa["_11"],
         )
 
         signedobj.append(DOC)
@@ -407,7 +400,7 @@ Content-Disposition: filename="document.xml"\
             tree = etree.parse(io.BytesIO(data))
             signedobj = tree.getroot()
             canonicalizedxml = self._c14n(signedobj, "")
-            digestvalue1 = self.sha256(canonicalizedxml)
+            digestvalue1 = self._sha256(canonicalizedxml)
             URI = fname
             signedobj = None
         else:
@@ -429,12 +422,12 @@ Content-Disposition: filename="document.xml"\
                 signedobj.append(tree.getroot())
                 URI = "#Object1_" + self.guid
             canonicalizedxml = self._c14n(signedobj, "")
-            digestvalue1 = self.sha256(canonicalizedxml)
+            digestvalue1 = self._sha256(canonicalizedxml)
 
-        certdigest = self.sha256(certcontent)
-        certcontent = self.base64(certcontent)
+        certdigest = self._sha256(certcontent)
+        certcontent = self._base64(certcontent)
         certserialnumber = "%d" % cert.serial_number
-        certissuer = self.get_rdns_name(cert.issuer.rdns)
+        certissuer = self._get_rdns_name(cert.issuer.rdns)
 
         signedprop = SignedProperties(
             SignedSignatureProperties(
@@ -453,7 +446,7 @@ Content-Disposition: filename="document.xml"\
                         ),
                     )
                 ),
-                Id="SignedSignatureProperties_" + self.guid + self.mapa["_02"],
+                Id="SignedSignatureProperties_" + self.guid + self._mapa["_02"],
             ),
             SignedDataObjectProperties(
                 DataObjectFormat(
@@ -479,19 +472,17 @@ Content-Disposition: filename="%s"\
                         ),
                     ),
                     MimeType(smime),
-                    ObjectReference="#Reference1_" + self.guid + self.mapa["_2f"],
+                    ObjectReference="#Reference1_" + self.guid + self._mapa["_2f"],
                 ),
-                Id="SignedDataObjectProperties_" + self.guid + self.mapa["_43"],
+                Id="SignedDataObjectProperties_" + self.guid + self._mapa["_43"],
             ),
-            Id="SignedProperties_" + self.guid + self.mapa["_46"],
+            Id="SignedProperties_" + self.guid + self._mapa["_46"],
         )
 
         canonicalizedxml = self._c14n(signedprop, "")
-        digestvalue2 = self.sha256(canonicalizedxml)
-        if self.debug:
-            print("*" * 20, "build signedprop")
-            print(canonicalizedxml)
-            print("digest:", digestvalue2)
+        digestvalue2 = self._sha256(canonicalizedxml)
+        logger.debug("canonicalizedxml: %s", canonicalizedxml)
+        logger.debug("digestvalue2: %s", digestvalue2)
 
         if signaturemethod is None:
             signaturemethod = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
@@ -512,22 +503,21 @@ Content-Disposition: filename="%s"\
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue1),
                 URI=URI,
-                Id="Reference1_" + self.guid + self.mapa["_2f"],
+                Id="Reference1_" + self.guid + self._mapa["_2f"],
             ),
             Reference(
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue2),
-                Id="SignedProperties-Reference_" + self.guid + self.mapa["_20"],
+                Id="SignedProperties-Reference_" + self.guid + self._mapa["_20"],
                 Type="http://uri.etsi.org/01903#SignedProperties",
-                URI="#SignedProperties_" + self.guid + self.mapa["_46"],
+                URI="#SignedProperties_" + self.guid + self._mapa["_46"],
             ),
-            Id="SignedInfo_" + self.guid + self.mapa["_49"],
+            Id="SignedInfo_" + self.guid + self._mapa["_49"],
         )
 
         canonicalizedxml = self._c14n(signedinfo, "")
-        if self.debug:
-            print("*" * 20, "build signedinfo")
-            print(canonicalizedxml)
+        logger.debug("canonicalizedxml: %s", canonicalizedxml)
+
         signature = signproc(canonicalizedxml, "sha256")
         actualdigestencoded = base64.b64encode(signature).decode()
         digestvalue3 = []
@@ -535,28 +525,28 @@ Content-Disposition: filename="%s"\
             digestvalue3.append(actualdigestencoded[i : i + 64])
         digestvalue3 = "\n".join(digestvalue3)
 
-        unsignedproperties = self.unsignedpropertied(
+        unsignedproperties = self._unsignedproperties(
             digestvalue2, tspurl, tspcred, "sha256"
         )
 
         DOC = Signature(
             signedinfo,
             SignatureValue(
-                digestvalue3, Id="SignatureValue_" + self.guid + self.mapa["_5a"]
+                digestvalue3, Id="SignatureValue_" + self.guid + self._mapa["_5a"]
             ),
             KeyInfo(
                 X509Data(X509Certificate(certcontent)),
-                Id="KeyInfo_" + self.guid + self.mapa["_2c"],
+                Id="KeyInfo_" + self.guid + self._mapa["_2c"],
             ),
             Object(
                 QualifyingProperties(
                     signedprop,
                     unsignedproperties,
-                    Id="QualifyingProperties_" + self.guid + self.mapa["_4b"],
-                    Target="#Signature_" + self.guid + self.mapa["_11"],
+                    Id="QualifyingProperties_" + self.guid + self._mapa["_4b"],
+                    Target="#Signature_" + self.guid + self._mapa["_11"],
                 )
             ),
-            Id="Signature_" + self.guid + self.mapa["_11"],
+            Id="Signature_" + self.guid + self._mapa["_11"],
         )
         if signedobj is not None:
             DOC.append(signedobj)

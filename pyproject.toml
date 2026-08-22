@@ -36,9 +36,6 @@ dependencies = [
     "pypdf",
     "attrs",
 ]
-dev_dependencies = [
-    "fpdf2",
-]
 
 [project.urls]
 Source = "https://github.com/m32/endesive"
@@ -47,7 +44,8 @@ Source = "https://github.com/m32/endesive"
 [project.optional-dependencies]
 dev = [
     "pytest-cov",
-    "wheel"
+    "wheel",
+    "fpdf2"
 ]
 docs = [
     "sphinx",

@@ -1,4 +1,5 @@
 # *-* coding: utf-8 *-*
+import datetime
 from email import message_from_string
 
 from cryptography import x509
@@ -6,21 +7,34 @@ from cryptography import x509
 from endesive import verifier
 
 
-def verify(data:bytes, certs:list[x509.Certificate]=None) -> tuple[bool, bool, bool]:
+def verify(
+    data:bytes,
+    certs:list[x509.Certificate]=None
+) -> tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]:
     """
     Verifiy S/MIME signed email.
 
     :param data: Email data as bytes.
-    :param certs: List of additional certificates used to verify signature (system independent).
+    :param certs: Optional list of system independent trusted certificates used to verify signature.
+
     :return:
-        hashok, signatureok, certok
+        hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata
 
         hashok: bool
-            True if the hash matches.
+            True if hash is matches, False otherwise.
         signatureok: bool
-            True if the signature is valid.
+            True if signature is valid, False otherwise.
         certok: bool
-            True if the certificate used for signing is trusted and valid.
+            True if certificate is valid, False otherwise.
+        ocspok: bool|None
+            True if OCSP is valid, False if invalid, None if not present.
+        ocspdata: list[datetime.datetime]|None
+            List of OCSP produced_at and next_check_at datetimes,
+            or None if not present.
+        tspok: bool|None
+            True if TSP is valid, False if invalid, None if not present.
+        tspdata: datetime.datetime|None
+            TSP produced_at datetime, or None if not present.
     """
     msg = message_from_string(data)
     sig = None
@@ -31,8 +45,12 @@ def verify(data:bytes, certs:list[x509.Certificate]=None) -> tuple[bool, bool, b
         if ct.split('/')[0] == 'multipart':
             continue
         if ct == 'application/x-pkcs7-signature':
+            if sig is not None:
+                raise ValueError('Multiple signatures')
             sig = part.get_payload(decode=True)
         elif ct == 'application/pkcs7-signature':
+            if sig is not None:
+                raise ValueError('Multiple signatures')
             sig = part.get_payload(decode=True)
         elif ct == 'text/plain':
             plain = part.get_payload(decode=False)
