@@ -54,15 +54,15 @@ make-cert-ca.py
 make-cert-hsm.py
     Create required certificates for SoftHSM (password is secret1)
 make-pdf.py
-    Create simple two paged PDF document which is used in pdf-*.py examples.
-make-pdf-*.py
-    Create other *.pdf files used in pdf-*.py examples
+    Create simple two paged PDF document which is used in pdf-\*.py examples.
+make-pdf-\*.py
+    Create other \*.pdf files used in pdf-\*.py examples
 make-plain.py
-    Create simple UTF-8 text file for use in plain-*.py examples.
+    Create simple UTF-8 text file for use in plain-\*.py examples.
 make-smime.py
-    Create simple UTF-8 text file for use in smime-*.py examples.
+    Create simple UTF-8 text file for use in smime-\*.py examples.
 make-xml.py
-    Create simple xml file for use in xml-*.py examples.
+    Create simple xml file for use in xml-\*.py examples.
 
 pdf-sign-cms.py
     Create signature in externally created PDF.
