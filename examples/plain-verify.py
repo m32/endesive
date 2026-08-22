@@ -19,10 +19,12 @@ def main():
         except FileNotFoundError:
             print("no such file", fname)
             continue
-        (hashok, signatureok, certok) = plain.verify(datas, datau, trusted_cert_pems)
-        print('signature ok?', signatureok)
-        print('hash ok?', hashok)
-        print('cert ok?', certok)
+        result = plain.verify(datas, datau, trusted_cert_pems)
+        print("signature ok?", result[0])
+        print("hash ok?", result[1])
+        print("cert ok?", result[2])
+        print("ocsp ok?", result[3], "ocsp data:", result[4])
+        print("tsp ok?", result[5], "tsp data:", result[6])
 
 
 main()

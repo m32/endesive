@@ -27,10 +27,12 @@ class HSM(hsm.HSM):
             results = pdf.verify(data, trusted_cert_pems)
             for i in range(len(results)):
                 print('*'*10, 'signature #{}'.format(i+1))
-                (hashok, signatureok, certok) = results[i]
-                print('signature ok?', signatureok)
-                print('hash ok?', hashok)
-                print('cert ok?', certok)
+                result = results[i]
+                print("signature ok?", result[0])
+                print("hash ok?", result[1])
+                print("cert ok?", result[2])
+                print("ocsp ok?", result[3], "ocsp data:", result[4])
+                print("tsp ok?", result[5], "tsp data:", result[6])
 
 def main():
     cls = HSM(DLLPATH)

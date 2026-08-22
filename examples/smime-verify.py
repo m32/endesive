@@ -23,10 +23,12 @@ def main():
         except:
             print('no such file')
             continue
-        (hashok, signatureok, certok) = email.verify(datae, trusted_cert_pems)
-        print('signature ok?', signatureok)
-        print('hash ok?', hashok)
-        print('cert ok?', certok)
+        result = email.verify(datae, trusted_cert_pems)
+        print("signature ok?", result[0])
+        print("hash ok?", result[1])
+        print("cert ok?", result[2])
+        print("ocsp ok?", result[3], "ocsp data:", result[4])
+        print("tsp ok?", result[5], "tsp data:", result[6])
 
 
 main()
