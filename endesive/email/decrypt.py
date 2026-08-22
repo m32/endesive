@@ -79,6 +79,7 @@ class DecryptedData(object):
                 default_backend()
             )
         elif algorithm == 'TRIPLEDES':
+            raise ValueError('Unknown algorithm', algo)
             # XXX will be removed in version 48.0.0
             from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
             # XXX howto decode parameters to CBC mode ?
@@ -94,7 +95,12 @@ class DecryptedData(object):
         decryptor = cipher.decryptor()
         udata = decryptor.update(edata) + decryptor.finalize()
         #if keyalgo['algorithm'] != 'rsaes_oaep':
-        nb = ord(udata[-1]) if sys.version[0] < '3' else udata[-1]
+        nb = udata[-1]
+        # BUG 2322/2327: 1<=nb<=blocksize
+        if nb < 1 or nb > 16:
+            raise ValueError('Unknown block size', nb)
+        if udata[-nb:] != bytes([nb]*nb):
+            raise ValueError('Unknown padding', nb)
         udata = udata[:-nb]
         return udata
 

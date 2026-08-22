@@ -13,7 +13,8 @@ from endesive import pdf
 
 def main():
     tspurl = "http://time.certum.pl"
-    #tspurl = "http://public-qlts.certum.pl/qts-17"
+    tspurl = "http://public-qlts.certum.pl/qts-17"
+    #tspurl = None
     date = datetime.datetime.now(datetime.UTC)
     date = date.strftime("D:%Y%m%d%H%M%S+00'00'")
     dct = {
@@ -36,6 +37,10 @@ def main():
             fp.read(), pk12pass, backends.default_backend()
         )
 
+    ocspurl = 'https://ocsp.certum.pl/'
+    ocspissuer = open('CertumDigitalIdentificationCASHA2.pem', 'rb').read()
+    ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+
     fname = "generated/pdf.pdf"
     if len(sys.argv) > 2:
         fname = sys.argv[2]
@@ -48,7 +53,9 @@ def main():
         p12[2][:3],
         "sha256",
         None,
-        tspurl
+        tspurl,
+        ocspurl=ocspurl,
+        ocspissuer=ocspissuer,
     )
     fname = fname.replace(".pdf", "-signed-cms-m32-unizeto.pdf")
     with open(fname, "wb") as fp:

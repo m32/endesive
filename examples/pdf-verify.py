@@ -4,12 +4,14 @@ from endesive import pdf
 
 
 def main():
-    trusted_cert_pems = (
+    trusted_cert_pems = [
+        # unizeto
+        open("nccert2016.crt.pem", "rb").read(),
         # demo ca chain
         open("ca/demo2_ca.root.crt.pem", "rb").read(),
         # demo hsm ca chain
         #open("cert-hsm-ca.pem", "rb").read(),
-    )
+    ]
     for fname in (
         #"generated/test-PDFXRef-signed-cms.pdf",
         #"generated/test-PDFXRefStream-signed-cms.pdf",
@@ -51,13 +53,13 @@ def main():
             continue
         no = 0
         try:
-            for (hashok, signatureok, certok) in pdf.verify(
-                data, trusted_cert_pems
-            ):
+            for result in pdf.verify(data, trusted_cert_pems):
                 print("*" * 10, "signature no:", no)
-                print("signature ok?", signatureok)
-                print("hash ok?", hashok)
-                print("cert ok?", certok)
+                print("signature ok?", result[0])
+                print("hash ok?", result[1])
+                print("cert ok?", result[2])
+                print("ocsp ok?", result[3], "ocsp data:", result[4])
+                print("tsp ok?", result[5], "tsp data:", result[6])
                 no += 1
         except Exception as exc:
             print(exc)

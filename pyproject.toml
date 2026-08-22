@@ -36,6 +36,9 @@ dependencies = [
     "pypdf",
     "attrs",
 ]
+dev_dependencies = [
+    "fpdf2",
+]
 
 [project.urls]
 Source = "https://github.com/m32/endesive"

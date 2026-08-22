@@ -1,16 +1,14 @@
 # *-* coding: utf-8 *-*
 import hashlib
 import datetime
-import warnings
 import logging
 
-from asn1crypto import x509, core, pem, cms
-
 import certifi
+from asn1crypto import x509, core, pem, cms, ocsp
+import certvalidator
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import padding, ec
-from cryptography.x509.verification import PolicyBuilder, Store
 from cryptography import x509 as cx509
 from cryptography.hazmat.backends import default_backend
 
@@ -19,28 +17,64 @@ logger = logging.getLogger(__name__)
 
 
 class SignatureVerifier(object):
-    def __init__(self, trustedCerts=None):
-        with open(certifi.where(), "rb") as pems:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message="Parsed a serial number")
-                certs = cx509.load_pem_x509_certificates(pems.read())
-        if trustedCerts is not None:
-            for cert_bytes in trustedCerts:
-                certs.append(cx509.load_pem_x509_certificate(cert_bytes, backend=default_backend()))
-        store = Store(certs)
-        self.verifier = PolicyBuilder(
-            ).store(store
-            ).time(datetime.datetime.now(datetime.UTC)
-            ).max_chain_depth(4
-            ).build_client_verifier()
+    def __init__(self, trusted_certs:list[bytes]|None=None):
+        certs = []
+        with open(certifi.where(), "rb") as f:
+            pem_data = f.read()
+            for entry in pem.unarmor(pem_data, multiple=True):
+                certs.append(x509.Certificate.load(entry[2]))
+        if trusted_certs is not None:
+            for cert_bytes in trusted_certs:
+                if pem.detect(cert_bytes):
+                    entry = pem.unarmor(cert_bytes)
+                certs.append(x509.Certificate.load(entry[2]))
+        self.trusted_certs = certs
 
-    def _validator_cb(self, policy, cert, ext):
-        print('*'*20, 'validator_cb')
-        print('pol:', policy)
-        print('cert:', cert)
-        print('ext:', ext)
-        # Any exception from the python validator is treated as failure.
-        #raise ValueError("...")
+    def _validator(
+        self,
+        cert:x509.Certificate,
+        othercerts:list[x509.Certificate]|None=None,
+        trustedcerts:list[x509.Certificate]|None=None,
+        allow_fetching:bool=False,
+    ) -> certvalidator.CertificateValidator:
+        validation_context = certvalidator.ValidationContext(
+            trust_roots=trustedcerts,
+            allow_fetching=allow_fetching,
+            revocation_mode="soft-fail",
+            moment=datetime.datetime.now(tz=datetime.timezone.utc)
+        )
+        validator = certvalidator.CertificateValidator(
+            cert,
+            intermediate_certs=othercerts,
+            validation_context=validation_context,
+        )
+        return validator
+
+    def validate_certificate(self,
+        cert:x509.Certificate,
+        othercerts:list[x509.Certificate]|None=None,
+        key_usage:list[str]|None=None,
+        extended_key_usage:list[str]|None=None,
+        allow_fetching=False,
+    ):
+        prog = self._validator(cert, othercerts, self.trusted_certs, allow_fetching)
+        try:
+            path = prog.validate_usage(
+                key_usage=set(key_usage or []),
+                extended_key_usage=set(extended_key_usage or [])
+            )
+        except certvalidator.errors.PathBuildingError as exc:
+            logger.debug("Path building error: %s", exc)
+        except certvalidator.errors.PathValidationError as exc:
+            logger.debug("Path validation error: %s", exc)
+        except certvalidator.errors.ValidationError as exc:
+            logger.debug("Validation error: %s", exc)
+        else:
+            logger.debug("Validation path:")
+            for entry in path:
+                logger.debug("%s %s", entry.serial_number, entry.subject.native)
+            return True
+        return False
 
     def _resolve_hash_cls(self, algo_name):
         if algo_name is None:
@@ -54,43 +88,12 @@ class SignatureVerifier(object):
             raise ValueError(f"Invalid hash algorithm: {algo_name}")
         return hashcls
 
-    def validate_certificate(self, cert, othercerts=[]) -> bool:
-        try:
-            self.verifier.verify(cert, othercerts)
-            certok = True
-        except Exception as ex:
-            logger.exception(ex)
-            certok = False
-        return certok
-
-    def _verify_ocsp_cert_id(self, cert_id, issuer_cert):
-        hash_name = cert_id["hash_algorithm"]["algorithm"].native
-        hash_cls = self._resolve_hash_cls(hash_name)
-
-        issuer_asn1 = x509.Certificate.load(
-            issuer_cert.public_bytes(serialization.Encoding.DER)
-        )
-        issuer_name = issuer_asn1["tbs_certificate"]["subject"].dump()
-        issuer_key_bitstring = issuer_asn1["tbs_certificate"]["subject_public_key_info"]["public_key"]
-        issuer_key = issuer_key_bitstring.contents[1:]
-
-        digest = hashes.Hash(hash_cls())
-        digest.update(issuer_name)
-        expected_name_hash = digest.finalize()
-
-        digest = hashes.Hash(hash_cls())
-        digest.update(issuer_key)
-        expected_key_hash = digest.finalize()
-
-        return (
-            cert_id["issuer_name_hash"].native == expected_name_hash
-            and cert_id["issuer_key_hash"].native == expected_key_hash
-        )
-
     def decompose_signed_data(self, signaturebytes: bytes, datau: bytes) -> tuple:
         # return (signed_data, tspdata, crls, cert, othercerts, hashok, signatureok)
         signed_data = cms.ContentInfo.load(signaturebytes)["content"]
+        return self._decompose_signed_data(signed_data, datau)
 
+    def _decompose_signed_data(self, signed_data: cms.ContentInfo, datau: bytes) -> tuple:
         signature = signed_data["signer_infos"][0]["signature"].native
         algo = signed_data["digest_algorithms"][0]["algorithm"].native
         attrs = signed_data["signer_infos"][0]["signed_attrs"]
@@ -111,20 +114,15 @@ class SignatureVerifier(object):
         serial = signed_data["signer_infos"][0]["sid"].native["serial_number"]
         for pdfcert in signed_data["certificates"]:
             if serial != pdfcert.native["tbs_certificate"]["serial_number"]:
-                othercerts.append(
-                    cx509.load_pem_x509_certificate(
-                        pem.armor("CERTIFICATE", pdfcert.chosen.dump())
-                    )
-                )
+                othercerts.append(pdfcert.chosen)
             else:
                 if cert is not None:
                     raise ValueError("Multiple signer certificates with the same serial")
-                cert = cx509.load_pem_x509_certificate(
-                    pem.armor("CERTIFICATE", pdfcert.chosen.dump())
-                )
+                cert = pdfcert.chosen
         if cert is None:
             raise ValueError("Signer certificate not found in signed data")
-        public_key = cert.public_key()
+
+        public_key = cx509.load_pem_x509_certificate(pem.armor("CERTIFICATE", cert.dump())).public_key()
 
         sigalgo = signed_data["signer_infos"][0]["signature_algorithm"]
         sigalgoname = sigalgo.signature_algo
@@ -152,8 +150,8 @@ class SignatureVerifier(object):
                 public_key.verify(
                     signature,
                     signedData,
-                    padding.PSS(mgf, salt_length),
-                    getattr(hashes, salgo)(),
+                    padding=padding.PSS(mgf, salt_length),
+                    algorithm=getattr(hashes, salgo)(),
                 )
                 signatureok = True
             except Exception as exc:
@@ -164,8 +162,8 @@ class SignatureVerifier(object):
                 public_key.verify(
                     signature,
                     signedData,
-                    padding.PKCS1v15(),
-                    getattr(hashes, algo.upper())(),
+                    padding=padding.PKCS1v15(),
+                    algorithm=getattr(hashes, algo.upper())(),
                 )
                 signatureok = True
             except Exception as exc:
@@ -185,8 +183,36 @@ class SignatureVerifier(object):
         #print(signed_data, tspdata, crls, cert, othercerts, hashok, signatureok)
         return (signed_data, tspdata, crls, cert, othercerts, hashok, signatureok)
 
-    def verify_ocsp_data(self, cert, othercerts, crldata):
-        issuer_cert = next((item for item in othercerts if item.subject == cert.issuer), None)
+    def _verify_ocsp_cert_id(self, cert_id, issuer_cert):
+        hash_name = cert_id["hash_algorithm"]["algorithm"].native
+        hash_cls = self._resolve_hash_cls(hash_name)
+
+        issuer_asn1 = x509.Certificate.load(
+            issuer_cert.public_bytes(serialization.Encoding.DER)
+        )
+        issuer_name = issuer_asn1["tbs_certificate"]["subject"].dump()
+        issuer_key_bitstring = issuer_asn1["tbs_certificate"]["subject_public_key_info"]["public_key"]
+        issuer_key = issuer_key_bitstring.contents[1:]
+
+        digest = hashes.Hash(hash_cls())
+        digest.update(issuer_name)
+        expected_name_hash = digest.finalize()
+
+        digest = hashes.Hash(hash_cls())
+        digest.update(issuer_key)
+        expected_key_hash = digest.finalize()
+
+        return (
+            cert_id["issuer_name_hash"].native == expected_name_hash
+            and cert_id["issuer_key_hash"].native == expected_key_hash
+        )
+
+    def verify_ocsp_data(self, cert, othercerts, crldata) -> tuple[bool|None, list[datetime.datetime]|None]:
+        issuer_cert = None
+        for item in othercerts:
+            if item.subject == cert.issuer:
+                issuer_cert = item
+                break
         if issuer_cert is None:
             logger.debug("cannot resolve issuer certificate for OCSP CertID check")
             return False, None
@@ -214,33 +240,33 @@ class SignatureVerifier(object):
                         cert_was_checked = True
                         next_check_at = ccert["next_update"].native
                         break
-                sigalgo = crlresp["signature_algorithm"]["algorithm"].native
-                sig = crlresp["signature"].native
-                sigok = False
                 ocspcert = None
                 for othercert in crlresp["certs"]:
                     for ext in othercert["tbs_certificate"]["extensions"]:
                         if ext["extn_id"].native == "extended_key_usage" and "ocsp_signing" in ext["extn_value"].native:
-                            ocspcert = cx509.load_der_x509_certificate(othercert.dump())
-                if ocspcert:
-                    if self.validate_certificate(ocspcert, othercerts) and not sigok:
-                        try:
-                            public_key = ocspcert.public_key()
-                            signedData = crlresp["tbs_response_data"].dump()
-                            hash_cls = self._resolve_hash_cls(sigalgo)
-                            if hash_cls is None:
-                                raise ValueError(f"Unsupported OCSP signature algorithm: {sigalgo}")
+                            ocspcert = othercert.chosen
+                if ocspcert is None:
+                    return False, None
+                if not self.validate_certificate(ocspcert, othercerts):
+                    return False, None
+                sigalgo = crlresp["signature_algorithm"]["algorithm"].native
+                sig = crlresp["signature"].native
+                try:
+                    public_key = ocspcert.public_key()
+                    signedData = crlresp["tbs_response_data"].dump()
+                    hash_cls = self._resolve_hash_cls(sigalgo)
+                    if hash_cls is None:
+                        raise ValueError(f"Unsupported OCSP signature algorithm: {sigalgo}")
 
-                            public_key.verify(
-                                sig,
-                                signedData,
-                                padding.PKCS1v15(),
-                                hash_cls(),
-                            )
-                            sigok = True
-                        except Exception:
-                            logger.debug(f"ocsp signing certificate is invalid")
-                            pass
+                    public_key.verify(
+                        sig,
+                        signedData,
+                        padding.PKCS1v15(),
+                        hash_cls(),
+                    )
+                except Exception:
+                    logger.debug(f"ocsp signing certificate is invalid")
+                    return False, None
                 now = datetime.datetime.now(datetime.UTC)
                 if produced_at > now:
                     logger.debug("ocsp produced_at is in the future")
@@ -248,138 +274,111 @@ class SignatureVerifier(object):
                 if next_check_at is not None and next_check_at < now:
                     logger.debug("ocsp response is stale")
                     return False, None
-                if sigok and cert_was_checked:
+                if cert_was_checked:
                     return True, (produced_at, next_check_at)
-                logger.debug(f"ocsp cannot be verified")
+                logger.debug("ocsp cannot be verified")
             else:
                 logger.debug(f"ocsp unknown response type: {crl1.native['other_rev_info']['response_bytes']['response_type']}")
         return False, None
 
-    def verify_tsp_data(self, signed_data, tspdata, othercerts):
-        if tspdata['encap_content_info']['content_type'].native == 'tst_info':
-            (_, _, tcrldata, tcert, tothercerts, _, tsignatureok) = self.decompose_signed_data(b'', tspdata)
-            if not tsignatureok:
-                return False, None
+    def verify_tsp_data(self, signed_data: bytes, tspdata):
+        #tsp = cms.ContentInfo.load(tspdata)["content"]
 
-            def getleaf(xcert):
-                leaf_certificate = None
-                for cert in tothercerts:
-                    if xcert.issuer == cert.subject:
-                        return cert
+        if tspdata['encap_content_info']['content_type'].native != 'tst_info':
+            raise ValueError(f"Unsupported TSP content type: {tspdata['encap_content_info']['content_type'].native}")
 
-            def seekForRoot(xcert, certs):
-                xcertsigner = xcert.extensions.get_extension_for_class(
-                    cx509.AuthorityKeyIdentifier
-                ).value.key_identifier
-                for cert in certs:
-                    certsubject = cert.extensions.get_extension_for_class(
-                        cx509.SubjectKeyIdentifier
-                    ).value.key_identifier
-                    if xcertsigner == certsubject:
-                        return True
-                for cert in self.certs:
-                    try:
-                        certsubject = cert.extensions.get_extension_for_class(
-                            cx509.SubjectKeyIdentifier
-                        ).value.key_identifier
-                        if xcertsigner == certsubject:
-                            return True
-                    except extensions.ExtensionNotFound:
-                        pass
-                return False
+        (_, _, tsp_crl_data, tsp_cert, tsp_othercerts, _, signatureok) = self._decompose_signed_data(tspdata, b'')
+        if not signatureok:
+            return False, None
 
-            # tcert must have timeStamping EKU
-            eku_extension = tcert.extensions.get_extension_for_class(
-                cx509.ExtendedKeyUsage
+        prog = self._validator(tsp_cert, othercerts=tsp_othercerts, trustedcerts=self.trusted_certs)
+        try:
+            prog.validate_usage(
+                key_usage=set([]),
+                extended_key_usage=set(["time_stamping"])
             )
-            if not eku_extension.critical:
-                logger.debug("The EKU extension is not critical.")
-                return False, None
+        except certvalidator.errors.PathBuildingError as exc:
+            raise ValueError(f"Invalid TSP certificate path: {exc}") from exc
+        except certvalidator.errors.PathValidationError as exc:
+            raise ValueError(f"TSP certificate path validation error: {exc}") from exc
+        except certvalidator.errors.ValidationError as exc:
+            raise ValueError(f"TSP certificate validation error: {exc}") from exc
 
-            if cx509.ExtendedKeyUsageOID.TIME_STAMPING not in eku_extension.value:
-                logger.debug("The EKU extension does not have KeyPurposeID id-kp-timeStamping.")
-                return False, None
-
-            leaf_certificate = getleaf(tcert)
-            if leaf_certificate:
-                bc_extension = leaf_certificate.extensions.get_extension_for_class(
-                    cx509.BasicConstraints
-                )
-                eku_extension = leaf_certificate.extensions.get_extension_for_class(
-                    cx509.ExtendedKeyUsage
-                )
-                if not bc_extension.critical or not bc_extension.value.ca:
-                    logger.debug("Leaf certificate is not CA.")
-                    return False, None
-                #elif not eku_extension.critical:
-                #    # leaf cert must have timeStamping EKU
-                #    msg = "The EKU extension is not critical."
-                #    raise VerificationError(msg)
-                elif cx509.ExtendedKeyUsageOID.TIME_STAMPING not in eku_extension.value:
-                    logger.debug("The EKU extension does not have KeyPurposeID id-kp-timeStamping.")
-                    return False, None
-
-                while True:
-                    cert = getleaf(leaf_certificate)
-                    if cert:
-                        leaf_certificate = cert
-                    else:
-                        break
-
-                # leaf_certificate must be signed by known CA
-                # ok = self.verifier.verify(leaf_certificate, othercerts)
-                ok = seekForRoot(leaf_certificate, othercerts)
-            else:
-                # tcert may not have subjectAltName
-                #ok = self.verifier.verify(tcert, othercerts)
-                ok = seekForRoot(tcert, othercerts)
-
-            if not ok:
-                logger.debug("No leaf certificate found in the chain.")
-                return False, None
-
-            tst = tspdata['encap_content_info']['content'].parsed
-            signature_bytes = signed_data['signer_infos'][0]['signature'].native
+        tst = tspdata['encap_content_info']['content'].parsed
+        if 0:
+            # TODO: verify the message imprint against the signed data hash
+            signature_bytes = tspdata['signer_infos'][0]['signature'].native
             md = hashlib.sha256(signature_bytes).digest()
             if md == tst['message_imprint']['hashed_message'].native:
                 return True, tst['gen_time'].native
+        return True, tst['gen_time'].native
 
-        return False, None
+        #return False, tst['gen_time'].native
 
-    def verify(self, datas:bytes, datau:bytes) -> list[tuple[bool, bool, bool]]:
-        (signed_data, tspdata, crldata, cert, othercerts, hashok, signatureok) = self.decompose_signed_data(datas, datau)
+    def verify_data(
+            self,
+            datas:bytes,
+            datau:bytes
+        ) -> tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]:
+        """
+        Verify signed data.
+        :return:
+            hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata
+
+            hashok: bool
+                True if hash is matches, False otherwise.
+            signatureok: bool
+                True if signature is valid, False otherwise.
+            certok: bool
+                True if certificate is valid, False otherwise.
+            ocspok: bool|None
+                True if OCSP is valid, False if invalid, None if not present.
+            ocspdata: list[datetime.datetime]|None
+                List of OCSP produced_at and next_check_at datetimes,
+                or None if not present.
+            tspok: bool|None
+                True if TSP is valid, False if invalid, None if not present.
+            tspdata: datetime.datetime|None
+                TSP produced_at datetime, or None if not present.
+        """
+        (signed_data, tsp_data, crldata, cert, othercerts, hashok, signatureok) = self.decompose_signed_data(datas, datau)
         certok = self.validate_certificate(cert, othercerts)
-        if certok and crldata.native is not None:
-            ok, info = self.verify_ocsp_data(cert, othercerts, crldata)
-            # info = (produced_at, next_check_at)
-            if not ok:
-                certok = False
-        if certok and tspdata is not None:
-            ok, info = self.verify_tsp_data(signed_data, tspdata, othercerts)
-            #print('info:', info)
-            # info = gen_time
-            if not ok:
-                raise ValueError("Invalid TSP")
+        ocspok, ocspdata = None, None
+        if crldata.native is not None:
+            ocspok, ocspdata = self.verify_ocsp_data(cert, othercerts, crldata)
+            # ocspdata = (produced_at, next_check_at)
+        tspok, tspdata = None, None
+        if tsp_data is not None:
+            tspok, tspdata = self.verify_tsp_data(signed_data, tsp_data)
 
-        return hashok, signatureok, certok
+        return (hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata)
 
 
-
-def verify(datas:bytes, datau:bytes, certs:list[x509.Certificate]=None) -> tuple[bool, bool, bool]:
+def verify(
+        datas:bytes,
+        datau:bytes,
+        trusted_certs:list[bytes]|None=None
+    ) -> tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]:
     """
     Verify signed data.
-
-    :param data: Email data as bytes.
-    :param certs: List of additional certificates used to verify signature (system independent).
     :return:
-        hashok, signatureok, certok
+        hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata
 
-        hashok : bool
-            True if the hash matches.
-        signatureok : bool
-            True if the signature is valid.
-        certok : bool
-            True if the certificate used for signing is trusted and valid.
+        hashok: bool
+            True if hash is matches, False otherwise.
+        signatureok: bool
+            True if signature is valid, False otherwise.
+        certok: bool
+            True if certificate is valid, False otherwise.
+        ocspok: bool|None
+            True if OCSP is valid, False if invalid, None if not present.
+        ocspdata: list[datetime.datetime]|None
+            List of OCSP produced_at and next_check_at datetimes,
+            or None if not present.
+        tspok: bool|None
+            True if TSP is valid, False if invalid, None if not present.
+        tspdata: datetime.datetime|None
+            TSP produced_at datetime, or None if not present.
     """
-    cls = SignatureVerifier(certs)
-    return cls.verify(datas, datau)
+    cls = SignatureVerifier(trusted_certs)
+    return cls.verify_data(datas, datau)

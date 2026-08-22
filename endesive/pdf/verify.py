@@ -28,6 +28,11 @@ _SIG_HASH_ALGOS = {
 
 
 class PDFVerifier(verifier.SignatureVerifier):
+    """
+    PDF signature verifier.
+        :param pdf_data: PDF document as bytes.
+        :param trusted_certs: List of system independent trusted certificates used to verify certificates.
+    """
     def __init__(self, pdf_data: bytes, trusted_certs:list[bytes]|None=None):
         super().__init__(trusted_certs)
         self.pdf_data = pdf_data
@@ -83,7 +88,19 @@ class PDFVerifier(verifier.SignatureVerifier):
 
         return self.decompose_signed_data(signaturebytes, datau)
 
-    def verify(self) -> list[tuple[bool, bool, bool]]:
+    def verify(self) -> list[tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]]:
+        """
+        Verify PDF signature.
+        :return:
+            hashok: True if hash is valid, False otherwise.
+            signatureok: True if signature is valid, False otherwise.
+            certok: True if certificate is valid, False otherwise.
+            ocspok: True if OCSP is valid, False if invalid, None if not present.
+            ocspdata: List of OCSP produced_at and next_check_at datetimes,
+                or None if not present.
+            tspok: True if TSP is valid, False if invalid, None if not present.
+            tspdata: TSP produced_at datetime, or None if not present.
+        """
         if not self._is_valid_pdf():
             raise ValueError("Invalid PDF")
         if not self._is_signed():
@@ -95,29 +112,44 @@ class PDFVerifier(verifier.SignatureVerifier):
 
         results = []
         for byte_range in self.byte_ranges:
-            (signed_data, tspdata, crldata, cert, othercerts, hashok, signatureok) = self._decompose_signature(byte_range)
+            (signed_data, tsp_data, crldata, cert, othercerts, hashok, signatureok) = self._decompose_signature(byte_range)
             certok = self.validate_certificate(cert, othercerts)
-            if certok and crldata.native is not None:
-                ok, info = self.verify_ocsp_data(cert, othercerts, crldata)
-                # info = (produced_at, next_check_at)
-                if not ok:
-                    certok = False
-            if certok and tspdata is not None:
-                ok, info = self.verify_tsp_data(signed_data, tspdata, othercerts)
-                #print('info:', info)
-                # info = gen_time
-                if not ok:
-                    raise ValueError("Invalid TSP")
+            ocspok, ocspdata = None, None
+            if crldata.native is not None:
+                ocspok, ocspdata = self.verify_ocsp_data(cert, othercerts, crldata)
+            tspok, tspdata = None, None
+            if tsp_data is not None:
+                tspok, tspdata = self.verify_tsp_data(signed_data, tsp_data)
 
-            results.append((hashok, signatureok, certok))
+            results.append((hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata))
         return results
 
-def verify(pdfdata:bytes, certs:list[bytes]|None=None) -> list[tuple[bool, bool, bool]]:
+def verify(
+    pdfdata:bytes,
+    certs:list[bytes]|None=None
+) -> list[tuple[bool, bool, bool, bool|None, list[datetime.datetime]|None, bool|None, datetime.datetime|None]]:
     """
     Verify PDF signature.
     :param pdfdata: PDF document as bytes.
-    :param certs: List of additional certificates used to verify signature (system independent).
-    :return: 
+    :param certs: Optional list of system independent certificates used to verify signature.
+    :return:
+        list[hashok, signatureok, certok, ocspok, ocspdata, tspok, tspdata]
+
+        hashok: bool
+            True if hash is matches, False otherwise.
+        signatureok: bool
+            True if signature is valid, False otherwise.
+        certok: bool
+            True if certificate is valid, False otherwise.
+        ocspok: bool|None
+            True if OCSP is valid, False if invalid, None if not present.
+        ocspdata: list[datetime.datetime]|None
+            List of OCSP produced_at and next_check_at datetimes,
+            or None if not present.
+        tspok: bool|None
+            True if TSP is valid, False if invalid, None if not present.
+        tspdata: datetime.datetime|None
+            TSP produced_at datetime, or None if not present.
     """
     cls = PDFVerifier(pdfdata, certs)
     return cls.verify()
