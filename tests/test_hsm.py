@@ -174,5 +174,6 @@ class HSMTests(unittest.TestCase):
         #open(fixture('test_ssh_sign-plain.txt'),'wb').write(datau)
 
         datau = datau.replace(b'\n', b'\r\n')
-        (hashok, signatureok, certok) = verifier.verify(sig, datau, [cert,])
+        result = verifier.verify(sig, datau, [cert,])
+        hashok, signatureok, certok = result[0], result[1], result[2]
         assert hashok and signatureok and certok

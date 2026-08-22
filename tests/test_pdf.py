@@ -47,7 +47,8 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 
     def test_pdf_pss(self):
@@ -79,7 +80,8 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 
     def test_pdf_aligned(self):
@@ -111,7 +113,8 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 
     def test_pdf_encrypted(self):
@@ -144,7 +147,8 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 
     def test_pdf_signature_appearance(self):
@@ -190,7 +194,8 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 
     def test_pdf_signature_appearance_ec(self):
@@ -236,7 +241,8 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 
     def test_pdf_signature_manual(self):
@@ -296,7 +302,8 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 
     def test_pdf_timestamp(self):
@@ -331,6 +338,7 @@ class PDFTests(unittest.TestCase):
         results = pdf.verify(
             data, trusted_cert_pems
         )
-        for (hashok, signatureok, certok) in results:
+        for result in results:
+            hashok, signatureok, certok = result[0], result[1], result[2]
             assert signatureok and hashok and certok
 

@@ -117,7 +117,7 @@ class SecurityVerifierTests(unittest.TestCase):
         with mock.patch("endesive.verifier.cms.ContentInfo.load", return_value={"content": signed_data}):
             with mock.patch("endesive.verifier.cx509.load_pem_x509_certificate", return_value=mock.Mock()):
                 with self.assertRaises(ValueError):
-                    verify_data.verify(b"cms", b"payload")
+                    verify_data.verify_data(b"cms", b"payload")
 
     def test_generic_verifier_raises_when_signer_certificate_missing(self):
         serial = 123456
@@ -141,7 +141,7 @@ class SecurityVerifierTests(unittest.TestCase):
         with mock.patch("endesive.verifier.cms.ContentInfo.load", return_value={"content": signed_data}):
             with mock.patch("endesive.verifier.cx509.load_pem_x509_certificate", return_value=mock.Mock()):
                 with self.assertRaises(ValueError):
-                    verify_data.verify(b"cms", b"payload")
+                    verify_data.verify_data(b"cms", b"payload")
 
 
 if __name__ == "__main__":
