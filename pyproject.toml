@@ -8,7 +8,7 @@ description = "Library for digital signing and verification of digital signature
 authors = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
 maintainers = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
 readme = "README.rst"
-version = "2.19.4"
+version = "3.0.0"
 license = "MIT"
 license-files = ["LICENSE", "LICENSE.pdf-annotate", "LICENSE.pyfpdf"]
 requires-python = ">=3.0"
