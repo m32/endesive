@@ -1,15 +1,16 @@
 # *-* coding: utf-8 *-*
-import sys
 import os
+import sys
 from email.mime.application import MIMEApplication
 
-from asn1crypto import cms, core, algos
+from asn1crypto import algos, cms, core
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.decrepit.ciphers import modes as dmodes
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as cmodes
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as cmodes
+
 from endesive import signer
 
 
@@ -22,10 +23,9 @@ class EncryptedData(object):
         msg['Content-Disposition'] = 'attachment; filename="smime.p7m"'
         msg['Content-Type'] = 'application/%spkcs7-mime; smime-type=enveloped-data; name="smime.p7m"' % prefix
 
-        data = msg.as_string()
-        return data
+        return msg.as_string()
 
-    def _pad(self, s, block_size):
+    def _pad(self, s:bytes, block_size:int) -> bytes:
         n = block_size - len(s) % block_size
         if n == 0:
             n = block_size
@@ -84,7 +84,7 @@ class EncryptedData(object):
         )
         return result
 
-    def encrypt(self, data, certs, algo, oaep):
+    def encrypt(self, data:bytes, certs:list[x509.Certificate], algo:str, oaep:bool) -> str:
         key_size = {
             'aes128': 16,
             'aes192': 24,
@@ -128,11 +128,10 @@ class EncryptedData(object):
                 }
             }
         })
-        data = self._email(enveloped_data.dump(), oaep)
-        return data
+        return self._email(enveloped_data.dump(), oaep)
 
 
-def encrypt(data:bytes, certs:list[x509.Certificate], algo:str='aes256_cbc', oaep:bool=False) -> bytes:
+def encrypt(data:bytes, certs:list[x509.Certificate], algo:str='aes256_cbc', oaep:bool=False) -> str:
     """
     Encrypt the given data bytes using the provided certificates and algorithm.
 

@@ -44,12 +44,10 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_pss(self):
         dct = {
@@ -77,12 +75,10 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_aligned(self):
         dct = {
@@ -110,12 +106,10 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_encrypted(self):
         dct = {
@@ -144,12 +138,10 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_signature_appearance(self):
         dct = {
@@ -191,12 +183,10 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_signature_appearance_ec(self):
         dct = {
@@ -238,12 +228,10 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_signature_manual(self):
         date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
@@ -299,12 +287,10 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_timestamp(self):
         return
@@ -335,10 +321,8 @@ class PDFTests(unittest.TestCase):
             trusted_cert_pems = (fh.read(),)
         with open(fname, 'rb') as fh:
             data = fh.read()
-        results = pdf.verify(
+        result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
-        for result in results:
-            hashok, signatureok, certok = result[0], result[1], result[2]
-            assert signatureok and hashok and certok
+        assert result.signatureok and result.hashok and result.certok
 

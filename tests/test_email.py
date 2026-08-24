@@ -82,9 +82,8 @@ class EMAILTests(unittest.TestCase):
         with open(ca_sub_cert, 'rb') as fp:
             cert = fp.read()
         result = email.verify(datas, [cert,])
-        hashok, signatureok, certok = result[0], result[1], result[2]
 
-        assert hashok and signatureok and certok
+        assert result.hashok and result.signatureok and result.certok
 
         cmd = [
             'openssl', 'smime', '-verify',
@@ -117,8 +116,8 @@ class EMAILTests(unittest.TestCase):
         with open(ca_sub_cert, 'rb') as fp:
             cert = fp.read()
         result = email.verify(datas, [cert,])
-        hashok, signatureok, certok = result[0], result[1], result[2]
-        assert hashok and signatureok and certok
+
+        assert result.hashok and result.signatureok and result.certok
 
         cmd = [
             'openssl', 'cms', '-verify',

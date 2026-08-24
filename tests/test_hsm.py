@@ -175,5 +175,5 @@ class HSMTests(unittest.TestCase):
 
         datau = datau.replace(b'\n', b'\r\n')
         result = verifier.verify(sig, datau, [cert,])
-        hashok, signatureok, certok = result[0], result[1], result[2]
-        assert hashok and signatureok and certok
+
+        assert result.hashok and result.signatureok and result.certok

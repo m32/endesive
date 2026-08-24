@@ -13,5 +13,10 @@
     },
     "python.pythonPath": "/devel/bin/python3/bin/python",
     "python.languageServer": "Pylance",
-    "python.formatting.provider": "black"
+    "python.analysis.typeCheckingMode": "basic",
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "ruff.lint.enable": true
 }

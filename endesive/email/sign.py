@@ -8,9 +8,8 @@ from endesive import signer
 
 
 class SignedData(object):
-
-    def _email(self, hashalgo, datau, datas, prefix):
-        s = b'''\
+    def _email(self, hashalgo: bytes, datau: bytes, datas: bytes, prefix: bytes):
+        s = b"""\
 MIME-Version: 1.0
 Content-Type: multipart/signed; protocol="application/%spkcs7-signature"; micalg="%s"; boundary="----46F1AAD10BE922477643C0A33C40D389"
 
@@ -26,25 +25,44 @@ Content-Disposition: attachment; filename="smime.p7s"
 %s
 ------46F1AAD10BE922477643C0A33C40D389--
 
-''' % (prefix, hashalgo, datau, prefix, datas)
+""" % (prefix, hashalgo, datau, prefix, datas)
         return s
 
-    def sign(self, datau, key, cert, othercerts, hashalgo, attrs, pss=False):
-        datau = datau.replace(b'\n', b'\r\n')
+    def sign(
+        self,
+        datau: bytes,
+        key: PrivateKeyTypes,
+        cert: x509.Certificate,
+        othercerts: list[x509.Certificate],
+        hashalgo: str,
+        attrs: bool,
+        pss: bool = False,
+    ):
+        datau = datau.replace(b"\n", b"\r\n")
         datas = signer.sign(datau, key, cert, othercerts, hashalgo, attrs, pss=pss)
         datas = base64.encodebytes(datas)
-        if hashalgo == 'sha1':
-            hashalgo = b'sha1'
-        elif hashalgo == 'sha256':
-            hashalgo = b'sha-256'
-        elif hashalgo == 'sha512':
-            hashalgo = b'sha-512'
-        prefix = [b'x-', b''][pss]
-        data = self._email(hashalgo, datau, datas, prefix)
+        if hashalgo == "sha1":
+            bhashalgo = b"sha1"
+        elif hashalgo == "sha256":
+            bhashalgo = b"sha-256"
+        elif hashalgo == "sha512":
+            bhashalgo = b"sha-512"
+        else:
+            raise ValueError("Unsupported hash algorithm")
+        prefix = [b"x-", b""][pss]
+        data = self._email(bhashalgo, datau, datas, prefix)
         return data
 
 
-def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[x509.Certificate], hashalgo='sha256', attrs=True, pss=False)->bytes:
+def sign(
+    datau: bytes,
+    key: PrivateKeyTypes,
+    cert: x509.Certificate,
+    certs: list[x509.Certificate],
+    hashalgo="sha256",
+    attrs=True,
+    pss=False,
+) -> bytes:
     """
     Sign data with private key and encapsulate the result (data and signature) as S/MIME message.
 

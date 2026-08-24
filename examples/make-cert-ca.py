@@ -1,20 +1,19 @@
 #!/usr/bin/env vpython3
 # *-* coding: utf-8 *-*
-import typing
 import datetime
-import os, os.path
-import sys
 import glob
-import uuid
+import os
+import os.path
+import sys
 
 from asn1crypto.core import UTF8String
-
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import rsa, ec
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 force = "--force" in sys.argv
 
@@ -23,6 +22,8 @@ force = "--force" in sys.argv
     ca_root_key,
     ca_sub,
     ca_sub_key,
+    ca_tsp,
+    ca_tsp_key,
     cert1,
     cert1_key,
     cert1_pub,
@@ -40,6 +41,8 @@ force = "--force" in sys.argv
     "demo2_ca.root.key.pem",
     "demo2_ca.sub.crt.pem",
     "demo2_ca.sub.key.pem",
+    "demo2_ca.tsp.crt.pem",
+    "demo2_ca.tsp.key.pem",
     "demo2_user1.crt.pem",
     "demo2_user1.key.pem",
     "demo2_user1.pub.pem",
@@ -65,11 +68,14 @@ class Main(object):
         )
 
     def key_create_ec(self) -> ec.EllipticCurvePrivateKey:
-        return ec.generate_private_key(
-            ec.SECP256R1(), default_backend()
-        )
+        return ec.generate_private_key(ec.SECP256R1(), default_backend())
 
-    def key_save(self, fname: str, key: rsa.RSAPrivateKey|ec.EllipticCurvePrivateKey, password: str) -> None:
+    def key_save(
+        self,
+        fname: str,
+        key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
+        password: str | None,
+    ) -> None:
         with open(os.path.join("ca", fname), "wb") as f:
             if not password:
                 f.write(
@@ -89,7 +95,9 @@ class Main(object):
                     )
                 )
 
-    def key_load(self, fname: str, password: str) -> rsa.RSAPrivateKey|ec.EllipticCurvePrivateKey:
+    def key_load(
+        self, fname: str, password: str
+    ) -> rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey:
         with open(os.path.join("ca", fname), "rb") as f:
             private_key = serialization.load_pem_private_key(
                 f.read(), password.encode("utf-8"), default_backend()
@@ -116,13 +124,13 @@ class Main(object):
 
     def csr_create(
         self,
-        key: rsa.RSAPrivateKey|ec.EllipticCurvePrivateKey,
+        key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
         email: str,
-        country: typing.Union[str, None] = None,
-        state: typing.Union[str, None] = None,
-        locality: typing.Union[str, None] = None,
-        organization: typing.Union[str, None] = None,
-        commonname: typing.Union[str, None] = None,
+        country: str | None = None,
+        state: str | None = None,
+        locality: str | None = None,
+        organization: str | None = None,
+        commonname: str | None = None,
     ) -> x509.CertificateSigningRequest:
         names = []
         for t, v in (
@@ -150,13 +158,13 @@ class Main(object):
         emails = csr.subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)
         assert emails and len(emails) > 0
         names = [
-            #x509.RFC822Name(emails[0].value)
-            #x509.OtherName(
+            # x509.RFC822Name(emails[0].value)
+            # x509.OtherName(
             #    x509.ObjectIdentifier('1.3.6.1.4.1.311.20.2.3'),
             #    #'john.doe@domain.tld'.encode("utf-8")
             #    UTF8String('john.doe@domain.tld').dump()
-            #),
-            #x509.DNSName('trisoft.com.pl'),
+            # ),
+            # x509.DNSName('trisoft.com.pl'),
         ]
         for t in (
             NameOID.EMAIL_ADDRESS,
@@ -170,7 +178,7 @@ class Main(object):
             if v is not None and len(v) > 0:
                 names.append(
                     x509.OtherName(v[0].oid, UTF8String(v[0].value).dump())
-                    #x509.NameAttribute(t, v[0].value)
+                    # x509.NameAttribute(t, v[0].value)
                 )
 
         return (
@@ -180,16 +188,19 @@ class Main(object):
             .public_key(csr.public_key())
             .serial_number(x509.random_serial_number())
             .not_valid_before(datetime.datetime.now(datetime.UTC))
-            .not_valid_after(datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=365))
+            .not_valid_after(
+                datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=365)
+            )
             .add_extension(
-                x509.BasicConstraints(ca=False, path_length=None),
-                critical=True
-            ).add_extension(
+                x509.BasicConstraints(ca=False, path_length=None), critical=True
+            )
+            .add_extension(
                 x509.AuthorityKeyIdentifier.from_issuer_public_key(
                     self.ca_sub_pk.public_key()
                 ),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.CRLDistributionPoints(
                     [
                         x509.DistributionPoint(
@@ -205,14 +216,13 @@ class Main(object):
                     ]
                 ),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.AuthorityInformationAccess(
                     [
                         x509.AccessDescription(
                             x509.OID_CA_ISSUERS,
-                            x509.UniformResourceIdentifier(
-                                f"{self.ca_url_prefix}/ca"
-                            ),
+                            x509.UniformResourceIdentifier(f"{self.ca_url_prefix}/ca"),
                         ),
                         x509.AccessDescription(
                             x509.OID_OCSP,
@@ -223,49 +233,58 @@ class Main(object):
                     ]
                 ),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.SubjectAlternativeName([x509.RFC822Name(emails[0].value)]),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 # certificate_policies
-                x509.ExtendedKeyUsage([
-                    x509.OID_CLIENT_AUTH, # 1.3.6.1.5.5.7.3.2
-                    #x509.OID_SERVER_AUTH,
-                    x509.OID_EMAIL_PROTECTION,
-                    x509.ObjectIdentifier("1.3.6.1.4.1.311.10.3.12"), # document signing
-                    x509.ObjectIdentifier("1.3.6.1.5.5.7.3.36"), # document signing
-                    x509.ObjectIdentifier("1.3.6.1.5.5.7.3.21"), # ssh client
-                    #x509.ObjectIdentifier("1.3.6.1.5.5.7.3.22"), # ssh server
-                    #1.2.840.113583.1.1.7.1.0 .. 11 # https://www.adobe.com/devnet-docs/acrobatetk/tools/DigSigDC/oids.html
-                ]),
+                x509.ExtendedKeyUsage(
+                    [
+                        x509.OID_CLIENT_AUTH,  # 1.3.6.1.5.5.7.3.2
+                        # x509.OID_SERVER_AUTH,
+                        x509.OID_EMAIL_PROTECTION,
+                        x509.ObjectIdentifier(
+                            "1.3.6.1.4.1.311.10.3.12"
+                        ),  # document signing
+                        x509.ObjectIdentifier("1.3.6.1.5.5.7.3.36"),  # document signing
+                        x509.ObjectIdentifier("1.3.6.1.5.5.7.3.21"),  # ssh client
+                        # x509.ObjectIdentifier("1.3.6.1.5.5.7.3.22"), # ssh server
+                        # 1.2.840.113583.1.1.7.1.0 .. 11 # https://www.adobe.com/devnet-docs/acrobatetk/tools/DigSigDC/oids.html
+                    ]
+                ),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.SubjectKeyIdentifier.from_public_key(csr.public_key()),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.KeyUsage(
-                    # Digital Signature: Indicates that the key can be used for digital signatures to verify the authenticity and integrity of data. 
+                    # Digital Signature: Indicates that the key can be used for digital signatures to verify the authenticity and integrity of data.
                     digital_signature=True,
-                    # Non-Repudiation: Used in conjunction with digital signatures to provide an additional layer of protection against denial of signature. 
+                    # Non-Repudiation: Used in conjunction with digital signatures to provide an additional layer of protection against denial of signature.
                     content_commitment=True,  # nonRepudiation
-                    # Key Encipherment: Specifies that the key can be used for encrypting other keys, typically for key transport. 
+                    # Key Encipherment: Specifies that the key can be used for encrypting other keys, typically for key transport.
                     key_encipherment=True,
-                    # Data Encipherment: Indicates that the key can be used for data encryption and decryption. 
+                    # Data Encipherment: Indicates that the key can be used for data encryption and decryption.
                     data_encipherment=True,
-                    # Key Agreement: Used when the key is involved in key exchange agreements, such as Diffie-Hellman. 
+                    # Key Agreement: Used when the key is involved in key exchange agreements, such as Diffie-Hellman.
                     key_agreement=True,
-                    # Encipher Only: Specifies that the key can only be used for encryption, not decryption. 
+                    # Encipher Only: Specifies that the key can only be used for encryption, not decryption.
                     encipher_only=False,
-                    # Decipher Only: Specifies that the key can only be used for decryption, not encryption. 
+                    # Decipher Only: Specifies that the key can only be used for decryption, not encryption.
                     decipher_only=False,
                     # ca
-                    # Certificate Signing: Specifies that the key can be used to sign other certificates, typically used by Certificate Authorities. 
+                    # Certificate Signing: Specifies that the key can be used to sign other certificates, typically used by Certificate Authorities.
                     key_cert_sign=False,
-                    # CRL Signing: Indicates that the key can be used to sign Certificate Revocation Lists (CRLs). 
+                    # CRL Signing: Indicates that the key can be used to sign Certificate Revocation Lists (CRLs).
                     crl_sign=False,
                 ),
                 critical=True,
-            ).sign(
+            )
+            .sign(
                 private_key=self.ca_sub_pk,
                 algorithm=hashes.SHA256(),
                 backend=default_backend(),
@@ -276,7 +295,7 @@ class Main(object):
         self,
         name: bytes,
         cert: x509.Certificate,
-        key: rsa.RSAPrivateKey|ec.EllipticCurvePrivateKey,
+        key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
         fname: str,
         password: str,
     ) -> None:
@@ -292,7 +311,13 @@ class Main(object):
         with open(os.path.join("ca", fname), "wb") as f:
             f.write(data)
 
-    def pk12_load(self, fname: str, password: str) -> pkcs12.PKCS12KeyAndCertificates:
+    def pk12_load(
+        self, fname: str, password: str
+    ) -> tuple[
+        PrivateKeyTypes | None,
+        x509.Certificate | None,
+        list[x509.Certificate] | None,
+    ]:
         with open(os.path.join("ca", fname), "rb") as fp:
             return pkcs12.load_key_and_certificates(
                 fp.read(), password.encode("utf-8"), default_backend()
@@ -300,12 +325,12 @@ class Main(object):
 
     def ca_createroot(
         self,
-        key: rsa.RSAPrivateKey|ec.EllipticCurvePrivateKey,
-        country: typing.Union[str, None] = None,
-        state: typing.Union[str, None] = None,
-        locality: typing.Union[str, None] = None,
-        organization: typing.Union[str, None] = None,
-        commonname: typing.Union[str, None] = None,
+        key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
+        country: str | None = None,
+        state: str | None = None,
+        locality: str | None = None,
+        organization: str | None = None,
+        commonname: str | None = None,
     ) -> x509.Certificate:
         names = []
         for t, v in (
@@ -328,21 +353,24 @@ class Main(object):
             .not_valid_before(datetime.datetime.now(datetime.UTC))
             .not_valid_after(
                 # Our certificate will be valid for 40 years
-                datetime.datetime.now(datetime.UTC)
-                + datetime.timedelta(days=40 * 365)
-            ).add_extension(
+                datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=40 * 365)
+            )
+            .add_extension(
                 x509.BasicConstraints(
                     ca=True,
                     path_length=None,  # pathlen: is equal to the number of CAs/ICAs it can sign
                 ),
                 critical=True,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.AuthorityKeyIdentifier.from_issuer_public_key(key.public_key()),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.SubjectKeyIdentifier.from_public_key(key.public_key()),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.KeyUsage(
                     digital_signature=True,
                     content_commitment=False,  # nonRepudiation
@@ -356,7 +384,8 @@ class Main(object):
                     crl_sign=True,
                 ),
                 critical=True,
-            ).sign(
+            )
+            .sign(
                 # Sign our certificate with our private key
                 key,
                 hashes.SHA256(),
@@ -366,14 +395,14 @@ class Main(object):
 
     def ca_createsub(
         self,
-        key: rsa.RSAPrivateKey|ec.EllipticCurvePrivateKey,
+        key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
         rootcert: x509.Certificate,
-        rootkey: rsa.RSAPrivateKey,
-        country: typing.Union[str, None] = None,
-        state: typing.Union[str, None] = None,
-        locality: typing.Union[str, None] = None,
-        organization: typing.Union[str, None] = None,
-        commonname: typing.Union[str, None] = None,
+        rootkey: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
+        country: str | None = None,
+        state: str | None = None,
+        locality: str | None = None,
+        organization: str | None = None,
+        commonname: str | None = None,
     ) -> x509.Certificate:
         names = []
         for t, v in (
@@ -397,15 +426,16 @@ class Main(object):
             .not_valid_before(datetime.datetime.now(datetime.UTC))
             .not_valid_after(
                 # Our certificate will be valid for 10 years
-                datetime.datetime.now(datetime.UTC)
-                + datetime.timedelta(days=10 * 365)
-            ).add_extension(
+                datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=10 * 365)
+            )
+            .add_extension(
                 x509.BasicConstraints(
                     ca=True,
                     path_length=0,  # pathlen: is equal to the number of CAs/ICAs it can sign
                 ),
                 critical=True,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.CRLDistributionPoints(
                     [
                         x509.DistributionPoint(
@@ -421,14 +451,13 @@ class Main(object):
                     ]
                 ),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.AuthorityInformationAccess(
                     [
                         x509.AccessDescription(
                             x509.OID_CA_ISSUERS,
-                            x509.UniformResourceIdentifier(
-                                f"{self.ca_url_prefix}/ca"
-                            ),
+                            x509.UniformResourceIdentifier(f"{self.ca_url_prefix}/ca"),
                         ),
                         x509.AccessDescription(
                             x509.OID_OCSP,
@@ -439,15 +468,20 @@ class Main(object):
                     ]
                 ),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(
-                    rootcert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value
+                    rootcert.extensions.get_extension_for_class(
+                        x509.SubjectKeyIdentifier
+                    ).value
                 ),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.SubjectKeyIdentifier.from_public_key(key.public_key()),
                 critical=False,
-            ).add_extension(
+            )
+            .add_extension(
                 x509.KeyUsage(
                     digital_signature=True,
                     content_commitment=False,  # nonRepudiation
@@ -461,7 +495,128 @@ class Main(object):
                     crl_sign=True,
                 ),
                 critical=True,
-            ).sign(
+            )
+            .sign(
+                # Sign our certificate with our private key
+                rootkey,
+                hashes.SHA256(),
+                default_backend(),
+            )
+        )
+
+    def ca_createtsp(
+        self,
+        key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
+        rootcert: x509.Certificate,
+        rootkey: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
+        country: str | None = None,
+        state: str | None = None,
+        locality: str | None = None,
+        organization: str | None = None,
+        commonname: str | None = None,
+    ) -> x509.Certificate:
+        names = []
+        for t, v in (
+            (NameOID.COUNTRY_NAME, country),
+            (NameOID.STATE_OR_PROVINCE_NAME, state),
+            (NameOID.LOCALITY_NAME, locality),
+            (NameOID.ORGANIZATION_NAME, organization),
+            (NameOID.COMMON_NAME, commonname),
+        ):
+            if v:
+                names.append(x509.NameAttribute(t, v))
+
+        subject = x509.Name(names)
+
+        return (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(rootcert.subject)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.now(datetime.UTC))
+            .not_valid_after(
+                # Our certificate will be valid for 10 years
+                datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=10 * 365)
+            )
+            .add_extension(
+                x509.BasicConstraints(
+                    ca=True,
+                    path_length=0,  # pathlen: is equal to the number of CAs/ICAs it can sign
+                ),
+                critical=True,
+            )
+            .add_extension(
+                x509.CRLDistributionPoints(
+                    [
+                        x509.DistributionPoint(
+                            full_name=[
+                                x509.UniformResourceIdentifier(
+                                    f"{self.ca_url_prefix}/crl"
+                                )
+                            ],
+                            relative_name=None,
+                            reasons=None,
+                            crl_issuer=None,
+                        )
+                    ]
+                ),
+                critical=False,
+            )
+            .add_extension(
+                x509.AuthorityInformationAccess(
+                    [
+                        x509.AccessDescription(
+                            x509.OID_CA_ISSUERS,
+                            x509.UniformResourceIdentifier(f"{self.ca_url_prefix}/ca"),
+                        ),
+                        x509.AccessDescription(
+                            x509.OID_OCSP,
+                            x509.UniformResourceIdentifier(
+                                f"{self.ca_url_prefix}/ocsp"
+                            ),
+                        ),
+                    ]
+                ),
+                critical=False,
+            )
+            .add_extension(
+                x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(
+                    rootcert.extensions.get_extension_for_class(
+                        x509.SubjectKeyIdentifier
+                    ).value
+                ),
+                critical=False,
+            )
+            .add_extension(
+                x509.SubjectKeyIdentifier.from_public_key(key.public_key()),
+                critical=False,
+            )
+            .add_extension(
+                x509.ExtendedKeyUsage(
+                    [
+                        ExtendedKeyUsageOID.TIME_STAMPING,
+                        # ExtendedKeyUsageOID.OCSP_SIGNING,
+                    ]
+                ),
+                critical=True,
+            )
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True,
+                    content_commitment=False,  # nonRepudiation
+                    key_encipherment=False,
+                    data_encipherment=False,
+                    key_agreement=False,
+                    encipher_only=False,
+                    decipher_only=False,
+                    # ca
+                    key_cert_sign=False,
+                    crl_sign=False,
+                ),
+                critical=True,
+            )
+            .sign(
                 # Sign our certificate with our private key
                 rootkey,
                 hashes.SHA256(),
@@ -479,20 +634,36 @@ class Main(object):
                 os.unlink(fqname)
             print("CA generating certificate")
             ca_root_pk = self.key_create()
-            ca_root_cert = self.ca_createroot(ca_root_pk,
-                organization='TriSoft',
-                commonname="AA TriSoft Root CA")
+            ca_root_cert = self.ca_createroot(
+                ca_root_pk, organization="TriSoft", commonname="AA TriSoft Root CA"
+            )
 
             self.key_save(ca_root_key, ca_root_pk, "1234")
             self.cert_save(ca_root, ca_root_cert)
 
             ca_sub_pk = self.key_create()
-            ca_sub_cert = self.ca_createsub(ca_sub_pk, ca_root_cert, ca_root_pk,
-                organization='TriSoft',
-                commonname="AA TriSoft Intermediate CA")
+            ca_sub_cert = self.ca_createsub(
+                ca_sub_pk,
+                ca_root_cert,
+                ca_root_pk,
+                organization="TriSoft",
+                commonname="AA TriSoft Intermediate CA",
+            )
 
             self.key_save(ca_sub_key, ca_sub_pk, "1234")
             self.cert_save(ca_sub, ca_sub_cert)
+
+            ca_tsp_pk = self.key_create()
+            ca_tsp_cert = self.ca_createsub(
+                ca_tsp_pk,
+                ca_root_cert,
+                ca_root_pk,
+                organization="TriSoft",
+                commonname="AA TriSoft Time Stamping",
+            )
+
+            self.key_save(ca_tsp_key, ca_tsp_pk, "1234")
+            self.cert_save(ca_tsp, ca_tsp_cert)
         else:
             print("CA using certificate")
             ca_root_pk = self.key_load(ca_root_key, "1234")
@@ -521,7 +692,7 @@ class Main(object):
             client_csr = self.csr_create(
                 client_pk,
                 email="demo%d@trisoft.com.pl" % no,
-                organization='TriSoft',
+                organization="TriSoft",
             )
             client_cert = self.csr_sign(client_csr)
             self.cert_save(cert, client_cert)
@@ -540,8 +711,8 @@ class Main(object):
 
 
 print("Generating certificates")
-if not os.path.exists('ca'):
-    os.mkdir('ca')
-cls = Main('https://ca.trisoft.com.pl/api')
+if not os.path.exists("ca"):
+    os.mkdir("ca")
+cls = Main("https://ca.trisoft.com.pl/api")
 cls.CA()
 cls.USERs()

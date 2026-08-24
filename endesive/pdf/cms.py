@@ -17,8 +17,7 @@ from endesive import signer
 
 
 def _b_(s):
-    """Encode str to bytes (pass bytes through unchanged).
-    """
+    """Encode str to bytes (pass bytes through unchanged)."""
     if isinstance(s, bytes):
         return s
     return s.encode("latin-1")
@@ -133,9 +132,7 @@ class SignedData(PdfWriter):
                     if i == 0:
                         stream.write(_b_("0000000000 65535 f \n"))
                     else:
-                        stream.write(
-                            _b_("%010d %05d n \n" % (positions[keys[i]], 0))
-                        )
+                        stream.write(_b_("%010d %05d n \n" % (positions[keys[i]], 0)))
                     i += 1
                 while i < len(keys) and positions[keys[i]] == 0:
                     i += 1
@@ -352,7 +349,7 @@ class SignedData(PdfWriter):
                     sig[f] = udct["signature_appearance"][f]
 
             toggles = udct["signature_appearance"].get("display", [])
-            if(isinstance(toggles, str)):
+            if isinstance(toggles, str):
                 sig["text"] = toggles
             else:
                 for f in ("contact", "reason", "location", "contact", "signingdate"):
@@ -417,7 +414,9 @@ class SignedData(PdfWriter):
         page0.update({po.NameObject("/Annots"): annots})
         self._objects[page0ref.idnum - 1] = page0
 
-    def _makepdf(self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params):
+    def _makepdf(
+        self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params
+    ):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
         pages = catalog["/Pages"].get_object()
@@ -427,7 +426,7 @@ class SignedData(PdfWriter):
         while len(self._objects) < size - 1:
             self._objects.append(None)
 
-        if params['mode'] == 'timestamp':
+        if params["mode"] == "timestamp":
             # deal with extensions
             if "/Extensions" not in catalog:
                 extensions = po.DictionaryObject()
@@ -457,9 +456,9 @@ class SignedData(PdfWriter):
                         }
                     )
 
-            SubFilter=po.NameObject("/ETSI.CAdES.detached")
+            SubFilter = po.NameObject("/ETSI.CAdES.detached")
         else:
-            SubFilter=po.NameObject("/adbe.pkcs7.detached")
+            SubFilter = po.NameObject("/adbe.pkcs7.detached")
 
         # obj12 is the digital signature
         obj12, obj12ref = self._make_signature(
@@ -495,10 +494,10 @@ class SignedData(PdfWriter):
             )
         d12 = {}
         for k, v in (
-            ('/Name', 'name'),
-            ('/Contact', 'contact'),
-            ('/Location', 'location'),
-            ('/Reason', 'reason'),
+            ("/Name", "name"),
+            ("/Contact", "contact"),
+            ("/Location", "location"),
+            ("/Reason", "reason"),
         ):
             v = udct.get(v, None)
             if v is not None:
@@ -553,17 +552,21 @@ class SignedData(PdfWriter):
             # invisible signature
             objap = po.DictionaryObject()
             objapref = self._add_object(objap)
-            objform = po.DictionaryObject({
-                po.NameObject("/Length"): po.NumberObject(0),
-                po.NameObject("/Type"): po.NameObject("/XObject"),
-                po.NameObject("/Subtype"): po.NameObject("/Form"),
-                po.NameObject("/Bbox"): po.ArrayObject([
-                    po.FloatObject(0.0),
-                    po.FloatObject(0.0),
-                    po.FloatObject(0.0),
-                    po.FloatObject(0.0),
-                ]),
-            })
+            objform = po.DictionaryObject(
+                {
+                    po.NameObject("/Length"): po.NumberObject(0),
+                    po.NameObject("/Type"): po.NameObject("/XObject"),
+                    po.NameObject("/Subtype"): po.NameObject("/Form"),
+                    po.NameObject("/Bbox"): po.ArrayObject(
+                        [
+                            po.FloatObject(0.0),
+                            po.FloatObject(0.0),
+                            po.FloatObject(0.0),
+                            po.FloatObject(0.0),
+                        ]
+                    ),
+                }
+            )
             objformref = self._add_object(objform)
             objap.update({po.NameObject("/N"): objformref})
             obj13.update({po.NameObject("/AP"): objapref})
@@ -655,13 +658,15 @@ class SignedData(PdfWriter):
             certs = po.ArrayObject()
             ocsps = po.ArrayObject()
             crls = po.ArrayObject()
-            dss.update({
-                po.NameObject("/Type"): po.NameObject("/DSS"),
-                po.NameObject("/VRI"): vri,
-                po.NameObject("/Certs"): certs,
-                po.NameObject("/OCSPs"): ocsps,
-                po.NameObject("/CRLs"): crls,
-            })
+            dss.update(
+                {
+                    po.NameObject("/Type"): po.NameObject("/DSS"),
+                    po.NameObject("/VRI"): vri,
+                    po.NameObject("/Certs"): certs,
+                    po.NameObject("/OCSPs"): ocsps,
+                    po.NameObject("/CRLs"): crls,
+                }
+            )
             catalog[po.NameObject("/DSS")] = self._add_object(dss)
 
             if ocspurl is None:
@@ -732,7 +737,9 @@ class SignedData(PdfWriter):
             algomd = obj["/DigestMethod"][1:].lower()
 
         # produce smaller signatures, but must be signed twice
-        aligned = udct.get("aligned", 4096 if isinstance(key, ec.EllipticCurvePrivateKey) else 0)
+        aligned = udct.get(
+            "aligned", 4096 if isinstance(key, ec.EllipticCurvePrivateKey) else 0
+        )
         if aligned:
             zeros = b"00" * aligned
         else:
@@ -766,13 +773,16 @@ class SignedData(PdfWriter):
                     ocspissuer,
                 )
             zeros = contents.hex().encode("utf-8")
+            # add some extra space to avoid problems with signature size
+            aligned = len(zeros) + 512
 
         params = {"mode": mode, "use_signingdate": use_signingdate}
         if not timestampurl:
             params["use_signingdate"] = True
 
-        self._makepdf(prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params)
-
+        self._makepdf(
+            prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params
+        )
 
         # ID[0] is used in password protection, must be unchanged
         ID = prev.trailer.get("/ID", None)
@@ -790,6 +800,7 @@ class SignedData(PdfWriter):
         )
         # if document was encrypted, encrypt this version too
         if prev.is_encrypted:
+            # TODO: sprawdzić czy to działa
             prev._encryption.id1_entry = id1_entry
 
         fo = io.BytesIO()
@@ -849,8 +860,8 @@ class SignedData(PdfWriter):
                 ocspissuer,
             )
         contents = contents.hex().encode("utf-8")
-        if aligned:
-            nb = len(zeros) - len(contents)
+        nb = len(zeros) - len(contents)
+        if nb > 0:
             contents += b"0" * nb
         assert len(zeros) == len(contents)
 

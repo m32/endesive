@@ -97,8 +97,8 @@ class PLAINTests(unittest.TestCase):
         with open(fixture('plain-ssl-signed-attr.txt'), 'rb') as fh:
             datas = fh.read()
         result = plain.verify(datas, datau, trusted_cert_pems)
-        hashok, signatureok, certok = result[0], result[1], result[2]
-        assert signatureok and hashok and certok
+
+        assert result.signatureok and result.hashok and result.certok
 
     def test_plain_ssl_noattr(self):
         cmd = [
@@ -126,8 +126,8 @@ class PLAINTests(unittest.TestCase):
         with open(fixture('plain-ssl-signed-noattr.txt'), 'rb') as fh:
             datas = fh.read()
         result = plain.verify(datas, datau, trusted_cert_pems)
-        hashok, signatureok, certok = result[0], result[1], result[2]
-        assert signatureok and hashok and certok
+
+        assert result.signatureok and result.hashok and result.certok
 
 if __name__ == '__main__':
     cls = PLAINTests()
