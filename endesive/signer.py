@@ -4,8 +4,9 @@ import hashlib
 import secrets
 import types
 from base64 import b64encode
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 import requests
 from asn1crypto import algos, cms, keys, ocsp, pem, tsp, util, x509
