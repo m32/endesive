@@ -1,12 +1,11 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import datetime
+import sys
+
+import PyKCS11 as PK11
 from cryptography import x509
 from cryptography.hazmat import backends
-import PyKCS11 as PK11
-from endesive import pdf, hsm
 
+from endesive import hsm, pdf
 from hsm_config_kir import DLLPATH
 
 

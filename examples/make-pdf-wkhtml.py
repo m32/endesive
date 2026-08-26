@@ -1,7 +1,7 @@
-#!/usr/bin/env vpython3
-from mako.template import Template
-from mako.runtime import Context
 from io import StringIO
+
+from mako.runtime import Context
+from mako.template import Template
 
 raw_html = '<h1>Hello, ${name}!</h1>'
 data = {'name': 'Tapan'}

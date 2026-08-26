@@ -1,7 +1,6 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import sys
 from optparse import OptionParser
+
 import fpdf
 
 parser = OptionParser()

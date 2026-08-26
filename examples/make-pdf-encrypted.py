@@ -1,5 +1,3 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 from pypdf import PdfReader, PdfWriter
 
 fname = "generated/pdf.pdf"

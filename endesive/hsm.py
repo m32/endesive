@@ -1,67 +1,69 @@
-#!/usr/bin/env vpython3
-# coding: utf-8
+from __future__ import annotations
 
-import os
-import sys
-import binascii
-import datetime
-import PyKCS11
 import base64
 import hashlib
 
+import PyKCS11
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
+from paramiko import SSHException, agent, message
 
-from asn1crypto import x509 as asn1x509
-from asn1crypto import keys as asn1keys
-from asn1crypto import pem as asn1pem
-from asn1crypto import util as asn1util
-
-import paramiko.agent
-
-import cryptography
+from endesive.exceptions import HSMError
 
 
 class BaseHSM:
-    def certificate(self):
-        """
-        callback for HSM
-        used to identfy the ssh agents key exports via fingerprint
+    """Base interface for hardware-backed signing backends."""
 
-        :return: public-key-fingerprint, certificate-in-pem
-        """
-        raise NotImplementedError()
+    def certificate(self) -> tuple[str, bytes]:
+        """Return the certificate fingerprint and certificate bytes for the active key.
 
-    def sign(self, keyid, data, mech):
-        """
-        sign
+        Args:
+            None.
 
-        :param keyid: the keyid as returned by certificate()
-        :param data:
-        :param mech: hash algo
-        :return: PKCS7 signature blob
+        Returns:
+            A tuple of ``(fingerprint, certificate_pem)``.
+
+        Raises:
+            NotImplementedError: Subclasses must implement this method.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
+
+    def sign(self, keyid: str, data: bytes, mech: str) -> bytes:
+        """Sign data with the selected HSM key.
+
+        Args:
+            keyid: Key identifier returned by :meth:`certificate`.
+            data: Data to sign.
+            mech: Hashing algorithm name.
+
+        Returns:
+            PKCS#7 signature bytes.
+
+        Raises:
+            NotImplementedError: Subclasses must implement this method.
+        """
+        raise NotImplementedError
 
 
 class HSM(BaseHSM):
-    def __init__(self, dllpath):
-        """
-        Initialize HSM
+    def __init__(self, dllpath: str) -> None:
+        """Initialize the PyKCS#11-backed HSM connection.
 
-        :param dllpath: dynamic library used to communicate with HSM
+        Args:
+            dllpath: Path to the PKCS#11 library.
         """
-        self.pkcs11 = PyKCS11.PyKCS11Lib()
+        self.pkcs11: PyKCS11.PyKCS11Lib = PyKCS11.PyKCS11Lib()
         self.pkcs11.load(dllpath)
-        self.session: PyKCS11.Session|None = None
+        self.session: PyKCS11.Session | None = None
 
-    def getSlot(self, label):
-        """
-        Find the slot
+    def getSlot(self, label: str) -> int | None:
+        """Return the HSM slot index matching the given label.
 
-        :param label: searched slot name
-        :return: slot
+        Args:
+            label: Token label to look up.
+
+        Returns:
+            The matching slot number or ``None`` if not found.
         """
         slots = self.pkcs11.getSlotList(tokenPresent=True)
         for slot in slots:
@@ -73,13 +75,13 @@ class HSM(BaseHSM):
                 continue
         return None
 
-    def create(self, label, pin, sopin):
-        """
-        Initialize a slot
+    def create(self, label: str, pin: str, sopin: str) -> None:
+        """Create a new token and initialize its user PIN.
 
-        :param label: searched slot name
-        :param pin: pin for slot
-        :param sopin: administrative pin
+        Args:
+            label: Token label.
+            pin: User PIN to set.
+            sopin: Security officer PIN.
         """
         slot = self.getSlot(label)
         if slot is not None:
@@ -94,12 +96,12 @@ class HSM(BaseHSM):
         session.logout()
         session.closeSession()
 
-    def login(self, label, pin):
-        """
-        Start session
+    def login(self, label: str, pin: str) -> None:
+        """Open a session for the token identified by label.
 
-        :param label: slot name
-        :param pin: pin for slot
+        Args:
+            label: Token label.
+            pin: User PIN.
         """
         slot = self.getSlot(label)
         if slot is None:
@@ -109,29 +111,28 @@ class HSM(BaseHSM):
         )
         self.session.login(pin)
 
-    def logout(self):
-        """
-        End session
-        """
+    def logout(self) -> None:
+        """Close the active PKCS#11 session if it exists."""
         if self.session is not None:
             self.session.logout()
             self.session.closeSession()
             self.session = None
 
-    def gen_privkey(self, label, key_id, key_length=2048):
-        """
-        Create private key
+    def gen_privkey(self, label: str, key_id: bytes, key_length: int = 2048) -> None:
+        """Generate a private/public key pair inside the HSM token.
 
-        :param label: key label
-        :param key_id: key ID
-        :param key_length: key length in bits
+        Args:
+            label: Key label.
+            key_id: Identifier used to match the key pair.
+            key_length: Key size in bits.
         """
         # label - just a label for identifying objects
         # key_id has to be the same for both objects, it will also be necessary
         #     when importing the certificate, to ensure it is linked with these keys.
         # key_length - key-length in bits
 
-        assert self.session, "Session is not initialized. Call login() first."
+        if self.session is None:
+            raise HSMError("Session is not initialized. Call login() first.")
 
         public_template = [
             (PyKCS11.CKA_CLASS, PyKCS11.CKO_PUBLIC_KEY),
@@ -144,7 +145,7 @@ class HSM(BaseHSM):
             (PyKCS11.CKA_VERIFY_RECOVER, PyKCS11.CK_TRUE),
             (PyKCS11.CKA_WRAP, PyKCS11.CK_TRUE),
             (PyKCS11.CKA_LABEL, label),
-            (PyKCS11.CKA_ID, key_id)
+            (PyKCS11.CKA_ID, key_id),
             #            (PyKCS11.CKA_KEY_TYPE, PyKCS11.CKK_RSA),
             #            (PyKCS11.CKA_SENSITIVE, PyKCS11.CK_FALSE),
         ]
@@ -158,22 +159,23 @@ class HSM(BaseHSM):
             (PyKCS11.CKA_SIGN_RECOVER, PyKCS11.CK_TRUE),
             (PyKCS11.CKA_UNWRAP, PyKCS11.CK_TRUE),
             (PyKCS11.CKA_LABEL, label),
-            (PyKCS11.CKA_ID, key_id)
+            (PyKCS11.CKA_ID, key_id),
             #            (PyKCS11.CKA_SENSITIVE, PyKCS11.CK_TRUE),
         ]
 
         self.session.generateKeyPair(public_template, private_template)
 
     def cert_save(self, cert, label, subject, key_id):
-        """
-        Save certificate
+        """Store a certificate object inside the HSM token.
 
-        :param cert: certificate
-        :param label: certificate label
-        :param subject: certificate subject
-        :param key_id: key ID
+        Args:
+            cert: DER-encoded certificate payload.
+            label: Certificate label.
+            subject: Certificate subject string.
+            key_id: Key identifier associated with the certificate.
         """
-        assert self.session, "Session is not initialized. Call login() first."
+        if self.session is None:
+            raise HSMError("Session is not initialized. Call login() first.")
 
         cert_template = [
             (PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE),
@@ -202,12 +204,16 @@ class HSM(BaseHSM):
         self.session.createObject(cert_template)
 
     def cert_load(self, keyID):
-        """
-        Load certificate
+        """Load certificate bytes for the supplied key identifier.
 
-        :param keyID: key ID
+        Args:
+            keyID: Key identifier to search for.
+
+        Returns:
+            Certificate bytes or ``None`` when no matching certificate exists.
         """
-        assert self.session, "Session is not initialized. Call login() first."
+        if self.session is None:
+            raise HSMError("Session is not initialized. Call login() first.")
 
         rec = self.session.findObjects(
             [(PyKCS11.CKA_CLASS, PyKCS11.CKO_CERTIFICATE), (PyKCS11.CKA_ID, keyID)]
@@ -220,19 +226,19 @@ class HSM(BaseHSM):
 
 class SSHAgentHSM(BaseHSM):
     def __init__(self, cert):
-        assert isinstance(cert, cryptography.x509.Certificate)
-        self._a = paramiko.agent.Agent()
+        if not isinstance(cert, x509.Certificate):
+            raise HSMError("cert must be an x509.Certificate instance")
+        self._a = agent.Agent()
         self._cert = cert
 
     def close(self):
         self._a.close()
 
     def certificate(self):
-        """
-        callback for HSM
-        used to identfy the ssh agents key exports via fingerprint
+        """Return the SSH agent key fingerprint and PEM certificate for the active key.
 
-        :return: public-key-fingerprint, certificate-in-pem
+        Returns:
+            A tuple of ``(fingerprint, certificate_pem)``.
         """
 
         # https://superuser.com/questions/421997/what-is-a-ssh-key-fingerprint-and-how-is-it-generated
@@ -240,8 +246,8 @@ class SSHAgentHSM(BaseHSM):
         alg, key = (
             self._cert.public_key()
             .public_bytes(
-                encoding=cryptography.hazmat.primitives.serialization.Encoding.OpenSSH,
-                format=cryptography.hazmat.primitives.serialization.PublicFormat.OpenSSH,
+                encoding=serialization.Encoding.OpenSSH,
+                format=serialization.PublicFormat.OpenSSH,
             )
             .split(b" ")
         )
@@ -249,19 +255,22 @@ class SSHAgentHSM(BaseHSM):
         fp = b"SHA256:" + base64.b64encode(
             hashlib.sha256(base64.b64decode(key)).digest()
         )
-        cert = self._cert.public_bytes(
-            cryptography.hazmat.primitives.serialization.Encoding.PEM
-        )
+        cert = self._cert.public_bytes(serialization.Encoding.PEM)
 
         return fp, cert
 
     @staticmethod
     def _decode_fp(keyfp):
-        """
-        decode a fingerprint
+        """Decode an OpenSSH fingerprint string into its algorithm and raw bytes.
 
-        :param keyfp: key fingerprint in OpenSSH Format
-        :return: alg, fingerprint-binary
+        Args:
+            keyfp: Fingerprint in OpenSSH format, for example ``SHA256:...``.
+
+        Returns:
+            A tuple of ``(algorithm_name, fingerprint_bytes)``.
+
+        Raises:
+            HSMError: If the fingerprint algorithm is unsupported.
         """
         if not isinstance(keyfp, str):
             keyfp = keyfp.decode()
@@ -274,15 +283,20 @@ class SSHAgentHSM(BaseHSM):
             data = other.replace(":", " ")
             fp = bytes.fromhex(data)
         else:
-            raise ValueError(alg)
+            raise HSMError(f"Unsupported fingerprint algorithm: {alg}")
         return alg.lower(), fp
 
     def key(self, fp):
-        """
-        lookup a ssh-agent-exported key using fingerprint
+        """Look up a key exported by the SSH agent using a fingerprint.
 
-        :param fp: the fingerprint
-        :return: the key on success
+        Args:
+            fp: Fingerprint identifying the key.
+
+        Returns:
+            The matching SSH agent key.
+
+        Raises:
+            HSMError: If no matching key is found.
         """
 
         alg, fp = self._decode_fp(fp)
@@ -291,20 +305,28 @@ class SSHAgentHSM(BaseHSM):
             if kfp == fp:
                 break
         else:
-            raise ValueError("Key not found")
+            raise HSMError("Key not found")
         return key
 
     def sign(self, keyid, data, hashalgo):
-        """
-        sign using ssh-agent sign_data
-        creates RSA signature with padding=PKCS1v15 alg=SHA1
+        """Create an SSH-agent signature for the supplied payload.
 
-        :param keyid: the keyid as returned by certificate()
-        :param data:
-        :param hashalgo: has to be sha1, sha256 or sha512
-        :return: PKCS7 signature blob
+        Args:
+            keyid: Key identifier returned by :meth:`certificate`.
+            data: Data to sign.
+            hashalgo: Hash algorithm name, one of ``sha1``, ``sha256``, or ``sha512``.
+
+        Returns:
+            Raw PKCS#7-style signature bytes.
+
+        Raises:
+            HSMError: If the hash algorithm is unsupported or the key cannot be used.
         """
-        assert hashalgo in ("sha1", "sha256", "sha512")
+        if hashalgo not in ("sha1", "sha256", "sha512"):
+            raise HSMError(
+                f"Unsupported hash algorithm for SSH signing: {hashalgo}. "
+                "Expected sha1, sha256 or sha512"
+            )
 
         if not isinstance(data, bytes):
             data = data.encode()
@@ -323,15 +345,15 @@ class SSHAgentHSM(BaseHSM):
         # AgentKey.sign_ssh_data is padding=PKCS1v15 alg=SHA1
         # paramiko does not expose the ssh-agent sign flags to use sha2-256/512
         # re-implement sign_ssh_agent ..
-        msg = paramiko.message.Message()
-        msg.add_byte(paramiko.agent.cSSH2_AGENTC_SIGN_REQUEST)
+        msg = message.Message()
+        msg.add_byte(agent.cSSH2_AGENTC_SIGN_REQUEST)
         msg.add_string(key.blob)
         msg.add_string(data)
         msg.add_int(flags)
         ptype, result = self._a._send_message(msg)
-        if ptype != paramiko.agent.SSH2_AGENT_SIGN_RESPONSE:
-            raise paramiko.SSHException("key cannot be used for signing")
-        d = paramiko.message.Message(result.get_binary())
+        if ptype != agent.SSH2_AGENT_SIGN_RESPONSE:
+            raise SSHException("key cannot be used for signing")
+        d = message.Message(result.get_binary())
 
         # parse operation result
         alg = d.get_text()
@@ -340,5 +362,5 @@ class SSHAgentHSM(BaseHSM):
         if alg in ("ssh-rsa", "rsa-sha2-256", "rsa-sha2-512"):
             sig = d.get_binary()
         else:
-            raise ValueError(alg)
+            raise HSMError(f"Unsupported SSH signing algorithm: {alg}")
         return sig

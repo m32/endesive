@@ -7,18 +7,10 @@
     :copyright: Copyright 2019 Autodesk, Inc.
     :license: MIT, see LICENSE for details.
 """
-from .base import Annotation
-from .base import make_border_dict
+from ..config.appearance import set_appearance_state, stroke_or_fill
+from ..graphics import Close, ContentStream, Line as CSLine, Move, Restore, Save, Stroke
 from ..pdfrw import PdfArray
-from ..config.appearance import set_appearance_state
-from ..config.appearance import stroke_or_fill
-from ..graphics import Close
-from ..graphics import ContentStream
-from ..graphics import Line as CSLine
-from ..graphics import Move
-from ..graphics import Restore
-from ..graphics import Save
-from ..graphics import Stroke
+from .base import Annotation, make_border_dict
 
 
 def flatten_points(points):

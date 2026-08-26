@@ -10,7 +10,6 @@ from fontTools.ttLib import TTFont
 
 from .font_metrics import FontMetrics
 
-
 _FONT_CACHE = {}
 
 

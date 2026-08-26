@@ -1,8 +1,9 @@
-#!/usr/bin/env vpython3
+import sys
+
 import wx
 import wx.lib.sized_controls as sc
-import sys
-from wx.lib.pdfviewer import pdfViewer, pdfButtonPanel
+from wx.lib.pdfviewer import pdfButtonPanel, pdfViewer
+
 
 class PDFViewer(sc.SizedFrame):
     def __init__(self, parent, **kwds):

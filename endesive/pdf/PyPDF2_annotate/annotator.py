@@ -11,26 +11,21 @@ import warnings
 
 #from pdfrw import PdfReader
 #from pdfrw import PdfWriter
-
 from .annotations.image import Image
-from .annotations.points import Ink
-from .annotations.points import Line
-from .annotations.points import Polygon
-from .annotations.points import Polyline
-from .annotations.rect import Circle
-from .annotations.rect import Square
+from .annotations.points import Ink, Line, Polygon, Polyline
+from .annotations.rect import Circle, Square
 from .annotations.text import FreeText
-from .config.metadata import Metadata
-from .config.metadata import UNSET
+from .config.metadata import UNSET, Metadata
 from .graphics import ContentStream
-from .util.geometry import identity
-from .util.geometry import matrix_multiply
-from .util.geometry import normalize_rotation
-from .util.geometry import rotate
-from .util.geometry import scale
-from .util.geometry import translate
+from .util.geometry import (
+    identity,
+    matrix_multiply,
+    normalize_rotation,
+    rotate,
+    scale,
+    translate,
+)
 from .util.validation import NUMERIC_TYPES
-
 
 NAME_TO_ANNOTATION = {
     'square': Square,

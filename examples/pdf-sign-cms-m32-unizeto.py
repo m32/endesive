@@ -1,10 +1,10 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import datetime
+import sys
+
 from cryptography import x509
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
+
 from endesive import pdf
 
 # import logging

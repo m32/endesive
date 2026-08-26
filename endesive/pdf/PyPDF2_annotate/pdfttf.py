@@ -2,8 +2,8 @@ import os
 import re
 import zlib
 
+from .pdfrw import IndirectPdfDict, PdfArray, PdfName, PdfString
 from .ttfonts import TTFontFile
-from .pdfrw import PdfDict, PdfName, PdfString, PdfArray, IndirectPdfDict
 
 
 class TTFFont:

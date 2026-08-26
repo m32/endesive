@@ -1,5 +1,3 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 from asn1crypto import (
     algos,
     cms,
@@ -16,7 +14,8 @@ from asn1crypto import (
     version,
     x509,
 )
-from endesive.pdf.PyPDF2 import pdf, generic as po
+from endesive.pdf.PyPDF2 import generic as po, pdf
+
 from endesive.signer import cert2asn
 
 

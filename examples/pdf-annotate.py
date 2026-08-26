@@ -1,5 +1,4 @@
-#!/usr/bin/env vpython3
-from pdf_annotate import PdfAnnotator, Location, Appearance
+from pdf_annotate import Appearance, Location, PdfAnnotator
 
 annotationtext = "some text"
 

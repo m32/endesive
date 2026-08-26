@@ -1,10 +1,10 @@
-#!/usr/bin/env vpython3
-# coding: utf-8
+import datetime
 import inspect
 import unittest
 from types import SimpleNamespace
 from unittest import mock
 
+import requests
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -14,7 +14,6 @@ from cryptography.x509.oid import (
     NameOID,
     ObjectIdentifier,
 )
-import datetime
 
 from endesive import email, plain, signer
 from endesive.pdf import cms as pdf_cms
@@ -62,8 +61,6 @@ class SecuritySignerTests(unittest.TestCase):
 
     def test_fetch_ocsp_response_sets_timeout_and_handles_request_error(self):
         issuer_cert, leaf_cert = self._build_chain()
-
-        import requests
 
         with mock.patch(
             "endesive.signer.requests.post",

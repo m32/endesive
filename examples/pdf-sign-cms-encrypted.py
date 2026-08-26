@@ -1,12 +1,9 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import datetime
+
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from endesive.pdf import cms
-
-# from endesive.pdf import cmsn as cms
 
 # import logging
 # logging.basicConfig(level=logging.DEBUG)

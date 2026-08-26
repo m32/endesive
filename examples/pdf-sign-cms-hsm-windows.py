@@ -1,5 +1,6 @@
-import sys
 import datetime
+import sys
+
 from win32 import win32crypt
 from win32.lib import win32cryptcon
 

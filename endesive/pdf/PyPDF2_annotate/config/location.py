@@ -9,10 +9,7 @@
 """
 import attr
 
-from ..util.validation import Integer
-from ..util.validation import Number
-from ..util.validation import Points
-from ..util.validation import positive
+from ..util.validation import Integer, Number, Points, positive
 
 
 @attr.s

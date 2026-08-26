@@ -1,11 +1,11 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
+import hashlib
+
+from asn1crypto import algos, cms, core, pem, x509
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
+
 from endesive import email
 
-import hashlib
-from asn1crypto import cms, algos, core, pem, x509
 
 def main():
     with open('ca/demo2_user1.p12', 'rb') as fp:

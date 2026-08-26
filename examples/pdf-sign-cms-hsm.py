@@ -1,14 +1,13 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import datetime
+import sys
+
+import PyKCS11 as PK11
 from cryptography import x509
 from cryptography.hazmat import backends
-import PyKCS11 as PK11
 
-
-from endesive import pdf, hsm, signer
+from endesive import hsm, pdf, signer
 from hsm_config_softhsm import DLLPATH
+
 
 class Signer(hsm.HSM):
     def certificate(self):

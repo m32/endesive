@@ -1,4 +1,5 @@
 from io import BytesIO
+
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 

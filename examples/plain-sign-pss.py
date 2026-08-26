@@ -1,7 +1,6 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
+
 from endesive import plain
 
 

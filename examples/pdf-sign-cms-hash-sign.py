@@ -1,13 +1,12 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import base64
 import json
+import sys
+
 import PyKCS11 as PK11
 from asn1crypto import pem as asn1pem
+
 from endesive import hsm
 from hsm_config_softhsm import DLLPATH
-
 
 
 class Signer(hsm.HSM):

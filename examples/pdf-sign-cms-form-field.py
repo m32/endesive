@@ -1,13 +1,10 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import datetime
+import sys
+
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from endesive.pdf import cms
-
-# from endesive.pdf import cmsn as cms
 
 # import logging
 # logging.basicConfig(level=logging.DEBUG)
@@ -21,44 +18,48 @@ def main():
         "sigflags": 3,
         "sigflagsft": 132,
         "sigpage": 0,
-        #"auto_sigfield": False,
-        #"sigandcertify": False,
-        #"signaturebox": (0, 0, 590, 155),
+        # "auto_sigfield": False,
+        # "sigandcertify": False,
+        # "signaturebox": (0, 0, 590, 155),
         "signform": True,
         "sigfield": "Signature",
         "signature_manual": [
             #                R     G     B
-            ['fill_colour', 0.95, 0.95, 0.95],
-
+            ["fill_colour", 0.95, 0.95, 0.95],
             #            *[bounding box]
-            ['rect_fill', 0, 0, 270, 18],
-
+            ["rect_fill", 0, 0, 270, 18],
             #                  R    G    B
-            ['stroke_colour', 0.8, 0.8, 0.8],
-
+            ["stroke_colour", 0.8, 0.8, 0.8],
             #          key  *[bounding box]
-            ['image', 'sig0', 0, 0, 59, 15],
-
+            ["image", "sig0", 0, 0, 59, 15],
             #        inset
-            ['border', 2],
-
-            #         font     fs 
-            ['font', 'default', 7],
+            ["border", 2],
+            #         font     fs
+            ["font", "default", 7],
             #               R  G  B
-            ['fill_colour', 0, 0, 0],
-
+            ["fill_colour", 0, 0, 0],
             #            text
-            ['text_box', 'signed using endesive\ndate: {}'.format(date),
+            [
+                "text_box",
+                "signed using endesive\ndate: {}".format(date),
                 # font  *[bounding box], fs, wrap, align, baseline
-                'default', 0, 2, 270, 18, 7, True, 'right', 'top'],
+                "default",
+                0,
+                2,
+                270,
+                18,
+                7,
+                True,
+                "right",
+                "top",
             ],
+        ],
         #   key: name used in image directives
         # value: PIL Image object or path to image file
-        "manual_images": {'sig0': 'signature_test.png'},
+        "manual_images": {"sig0": "signature_test.png"},
         #   key: name used in font directives
         # value: path to TTF Font file
         "manual_fonts": {},
-
         "contact": "mak@trisoft.com.pl",
         "location": "Szczecin",
         "signingdate": date,

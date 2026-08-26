@@ -1,30 +1,24 @@
-#!/usr/bin/env vpython3
-# coding: utf-8
-import unittest
-import os
-import sys
-import io
 import base64
-from subprocess import PIPE, Popen
-from datetime import datetime
-from email import message_from_string
-
-from cryptography import x509
-from cryptography.hazmat import backends
-from cryptography.hazmat.primitives.serialization import pkcs12, load_pem_private_key
-from endesive import email
-
 import hashlib
-from asn1crypto import cms, algos, core, pem
+import io
+import unittest
+from email import message_from_string
+from subprocess import PIPE, Popen
 
+from asn1crypto import cms
 from test_cert import (
-    fixture, CA, HSM,
+    CA,
     ca_root_cert,
     ca_sub_cert,
-    cert1_key, cert1_cert, cert1_p12,
-    cert2_key, cert2_cert, cert2_p12,
-    cert3_key, cert3_cert, cert3_p12,
+    cert1_cert,
+    cert1_key,
+    cert1_p12,
+    cert2_key,
+    fixture,
 )
+
+from endesive import email
+
 
 class EMAILTests(unittest.TestCase):
     def _encrypt_for_cert(self, cert_path=cert1_cert, algo='aes256_ofb', oaep=False):

@@ -1,12 +1,11 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import hashlib
-from pypdf import PdfReader
+
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
+from pypdf import PdfReader
 
 
 def main():

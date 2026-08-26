@@ -9,36 +9,42 @@
 """
 import attr
 
-from .constants import ALLOWED_ALIGNS
-from .constants import ALLOWED_BASELINES
-from .constants import ALLOWED_LINE_CAPS
-from .constants import ALLOWED_LINE_JOINS
-from .constants import BLACK
-from .constants import DEFAULT_BORDER_STYLE
-from .constants import DEFAULT_CONTENT
-from .constants import DEFAULT_FONT_SIZE
-from .constants import DEFAULT_LINE_SPACING
-from .constants import DEFAULT_STROKE_WIDTH
-from .constants import GRAPHICS_STATE_NAME
-from .constants import TEXT_ALIGN_LEFT
-from .constants import TEXT_BASELINE_MIDDLE
+from ..graphics import (
+    ContentStream,
+    FillColor,
+    GraphicsState as CSGraphicsState,
+    Stroke,
+    StrokeAndFill,
+    StrokeColor,
+    StrokeWidth,
+)
+from ..util.validation import (
+    Boolean,
+    Color,
+    Enum,
+    Field,
+    Number,
+    String,
+    between,
+    positive,
+    validate_dash_array,
+)
+from .constants import (
+    ALLOWED_ALIGNS,
+    ALLOWED_BASELINES,
+    ALLOWED_LINE_CAPS,
+    ALLOWED_LINE_JOINS,
+    BLACK,
+    DEFAULT_BORDER_STYLE,
+    DEFAULT_CONTENT,
+    DEFAULT_FONT_SIZE,
+    DEFAULT_LINE_SPACING,
+    DEFAULT_STROKE_WIDTH,
+    GRAPHICS_STATE_NAME,
+    TEXT_ALIGN_LEFT,
+    TEXT_BASELINE_MIDDLE,
+)
 from .graphics_state import GraphicsState
-from ..graphics import ContentStream
-from ..graphics import FillColor
-from ..graphics import GraphicsState as CSGraphicsState
-from ..graphics import Stroke
-from ..graphics import StrokeAndFill
-from ..graphics import StrokeColor
-from ..graphics import StrokeWidth
-from ..util.validation import between
-from ..util.validation import Boolean
-from ..util.validation import Color
-from ..util.validation import Enum
-from ..util.validation import Field
-from ..util.validation import Number
-from ..util.validation import positive
-from ..util.validation import String
-from ..util.validation import validate_dash_array
 
 
 def is_transparent(color):

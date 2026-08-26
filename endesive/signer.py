@@ -1,67 +1,122 @@
-# *-* coding: utf-8 *-*
-from __future__ import unicode_literals
+from __future__ import annotations
 
-import sys
-import types
 import hashlib
 import secrets
-import requests
+import types
 from base64 import b64encode
 from datetime import datetime
-from asn1crypto import cms, algos, core, keys, pem, tsp, x509, ocsp, util
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, utils, ec
-from cryptography.hazmat import backends
+from typing import Any, Callable
+
+import requests
+from asn1crypto import algos, cms, keys, ocsp, pem, tsp, util, x509
 from cryptography import x509 as cryptography_x509
+from cryptography.hazmat import backends
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, padding, utils
 from cryptography.x509 import ocsp as cryptography_ocsp
 
+from endesive.exceptions import HashAlgorithmError, SignerError, TimestampError
 
 DEFAULT_HTTP_TIMEOUT = 10
 
 
-def cert2asn(cert, cert_bytes=True):
+def cert2asn(
+    cert: x509.Certificate | cryptography_x509.Certificate | bytes,
+    cert_bytes: bool = True,
+) -> x509.Certificate:
+    """Convert a certificate object to the asn1crypto representation.
+
+    Args:
+        cert: Certificate value as asn1crypto, cryptography, or raw bytes.
+        cert_bytes: Whether the input is a PEM/DER-encoded certificate blob.
+
+    Returns:
+        The certificate as an asn1crypto ``x509.Certificate`` instance.
+    """
     if isinstance(cert, x509.Certificate):
         return cert
     if cert_bytes:
-        cert_bytes = cert.public_bytes(serialization.Encoding.PEM)
+        cert_bytes_data: bytes = cert.public_bytes(serialization.Encoding.PEM)  # type: ignore
     else:
-        cert_bytes = cert
-    if pem.detect(cert_bytes):
-        _, _, cert_bytes = pem.unarmor(cert_bytes)
-    return x509.Certificate.load(cert_bytes)
+        cert_bytes_data = cert  # type: ignore
+    if pem.detect(cert_bytes_data):
+        _, _, cert_bytes_data = pem.unarmor(cert_bytes_data)
+    return x509.Certificate.load(cert_bytes_data)
 
-def extract_ocsp_url_from_cert(cert):
-    if hasattr(cert, 'public_bytes'):
-        crypto_cert = cert
+
+def extract_ocsp_url_from_cert(
+    cert: cryptography_x509.Certificate | x509.Certificate | bytes,
+) -> str | None:
+    """Extract the OCSP responder URL from a certificate.
+
+    Args:
+        cert: Certificate object or raw certificate bytes.
+
+    Returns:
+        The OCSP URL if present; otherwise ``None``.
+    """
+    if hasattr(cert, "public_bytes"):
+        crypto_cert = cert  # type: ignore
     else:
-        if hasattr(cert, 'dump'):
-            cert_bytes = cert.dump()
+        if hasattr(cert, "dump"):
+            cert_bytes_data: bytes = cert.dump()  # type: ignore
         else:
-            cert_bytes = cert
+            cert_bytes_data = cert  # type: ignore
         crypto_cert = cryptography_x509.load_der_x509_certificate(
-            cert_bytes, backends.default_backend())
+            cert_bytes_data, backends.default_backend()
+        )
     try:
         aia = crypto_cert.extensions.get_extension_for_oid(
-            cryptography_x509.oid.ExtensionOID.AUTHORITY_INFORMATION_ACCESS)
+            cryptography_x509.oid.ExtensionOID.AUTHORITY_INFORMATION_ACCESS
+        )
         for access_description in aia.value:
-            if access_description.access_method == cryptography_x509.oid.AuthorityInformationAccessOID.OCSP:
-                return access_description.access_location.value
+            if (
+                access_description.access_method
+                == cryptography_x509.oid.AuthorityInformationAccessOID.OCSP
+            ):
+                return access_description.access_location.value  # type: ignore
     except cryptography_x509.ExtensionNotFound:
         return None
     return None
 
 
-def fetch_ocsp_response(cert, issuer, url):
-    if hasattr(cert, 'dump'):
-        cert_bytes = cert.dump()
-        cert = cryptography_x509.load_der_x509_certificate(
-            cert_bytes, backends.default_backend())
-    if hasattr(issuer, 'dump'):
-        issuer_bytes = issuer.dump()
-        issuer = cryptography_x509.load_der_x509_certificate(
-            issuer_bytes, backends.default_backend())
+def fetch_ocsp_response(
+    cert: x509.Certificate | cryptography_x509.Certificate,
+    issuer: x509.Certificate | cryptography_x509.Certificate,
+    url: str,
+) -> bytes | None:
+    """Fetch an OCSP response for the supplied certificate pair.
+
+    Args:
+        cert: The certificate to validate.
+        issuer: Issuer certificate.
+        url: OCSP responder URL.
+
+    Returns:
+        Raw OCSP response bytes or ``None`` if the request fails.
+    """
+    if hasattr(cert, "dump"):
+        cert_bytes_data: bytes = cert.dump()  # type: ignore
+        cert_crypto: cryptography_x509.Certificate = (
+            cryptography_x509.load_der_x509_certificate(
+                cert_bytes_data, backends.default_backend()
+            )
+        )
+    else:
+        cert_crypto = cert  # type: ignore
+
+    if hasattr(issuer, "dump"):
+        issuer_bytes_data: bytes = issuer.dump()  # type: ignore
+        issuer_crypto: cryptography_x509.Certificate = (
+            cryptography_x509.load_der_x509_certificate(
+                issuer_bytes_data, backends.default_backend()
+            )
+        )
+    else:
+        issuer_crypto = issuer  # type: ignore
+
     builder = cryptography_ocsp.OCSPRequestBuilder()
-    builder = builder.add_certificate(cert, issuer, hashes.SHA1())
+    builder = builder.add_certificate(cert_crypto, issuer_crypto, hashes.SHA1())
     req = builder.build()
     data = req.public_bytes(serialization.Encoding.DER)
     try:
@@ -78,7 +133,30 @@ def fetch_ocsp_response(cert, issuer, url):
         return None
 
 
-def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None):
+def timestamp(
+    unhashed: bytes,
+    hashalgo: str,
+    url: str,
+    credentials: dict[str, str] | None,
+    req_options: dict[str, Any] | None,
+    prehashed: bytes | None = None,
+) -> list[cms.CMSAttribute]:
+    """Request a timestamp token from a TSA server.
+
+    Args:
+        unhashed: Data to timestamp.
+        hashalgo: Hash algorithm name.
+        url: Timestamp authority URL.
+        credentials: Optional credentials for the timestamp request.
+        req_options: Optional request options passed to the HTTP client.
+        prehashed: Precomputed hash value to use instead of hashing ``unhashed``.
+
+    Returns:
+        A list of CMS attributes containing the timestamp response.
+
+    Raises:
+        TimestampError: If the TSA response is invalid or not granted.
+    """
     if prehashed:
         hashed_value = prehashed
     else:
@@ -122,7 +200,9 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
                                 cms.ContentInfo(
                                     {
                                         "content_type": cms.ContentType("signed_data"),
-                                        "content": tspresp["time_stamp_token"]["content"],
+                                        "content": tspresp["time_stamp_token"][
+                                            "content"
+                                        ],
                                     }
                                 )
                             ]
@@ -131,56 +211,129 @@ def timestamp(unhashed, hashalgo, url, credentials, req_options, prehashed=None)
                 )
             ]
         else:
-            raise ValueError("TimeStampResponse status is not granted")
+            raise TimestampError("TimeStampResponse status is not granted")
     else:
-        raise ValueError("TimeStampResponse has invalid content type")
+        raise TimestampError("TimeStampResponse has invalid content type")
 
 
 class Signer:
-    def __init__(self,
-        datau,
-        cert,
-        othercerts,
-        hashalgo,
-        attrs=True, #True|False|function
-        signed_value=None,
-        pss=False,
-    ):
-        assert attrs is True or attrs is False or isinstance(attrs, types.FunctionType)
+    """CMS Signer - base class for signing operations.
 
-        self.datau = datau
-        self.cert = cert
-        self.othercerts = othercerts
-        self.hashalgo = hashalgo.lower()
-        self.attrs = attrs
-        self.pss = pss
-        self.salt_length = None if not pss else self.get_pss_salt_length()
+    Attributes:
+        datau: Data to sign (bytes)
+        cert: Signing certificate (asn1crypto x509.Certificate)
+        othercerts: Additional certificates (list of x509.Certificate)
+        hashalgo: Hash algorithm name (str)
+        attrs: Include attributes - bool or callable (default True)
+        pss: Use PSS padding (bool)
+        signed_value: Pre-computed signature value (bytes)
+        certificates: List of certificates in ASN.1 format
+        salt_length: Salt length for PSS (int or None)
+        signed_time: Signature timestamp (datetime)
+    """
+
+    def __init__(
+        self,
+        datau: bytes,
+        cert: x509.Certificate,
+        othercerts: list[x509.Certificate | cryptography_x509.Certificate],
+        hashalgo: str,
+        attrs: bool | Callable[..., Any] = True,
+        signed_value: bytes | None = None,
+        pss: bool = False,
+    ) -> None:
+        """Initialize Signer.
+
+        Args:
+            datau: Data to sign
+            cert: Signing certificate (asn1crypto)
+            othercerts: Additional certificates
+            hashalgo: Hash algorithm name (e.g., 'sha256')
+            attrs: Include attributes - True, False, or callable
+            signed_value: Pre-computed signature value
+            pss: Use PSS padding
+
+        Raises:
+            ValueError: If attrs is not bool or callable
+        """
+        if attrs is not True and attrs is not False and not callable(attrs):
+            raise SignerError("attrs must be bool or callable")
+
+        self.datau: bytes = datau
+        self.cert: x509.Certificate = cert
+        self.othercerts: list[x509.Certificate | cryptography_x509.Certificate] = (
+            othercerts
+        )
+        self.hashalgo: str = hashalgo.lower()
+        self.attrs: bool | Callable[..., Any] = attrs
+        self.pss: bool = pss
+        try:
+            hashlib.new(self.hashalgo)
+        except ValueError as exc:
+            raise HashAlgorithmError(f"Unsupported hash algorithm: {hashalgo}") from exc
+        self.salt_length: int | None = None if not pss else self.get_pss_salt_length()
 
         if signed_value is None:
-            signed_value = getattr(hashlib, hashalgo)(datau).digest()
+            signed_value = getattr(hashlib, self.hashalgo)(datau).digest()
 
-        certificates = []
+        certificates: list[x509.Certificate] = []
         certificates.append(cert)
         for certo in othercerts:
             certificates.append(cert2asn(certo))
 
-        self.signed_value = signed_value
-        self.certificates = certificates
-        self.signed_time = datetime.now(tz=util.timezone.utc)
+        self.signed_value: bytes = signed_value
+        self.certificates: list[x509.Certificate] = certificates
+        self.signed_time: datetime = datetime.now(tz=util.timezone.utc)
 
-    def sign(self, tosign):
+    def sign(self, tosign: bytes) -> bytes | None:
+        """Sign data. Override in subclasses.
+
+        Args:
+            tosign: Data to sign
+
+        Returns:
+            Signature bytes or None
+        """
         return None
 
     def get_pss_salt_length(self) -> int:
+        """Get PSS salt length. Override in subclasses.
+
+        Returns:
+            Salt length in bytes
+        """
         return 0
 
-    def get_ocsp_response(self, cert):
+    def get_ocsp_response(self, cert: x509.Certificate) -> bytes | None:
+        """Get OCSP response. Override in subclasses.
+
+        Args:
+            cert: Certificate to check
+
+        Returns:
+            OCSP response bytes or None
+        """
         return None
 
-    def get_tsp_response(self, signed_value_signature):
+    def get_tsp_response(
+        self, signed_value_signature: bytes
+    ) -> list[cms.CMSAttribute] | None:
+        """Get TSP response. Override in subclasses.
+
+        Args:
+            signed_value_signature: Signed data bytes
+
+        Returns:
+            List of CMS attributes or None
+        """
         return None
 
-    def build(self):
+    def build(self) -> dict[str, Any]:
+        """Build CMS signer structure.
+
+        Returns:
+            Dictionary with signer information
+        """
         signer = {
             "version": "v1",
             "sid": cms.SignerIdentifier(
@@ -210,7 +363,9 @@ class Signer:
                                 {
                                     "algorithm": algos.MaskGenAlgorithmId("mgf1"),
                                     "parameters": {
-                                        "algorithm": algos.DigestAlgorithmId(self.hashalgo.lower()),
+                                        "algorithm": algos.DigestAlgorithmId(
+                                            self.hashalgo.lower()
+                                        ),
                                     },
                                 }
                             ),
@@ -317,7 +472,7 @@ class Signer:
                 signing_certificate2,
             ]
         elif isinstance(self.attrs, types.FunctionType):
-          signer["signed_attrs"] = self.attrs(self.signed_value)
+            signer["signed_attrs"] = self.attrs(self.signed_value)
 
         config = {
             "version": "v1",
@@ -373,8 +528,22 @@ class Signer:
 
 
 class Signer1(Signer):  # noqa: E302
-    def __init__(self, datau, key, cert, othercerts, hashalgo, attrs, signed_value, hsm,
-        pss, timestampurl, timestampcredentials, timestamp_req_options, ocspurl, ocspissuer,
+    def __init__(
+        self,
+        datau,
+        key,
+        cert,
+        othercerts,
+        hashalgo,
+        attrs,
+        signed_value,
+        hsm,
+        pss,
+        timestampurl,
+        timestampcredentials,
+        timestamp_req_options,
+        ocspurl,
+        ocspissuer,
     ):
         if hsm is not None:
             keyid, cert = hsm.certificate()
@@ -444,6 +613,7 @@ class Signer1(Signer):  # noqa: E302
             )
         return signed_value_signature
 
+
 def sign(
     datau,
     key,
@@ -460,8 +630,20 @@ def sign(
     ocspurl=None,
     ocspissuer=None,
 ):
-    cls = Signer1(datau, key, cert, othercerts, hashalgo, attrs, signed_value,
-        hsm, pss, timestampurl, timestampcredentials, timestamp_req_options,
-        ocspurl, ocspissuer
+    cls = Signer1(
+        datau,
+        key,
+        cert,
+        othercerts,
+        hashalgo,
+        attrs,
+        signed_value,
+        hsm,
+        pss,
+        timestampurl,
+        timestampcredentials,
+        timestamp_req_options,
+        ocspurl,
+        ocspissuer,
     )
     return cls.build()

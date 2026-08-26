@@ -1,26 +1,45 @@
-# *-* coding: utf-8 *-*
-import sys
+from __future__ import annotations
+
 from email import message_from_string
+from typing import TYPE_CHECKING
 
 from asn1crypto import cms
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.decrepit.ciphers import modes as dmodes
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as cmodes
+
+from endesive.exceptions import DecryptionError
+
+if TYPE_CHECKING:
+    from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
 
 class DecryptedData(object):
+    """S/MIME encrypted data decryption handler."""
+
     def decrypt(self, message: str, key: PrivateKeyTypes) -> bytes:
+        """Decrypt an S/MIME payload using the supplied private key.
+
+        Args:
+            message: Encrypted S/MIME message as a string.
+            key: Private key used for decryption.
+
+        Returns:
+            Decrypted plaintext as bytes.
+
+        Raises:
+            DecryptionError: If the payload is malformed or decryption fails.
+        """
         msg = message_from_string(message)
         if msg.get("Content-Transfer-Encoding") != "base64":
-            raise ValueError("Unknown Content-Transfer-Encoding")
+            raise DecryptionError("Unknown Content-Transfer-Encoding")
         if msg.get_content_type() not in (
             "application/x-pkcs7-mime",
             "application/pkcs7-mime",
         ):
-            raise ValueError("Unknown Content-Type", msg.get_content_type())
+            raise DecryptionError(f"Unknown Content-Type: {msg.get_content_type()}")
         data = None
         for part in msg.walk():
             # multipart/* are just containers
@@ -32,12 +51,15 @@ class DecryptedData(object):
             ):
                 continue
             if data is not None:
-                raise ValueError("Multiple encrypted parts found in the message")
+                raise DecryptionError("Multiple encrypted parts found in the message")
             data = part.get_payload(decode=True)
         if data is None:
-            raise ValueError("No encrypted part found in the message")
+            raise DecryptionError("No encrypted part found in the message")
 
-        signed_data = cms.ContentInfo.load(data)["content"]
+        try:
+            signed_data = cms.ContentInfo.load(data)["content"]
+        except (ValueError, TypeError) as exc:
+            raise DecryptionError("Invalid PKCS#7 encrypted payload") from exc
         # signed_data.debug()
 
         algo = signed_data["encrypted_content_info"]["content_encryption_algorithm"][
@@ -65,7 +87,7 @@ class DecryptedData(object):
         elif keyalgo["algorithm"] == "rsaes_pkcs1v15":
             udata = key.decrypt(pkey, padding.PKCS1v15())  # pyright: ignore[reportAttributeAccessIssue]
         else:
-            raise ValueError("Unknown key algorithm", keyalgo["algorithm"])
+            raise DecryptionError(f"Unknown key algorithm: {keyalgo['algorithm']}")
 
         algorithm, mode = algo.split("_", 1)
         algorithm = algorithm.upper()
@@ -79,7 +101,7 @@ class DecryptedData(object):
         ):
             cipher = Cipher(algorithms.AES(udata), proc(param), default_backend())
         elif algorithm == "TRIPLEDES":
-            raise ValueError("Unknown algorithm", algo)
+            raise DecryptionError(f"Unknown algorithm: {algo}")
             # XXX will be removed in version 48.0.0
             from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
 
@@ -87,7 +109,7 @@ class DecryptedData(object):
             mode = "cbc"
             cipher = Cipher(TripleDES(udata), proc(param), default_backend())
         else:
-            raise ValueError("Unknown algorithm", algo)
+            raise DecryptionError(f"Unknown algorithm: {algo}")
 
         decryptor = cipher.decryptor()
         udata = decryptor.update(edata) + decryptor.finalize()
@@ -95,20 +117,22 @@ class DecryptedData(object):
         nb = udata[-1]
         # BUG 2322/2327: 1<=nb<=blocksize
         if nb < 1 or nb > 16:
-            raise ValueError("Unknown block size", nb)
+            raise DecryptionError(f"Unknown block size: {nb}")
         if udata[-nb:] != bytes([nb] * nb):
-            raise ValueError("Unknown padding", nb)
+            raise DecryptionError(f"Unknown padding: {nb}")
         udata = udata[:-nb]
         return udata
 
 
 def decrypt(data: str, key: PrivateKeyTypes) -> bytes:
-    """
-    Decrypt the given data string using the provided private key.
+    """Decrypt the supplied S/MIME payload using the provided private key.
 
-    :param data: The encrypted data as a string.
-    :param key: The private key used for decryption.
-    :return: The decrypted data as bytes.
+    Args:
+        data: Encrypted message content as a string.
+        key: Private key used for decryption.
+
+    Returns:
+        The decrypted plaintext as bytes.
     """
     cls = DecryptedData()
     return cls.decrypt(data, key)

@@ -9,34 +9,32 @@
 """
 import os.path
 
-from ..pdfrw import PdfArray, PdfName, IndirectPdfDict, PdfDict
+from ..config.constants import PDF_ANNOTATOR_FONT
+from ..graphics import (
+    CTM,
+    BaseCommand,
+    BeginText,
+    ContentStream,
+    EndText,
+    Fill,
+    FillColor,
+    FloatTupleCommand,
+    Font,
+    Rect,
+    Restore,
+    Save,
+    Stroke,
+    StrokeColor,
+    Text,
+    TextMatrix,
+    XObject,
+)
+from ..pdfrw import IndirectPdfDict, PdfArray, PdfDict, PdfName
 from ..pdfttf import TTFFont
-
+from ..util.geometry import identity, transform_rect
+from .base import Annotation
 from .image import Image
 from .text import get_text_commands
-from .base import Annotation
-from .base import make_border_dict
-from ..util.geometry import transform_rect
-from ..util.geometry import identity
-from ..config.appearance import set_appearance_state
-from ..config.appearance import stroke_or_fill
-from ..config.constants import DEFAULT_BASE_FONT
-from ..config.constants import GRAPHICS_STATE_NAME
-from ..config.constants import PDF_ANNOTATOR_FONT
-from ..graphics import BaseCommand, FloatTupleCommand
-from ..graphics import Bezier
-from ..graphics import Close
-from ..graphics import ContentStream
-from ..graphics import Line
-from ..graphics import Move
-from ..graphics import quadratic_to_cubic_bezier
-from ..graphics import Rect
-from ..graphics import Restore
-from ..graphics import Save
-from ..graphics import BeginText, Text, EndText, TextMatrix
-from ..graphics import Font
-from ..graphics import FillColor, StrokeColor, Stroke, StrokeWidth, Fill
-from ..graphics import CTM, XObject
 
 HELVETICA_PATH = os.path.join(os.path.dirname(__file__), "..", "fonts", "Helvetica.ttf")
 

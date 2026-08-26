@@ -1,14 +1,23 @@
-# *-* coding: utf-8 *-*
-import base64
+from __future__ import annotations
 
-from cryptography import x509
-from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
+import base64
+from typing import TYPE_CHECKING
 
 from endesive import signer
+from endesive.exceptions import HashAlgorithmError
+
+if TYPE_CHECKING:
+    from cryptography import x509
+    from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
 
 class SignedData(object):
-    def _email(self, hashalgo: bytes, datau: bytes, datas: bytes, prefix: bytes):
+    """S/MIME signed data container."""
+
+    def _email(
+        self, hashalgo: bytes, datau: bytes, datas: bytes, prefix: bytes
+    ) -> bytes:
+        """Format signed data as S/MIME message."""
         s = b"""\
 MIME-Version: 1.0
 Content-Type: multipart/signed; protocol="application/%spkcs7-signature"; micalg="%s"; boundary="----46F1AAD10BE922477643C0A33C40D389"
@@ -37,7 +46,24 @@ Content-Disposition: attachment; filename="smime.p7s"
         hashalgo: str,
         attrs: bool,
         pss: bool = False,
-    ):
+    ) -> bytes:
+        """Sign data with private key and encapsulate as S/MIME.
+
+        Args:
+            datau: Data to sign
+            key: Private key
+            cert: Certificate
+            othercerts: Additional certificates
+            hashalgo: Hash algorithm name
+            attrs: Include attributes
+            pss: Use PSS padding
+
+        Returns:
+            Signed S/MIME data as bytes
+
+        Raises:
+            ValueError: If hash algorithm is unsupported
+        """
         datau = datau.replace(b"\n", b"\r\n")
         datas = signer.sign(datau, key, cert, othercerts, hashalgo, attrs, pss=pss)
         datas = base64.encodebytes(datas)
@@ -48,7 +74,7 @@ Content-Disposition: attachment; filename="smime.p7s"
         elif hashalgo == "sha512":
             bhashalgo = b"sha-512"
         else:
-            raise ValueError("Unsupported hash algorithm")
+            raise HashAlgorithmError(f"Unsupported hash algorithm: {hashalgo}")
         prefix = [b"x-", b""][pss]
         data = self._email(bhashalgo, datau, datas, prefix)
         return data
@@ -59,21 +85,26 @@ def sign(
     key: PrivateKeyTypes,
     cert: x509.Certificate,
     certs: list[x509.Certificate],
-    hashalgo="sha256",
-    attrs=True,
-    pss=False,
+    hashalgo: str = "sha256",
+    attrs: bool = True,
+    pss: bool = False,
 ) -> bytes:
-    """
-    Sign data with private key and encapsulate the result (data and signature) as S/MIME message.
+    """Sign data and wrap the result as an S/MIME message.
 
-    :param datau: Data to sign (bytes).
-    :param key: Private key to sign with (PrivateKeyTypes).
-    :param cert: Certificate to sign with (x509.Certificate).
-    :param certs: List of additional certificates (list of x509.Certificate).
-    :param hashalgo: Hash algorithm to use (str, default 'sha256').
-    :param attrs: Whether to include attributes (bool, default True).
-    :param pss: Whether to use PSS padding (bool, default False).
-    :return: Signed data as bytes.
+    Args:
+        datau: Data to sign as bytes.
+        key: Private key used for signing.
+        cert: Signing certificate.
+        certs: Additional certificates to include with the signature.
+        hashalgo: Hash algorithm name, such as ``sha256``.
+        attrs: Whether signed attributes should be included.
+        pss: Whether PSS padding should be used.
+
+    Returns:
+        Signed S/MIME data as bytes.
+
+    Raises:
+        HashAlgorithmError: If the requested hash algorithm is unsupported.
     """
     cls = SignedData()
     return cls.sign(datau, key, cert, certs, hashalgo, attrs, pss)

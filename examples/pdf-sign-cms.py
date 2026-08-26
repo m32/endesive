@@ -1,20 +1,17 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import datetime
+import sys
+
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from endesive.pdf import cms
-
-# from endesive.pdf import cmsn as cms
 
 # import logging
 # logging.basicConfig(level=logging.DEBUG)
 
 
 def main():
-    #tspurl = "http://time.certum.pl"
+    # tspurl = "http://time.certum.pl"
     tspurl = "http://public-qlts.certum.pl/qts-17"
     tspurl = None
     date = datetime.datetime.now(datetime.UTC)
@@ -48,7 +45,10 @@ def main():
     datas = cms.sign(
         datau,
         dct,
-        p12[0], p12[1], p12[2], "sha256",
+        p12[0],
+        p12[1],
+        p12[2],
+        "sha256",
         None,
         tspurl,
     )

@@ -1,4 +1,3 @@
-#!/usr/bin/env vpython3
 class Main:
     def __init__(self, fname):
         with open(fname, "rb") as fi:

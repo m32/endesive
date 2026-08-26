@@ -7,20 +7,20 @@
     :copyright: Copyright 2019 Autodesk, Inc.
     :license: MIT, see LICENSE for details.
 """
-from .base import Annotation
-from .base import make_border_dict
+from ..config.appearance import set_appearance_state, stroke_or_fill
+from ..graphics import (
+    Bezier,
+    Close,
+    ContentStream,
+    Line,
+    Move,
+    Rect,
+    Restore,
+    Save,
+    quadratic_to_cubic_bezier,
+)
 from ..pdfrw import PdfArray, PdfName
-from ..config.appearance import set_appearance_state
-from ..config.appearance import stroke_or_fill
-from ..graphics import Bezier
-from ..graphics import Close
-from ..graphics import ContentStream
-from ..graphics import Line
-from ..graphics import Move
-from ..graphics import quadratic_to_cubic_bezier
-from ..graphics import Rect
-from ..graphics import Restore
-from ..graphics import Save
+from .base import Annotation, make_border_dict
 
 
 class RectAnnotation(Annotation):

@@ -1,23 +1,17 @@
-#!/usr/bin/env vpython3
-# coding: utf-8
 import unittest
-import os
 from subprocess import PIPE, Popen
-import sys
-from datetime import datetime
-
-from cryptography.hazmat import backends
-from cryptography.hazmat.primitives.serialization import pkcs12
-from endesive import plain
 
 from test_cert import (
-    fixture, CA, HSM,
+    CA,
     ca_root_cert,
     ca_sub_cert,
-    cert1_key, cert1_cert, cert1_p12,
-    cert2_key, cert2_cert, cert2_p12,
-    cert3_key, cert3_cert, cert3_p12,
+    cert1_cert,
+    cert1_key,
+    cert1_p12,
+    fixture,
 )
+
+from endesive import plain
 
 
 class PLAINTests(unittest.TestCase):

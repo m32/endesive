@@ -6,14 +6,11 @@
     :copyright: Copyright 2019 Autodesk, Inc.
     :license: MIT, see LICENSE for details.
 """
-from __future__ import division
 
 from collections import namedtuple
 from functools import total_ordering
 
-from .util.geometry import matrix_multiply
-from .util.geometry import transform_point
-from .util.geometry import transform_vector
+from .util.geometry import matrix_multiply, transform_point, transform_vector
 
 ZERO_TOLERANCE = 0.00000000000001
 

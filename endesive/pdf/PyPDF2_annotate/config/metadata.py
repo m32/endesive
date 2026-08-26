@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-    Metadata
-    ~~~~~~~~
-    Configuration for an annotation's metadata.
+Metadata
+~~~~~~~~
+Configuration for an annotation's metadata.
 
-    :copyright: Copyright 2019 Autodesk, Inc.
-    :license: MIT, see LICENSE for details.
+:copyright: Copyright 2019 Autodesk, Inc.
+:license: MIT, see LICENSE for details.
 """
-from datetime import datetime
-from datetime import timedelta
-from datetime import tzinfo
-from uuid import uuid4
 
+from datetime import datetime, timedelta, tzinfo
+from uuid import uuid4
 
 UNSET = object()
 
@@ -24,7 +22,7 @@ class UTC(tzinfo):
         return timedelta(0)
 
     def tzname(self, dt):
-        return 'UTC'
+        return "UTC"
 
 
 class Flags(object):
@@ -61,12 +59,7 @@ class Metadata(object):
     """
 
     def __init__(
-        self,
-        creation_date=None,
-        modified_date=None,
-        name=None,
-        flags=None,
-        **kwargs
+        self, creation_date=None, modified_date=None, name=None, flags=None, **kwargs
     ):
         """
         :param datetime|None|UNSET creation_date:
@@ -78,10 +71,10 @@ class Metadata(object):
             default `Print` flag is no longer set; it must be set explicity.
         """
         self.metadata = {}
-        self.set('CreationDate', creation_date, self.now)
-        self.set('M', modified_date, self.now)
-        self.set('NM', name, lambda: str(uuid4()))
-        self.set('F', flags, lambda: Flags.Print)
+        self.set("CreationDate", creation_date, self.now)
+        self.set("M", modified_date, self.now)
+        self.set("NM", name, lambda: str(uuid4()))
+        self.set("F", flags, lambda: Flags.Print)
 
         for k, v in kwargs.items():
             if v is None:
@@ -99,7 +92,7 @@ class Metadata(object):
 
     @staticmethod
     def now():
-        return datetime.datetime.now(datetime.UTC).replace(tzinfo=UTC())
+        return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=UTC())
 
 
 def serialize_value(value):
@@ -111,6 +104,6 @@ def serialize_value(value):
 def serialize_datetime(d):
     if d.tzinfo is None:
         d = d.replace(tzinfo=UTC())
-    offset_str = d.strftime('%z')
+    offset_str = d.strftime("%z")
     offset_str = "{}'{}".format(offset_str[:3], offset_str[3:])
-    return d.strftime('D:%Y%m%d%H%M%S{}'.format(offset_str))
+    return d.strftime("D:%Y%m%d%H%M%S{}".format(offset_str))

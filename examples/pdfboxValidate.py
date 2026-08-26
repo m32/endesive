@@ -1,7 +1,8 @@
-#!/usr/bin/env vpython3
 import sys
-import pdfbox
+
 from jnius import autoclass
+
+import pdfbox
 
 pdfname = 'generated/pdf.pdf'
 if len(sys.argv) > 1:

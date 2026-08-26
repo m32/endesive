@@ -1,23 +1,20 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
+import base64
+import datetime
+import email
 import os
 import stat
 import subprocess
-import datetime
-import base64
-import email
-
-from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import pkcs12
 
-from endesive.hsm import SSHAgentHSM
 from endesive import signer
+from endesive.hsm import SSHAgentHSM
 
 
 def compose(From, To, Subject, Body, Attachment, signer):

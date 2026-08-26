@@ -1,11 +1,11 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
-import datetime
 import base64
-import json
+import datetime
 import hashlib
+import json
+import sys
+
 from asn1crypto import cms, core, util
+
 from endesive import pdf
 
 

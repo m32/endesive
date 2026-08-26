@@ -1,13 +1,10 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import datetime
+import sys
+
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from endesive.pdf import cms
-
-# from endesive.pdf import cmsn as cms
 
 # import logging
 # logging.basicConfig(level=logging.DEBUG)
@@ -29,16 +26,16 @@ def main():
         fname = sys.argv[1]
     datau = open(fname, "rb").read()
     datas = cms.timestamp(
-        datau,      # PDF data
-        dct,        # config
-        "sha256",   # hash
-        'https://freetsa.org/tsr' # Timestamp server URL
+        datau,  # PDF data
+        dct,  # config
+        "sha256",  # hash
+        "https://freetsa.org/tsr",  # Timestamp server URL
         # { # Timestamp server credentials
         #     'username': 'user',
         #     'password': 'hunter2'
-        #     }, 
-        # {}, Timestamp server options 
-        )
+        #     },
+        # {}, Timestamp server options
+    )
     fname = fname.replace(".pdf", "-timestamped-cms.pdf")
     with open(fname, "wb") as fp:
         fp.write(datau)

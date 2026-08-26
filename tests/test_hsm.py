@@ -1,33 +1,25 @@
-#!/usr/bin/env vpython3
-# coding: utf-8
-import unittest
-import os
-import stat
-import subprocess
-import datetime
 import base64
+import datetime
 import email
-
-from email.mime.multipart import MIMEMultipart
+import os
+import subprocess
+import unittest
 from email.mime.application import MIMEApplication
-from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-from asn1crypto import pem as asn1pem
-from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.serialization import pkcs12
-from endesive import hsm, signer, verifier
-import PyKCS11 as PK11
-
 from test_cert import (
-    fixture, CA, HSM,
-    ca_root_cert,
-    ca_sub_cert,
-    cert1_key, cert1_cert, cert1_p12,
-    cert2_key, cert2_cert, cert2_p12,
-    cert3_key, cert3_cert, cert3_p12,
+    CA,
+    HSM,
+    cert1_cert,
+    cert1_p12,
+    fixture,
 )
+
+from endesive import hsm, signer, verifier
+
 
 def compose(From, To, Subject, Body, Attachment, signer):
     # create message object instance

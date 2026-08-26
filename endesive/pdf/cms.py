@@ -1,38 +1,40 @@
-#!/usr/bin/env vpython3
+from __future__ import annotations
+
 import codecs
 import hashlib
 import io
 import random
 import struct
 import time
+from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import ObjectIdentifier
-from pypdf import PdfReader, PdfWriter
-from pypdf import generic as po
-from pypdf._encryption import AlgV4
+from pypdf import PdfReader, PdfWriter, generic as po
 
 from endesive import signer
 
 
-def _b_(s):
+def _b_(s: str | bytes) -> bytes:
     """Encode str to bytes (pass bytes through unchanged)."""
     if isinstance(s, bytes):
         return s
     return s.encode("latin-1")
 
 
-def _encode_password(password):
+def _encode_password(password: str | bytes) -> bytes:
     if isinstance(password, str):
         try:
             pwd = password.encode("latin-1")
         except Exception:
             pwd = password.encode("utf-8")  # Fallback logic for wider unicode support
+    else:
+        pwd = password
     return pwd
 
 
-def _prev_uses_xref_stream(prev):
+def _prev_uses_xref_stream(prev: Any) -> bool:
     """Whether the previous revision's outermost (most recent) cross-
     reference section is a cross-reference *stream* (PDF 1.5+,
     ``/Type /XRef``) rather than a classic ``xref`` table.
@@ -57,14 +59,14 @@ def _prev_uses_xref_stream(prev):
         stream.seek(saved_pos, 0)
 
 
-def _EncodedString(s):
+def _EncodedString(s: str) -> Any:
     return po.create_string_object(codecs.BOM_UTF16_BE + s.encode("utf-16be"))
 
 
 class _UnencryptedBytes(bytes, po.PdfObject):
     original_bytes = property(lambda self: self)
 
-    def write_to_stream(self, stream, encryption_key=None):
+    def write_to_stream(self, stream: Any, encryption_key: Any = None) -> None:
         stream.write(b"<")
         stream.write(self)
         stream.write(b">")
@@ -73,7 +75,7 @@ class _UnencryptedBytes(bytes, po.PdfObject):
 class _WNumberObject(po.NumberObject):
     Format = b"%08d"
 
-    def write_to_stream(self, stream, encryption_key=None):
+    def write_to_stream(self, stream: Any, encryption_key: Any = None) -> None:
         stream.write(self.Format % self)
 
 
@@ -820,7 +822,8 @@ class SignedData(PdfWriter):
         ]
         bto = b"[%d %d %d %d]" % tuple(br)
         bto += b" " * (len(bfrom) - len(bto))
-        assert len(bfrom) == len(bto)
+        if len(bfrom) != len(bto):
+            raise ValueError("ByteRange layout mismatch while updating PDF signature")
         datas = datas.replace(bfrom, bto, 1)
 
         md = getattr(hashlib, algomd)()
@@ -863,7 +866,8 @@ class SignedData(PdfWriter):
         nb = len(zeros) - len(contents)
         if nb > 0:
             contents += b"0" * nb
-        assert len(zeros) == len(contents)
+        if len(zeros) != len(contents):
+            raise ValueError("Signature placeholder length mismatch while writing PDF")
 
         datas = datas.replace(zeros, contents, 1)
 
@@ -871,13 +875,13 @@ class SignedData(PdfWriter):
 
 
 def timestamp(
-    datau,
-    udct,
-    algomd="sha256",
-    timestampurl=None,
-    timestampcredentials=None,
-    timestamp_req_options=None,
-):
+    datau: bytes,
+    udct: dict[str, Any],
+    algomd: str = "sha256",
+    timestampurl: str | None = None,
+    timestampcredentials: dict[str, str] | None = None,
+    timestamp_req_options: dict[str, Any] | None = None,
+) -> bytes:
     """
     parameters:
         datau: pdf bytes being timestamped
@@ -933,20 +937,20 @@ def timestamp(
 
 
 def sign(
-    datau,
-    udct,
-    key,
-    cert,
-    othercerts,
-    algomd="sha256",
-    hsm=None,
-    timestampurl=None,
-    timestampcredentials=None,
-    timestamp_req_options=None,
-    ocspurl=None,
-    ocspissuer=None,
-    use_signingdate=True,
-):
+    datau: bytes,
+    udct: dict[str, Any],
+    key: Any,
+    cert: Any,
+    othercerts: list[Any],
+    algomd: str = "sha256",
+    hsm: Any = None,
+    timestampurl: str | None = None,
+    timestampcredentials: dict[str, str] | None = None,
+    timestamp_req_options: dict[str, Any] | None = None,
+    ocspurl: str | None = None,
+    ocspissuer: Any = None,
+    use_signingdate: bool = True,
+) -> bytes:
     """
     Sign PDF file
 

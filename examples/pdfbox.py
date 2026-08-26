@@ -1,8 +1,9 @@
-#!/usr/bin/env vpython3
 import os
+
 #os.environ['JAVA_HOME'] = '/usr/lib/jvm/msopenjdk-21-amd64/'
 os.environ['JVM_PATH'] = '/usr/lib/jvm/msopenjdk-21-amd64/lib/server/libjvm.so'
 import sys
+
 import jnius_config
 
 PATH=['.']

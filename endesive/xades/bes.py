@@ -2,19 +2,21 @@
 # https://dss.nowina.lu/validation
 # https://signatures-conformance-checker.etsi.org/pub/index.php
 #
+from __future__ import annotations
+
 import base64
-import time
 import datetime
 import hashlib
 import io
-import uuid
-import secrets
 import logging
+import secrets
+import uuid
+from typing import Any
 
-from cryptography.x509.oid import NameOID
-from lxml import etree, builder
 import requests
-from asn1crypto import cms, algos, core, keys, pem, tsp, x509, util
+from asn1crypto import algos, tsp
+from cryptography.x509.oid import NameOID
+from lxml import builder, etree
 
 logger = logging.getLogger(__name__)
 
@@ -85,15 +87,36 @@ OID_NAMES = {
 
 
 class BES:
-    def __init__(self):
-        self.guid = str(uuid.uuid4())
-        self.time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    """XAdES BES (Baseline Signature Electronically Supported) implementation."""
 
-    def _sha256(self, data):
+    def __init__(self) -> None:
+        """Initialize BES signer."""
+        self.guid: str = str(uuid.uuid4())
+        self.time: str = datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+
+    def _sha256(self, data: bytes) -> str:
+        """Compute SHA256 hash and encode as base64.
+
+        Args:
+            data: Data to hash
+
+        Returns:
+            Base64 encoded SHA256 digest
+        """
         h = hashlib.sha256(data).digest()
         return base64.b64encode(h).decode()
 
-    def _base64(self, data):
+    def _base64(self, data: bytes) -> str:
+        """Encode data as base64 with line breaks.
+
+        Args:
+            data: Data to encode
+
+        Returns:
+            Base64 encoded string with 64-char line wrapping
+        """
         b64 = b"".join(base64.encodebytes(data).split())
         data = []
         for i in range(0, len(b64), 64):
@@ -101,7 +124,15 @@ class BES:
         data = b"\n".join(data).decode()
         return data
 
-    def _get_rdns_name(self, rdns):
+    def _get_rdns_name(self, rdns: Any) -> str:
+        """Get Distinguished Name from RDN sequence.
+
+        Args:
+            rdns: RDN (Relative Distinguished Name) sequence
+
+        Returns:
+            Distinguished Name string
+        """
         name = ""
         for rdn in rdns:
             for attr in rdn._attributes:
@@ -226,7 +257,9 @@ class BES:
         "_5d": "_02",
     }
 
-    def enveloped(self, data, cert, certcontent, signproc, tspurl, tspcred, signaturemethod=None):
+    def enveloped(
+        self, data, cert, certcontent, signproc, tspurl, tspcred, signaturemethod=None
+    ):
         tree = etree.parse(io.BytesIO(data))
         signedobj = tree.getroot()
         canonicalizedxml = self._c14n(signedobj, "")
@@ -315,14 +348,12 @@ Content-Disposition: filename="document.xml"\
         )
 
         if signaturemethod is None:
-            signaturemethod = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+            signaturemethod = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
         signedinfo = SignedInfo(
             CanonicalizationMethod(
                 Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
             ),
-            SignatureMethod(
-                Algorithm=signaturemethod
-            ),
+            SignatureMethod(Algorithm=signaturemethod),
             Reference(
                 Transforms(
                     Transform(
@@ -485,14 +516,12 @@ Content-Disposition: filename="%s"\
         logger.debug("digestvalue2: %s", digestvalue2)
 
         if signaturemethod is None:
-            signaturemethod = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+            signaturemethod = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
         signedinfo = SignedInfo(
             CanonicalizationMethod(
                 Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
             ),
-            SignatureMethod(
-                Algorithm=signaturemethod
-            ),
+            SignatureMethod(Algorithm=signaturemethod),
             Reference(
                 Transforms(
                     Transform(

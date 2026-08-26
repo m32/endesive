@@ -1,13 +1,10 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
 import datetime
+import sys
+
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
 
 from endesive.pdf import cms
-
-# from endesive.pdf import cmsn as cms
 
 # import logging
 # logging.basicConfig(level=logging.DEBUG)
@@ -21,22 +18,20 @@ def main():
         "sigflags": 3,
         "sigflagsft": 132,
         "sigpage": 0,
-        #"auto_sigfield": False,
-        #"sigandcertify": False,
-        #"signaturebox": (0, 0, 590, 155),
+        # "auto_sigfield": False,
+        # "sigandcertify": False,
+        # "signaturebox": (0, 0, 590, 155),
         "signform": True,
         "sigfield": "Signature",
         #             Text will be in the default font
-        "signature": 'Signed field!',
-
+        "signature": "Signed field!",
         # default configuration for the text appearance
         "text": {
-            'wraptext': True,
-            'fontsize': 12,
-            'textalign': 'left',
-            'linespacing': 1.2,
-            },
-
+            "wraptext": True,
+            "fontsize": 12,
+            "textalign": "left",
+            "linespacing": 1.2,
+        },
         "contact": "mak@trisoft.com.pl",
         "location": "Szczecin",
         "signingdate": date,

@@ -1,7 +1,9 @@
 import datetime
-from endesive import hsm, pdf
-from google.cloud import kms
 import hashlib
+
+from google.cloud import kms
+
+from endesive import hsm, pdf
 
 #fill out these variables based on your project
 project_id = ""
@@ -12,9 +14,9 @@ version_id = ""
 filepath = ""
 
 class GoogleHSM(hsm.BaseHSM):
-    
+
     def __init__(self, project_id, location_id, key_ring_id, key_id, version_id):
-        
+
         self.project_id = project_id
         self.location_id = location_id
         self.key_ring_id = key_ring_id
@@ -32,18 +34,18 @@ class GoogleHSM(hsm.BaseHSM):
         return 1, cert
 
     def sign(self, keyid, data, mech):
-       
+
         """ 
         Following the example here: 
         https://github.com/googleapis/python-kms/blob/master/samples/snippets/sign_asymmetric.py 
         """
-        
+
         client = kms.KeyManagementServiceClient()
         key_version_name = client.crypto_key_version_path(
-            self.project_id, 
-            self.location_id, 
-            self.key_ring_id, 
-            self.key_id, 
+            self.project_id,
+            self.location_id,
+            self.key_ring_id,
+            self.key_id,
             self.version_id
         )
         hash_ = getattr(hashlib, mech.lower())(data).digest()
@@ -52,7 +54,7 @@ class GoogleHSM(hsm.BaseHSM):
         return sign_response.signature
 
 def main(project_id, location_id, key_ring_id, key_id, version_id, fname):
-    
+
     date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
     date = date.strftime('D:%Y%m%d%H%M%S+00\'00\'')
     dct = {

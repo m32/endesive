@@ -1,23 +1,17 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import unittest
-import typing
-import datetime
-import os, os.path
-import sys
-import sysconfig
-import glob
-import uuid
+from __future__ import annotations
 
+import os
+import os.path
+import sysconfig
+
+import PyKCS11 as PK11
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import rsa, ec
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.x509.oid import NameOID
-import PyKCS11 as PK11
-from endesive import hsm
 
+from endesive import hsm
 
 tests_root = os.path.dirname(__file__)
 fixtures_dir = os.path.join(tests_root, 'fixtures')
@@ -115,10 +109,10 @@ class HSMPrivateKey(rsa.RSAPrivateKey):
 
     def private_key(self):
         return self._keypriv
-    
+
     def public_key(self):
         return self._keypub
-    
+
     @property
     def key_size(self) -> int:
         return self._keypub.key_size

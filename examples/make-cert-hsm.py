@@ -1,28 +1,25 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import os
-import sys
-import sysconfig
 import binascii
 import datetime
+import os
 import shutil
-
+import sys
+import sysconfig
 
 if "--force" in sys.argv:
     if os.path.exists(os.path.join(os.getcwd(), 'softhsm2')):
         shutil.rmtree(os.path.join(os.getcwd(), 'softhsm2'))
 
-from endesive import hsm
 import PyKCS11 as PK11
-from hsm_config_softhsm import DLLPATH
-
 from asn1crypto import x509 as asn1x509
-
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+from endesive import hsm
+from hsm_config_softhsm import DLLPATH
+
 
 class HSMPrivateKey(rsa.RSAPrivateKey):
     def __init__(self, keypriv:PK11.CK_OBJECT_HANDLE, keypub: rsa.RSAPublicKey, session:PK11.Session):
@@ -40,10 +37,10 @@ class HSMPrivateKey(rsa.RSAPrivateKey):
 
     def private_key(self):
         return self._keypriv
-    
+
     def public_key(self):
         return self._keypub
-    
+
     @property
     def key_size(self) -> int:
         return self._keypub.key_size
@@ -146,7 +143,7 @@ class HSM(hsm.HSM):
             }
         )
         return cert.dump()
-    
+
     def csr_create(
         self,
         email: str,
@@ -263,24 +260,24 @@ class HSM(hsm.HSM):
                 critical=False,
             ).add_extension(
                 x509.KeyUsage(
-                    # Digital Signature: Indicates that the key can be used for digital signatures to verify the authenticity and integrity of data. 
+                    # Digital Signature: Indicates that the key can be used for digital signatures to verify the authenticity and integrity of data.
                     digital_signature=True,
-                    # Non-Repudiation: Used in conjunction with digital signatures to provide an additional layer of protection against denial of signature. 
+                    # Non-Repudiation: Used in conjunction with digital signatures to provide an additional layer of protection against denial of signature.
                     content_commitment=True,  # nonRepudiation
-                    # Key Encipherment: Specifies that the key can be used for encrypting other keys, typically for key transport. 
+                    # Key Encipherment: Specifies that the key can be used for encrypting other keys, typically for key transport.
                     key_encipherment=True,
-                    # Data Encipherment: Indicates that the key can be used for data encryption and decryption. 
+                    # Data Encipherment: Indicates that the key can be used for data encryption and decryption.
                     data_encipherment=True,
-                    # Key Agreement: Used when the key is involved in key exchange agreements, such as Diffie-Hellman. 
+                    # Key Agreement: Used when the key is involved in key exchange agreements, such as Diffie-Hellman.
                     key_agreement=True,
-                    # Encipher Only: Specifies that the key can only be used for encryption, not decryption. 
+                    # Encipher Only: Specifies that the key can only be used for encryption, not decryption.
                     encipher_only=False,
-                    # Decipher Only: Specifies that the key can only be used for decryption, not encryption. 
+                    # Decipher Only: Specifies that the key can only be used for decryption, not encryption.
                     decipher_only=False,
                     # ca
-                    # Certificate Signing: Specifies that the key can be used to sign other certificates, typically used by Certificate Authorities. 
+                    # Certificate Signing: Specifies that the key can be used to sign other certificates, typically used by Certificate Authorities.
                     key_cert_sign=False,
-                    # CRL Signing: Indicates that the key can be used to sign Certificate Revocation Lists (CRLs). 
+                    # CRL Signing: Indicates that the key can be used to sign Certificate Revocation Lists (CRLs).
                     crl_sign=False,
                 ),
                 critical=True,

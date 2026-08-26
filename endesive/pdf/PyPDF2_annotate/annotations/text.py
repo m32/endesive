@@ -8,29 +8,25 @@
     :license: MIT, see LICENSE for details.
 """
 import os.path
-import codecs
 
-from ..pdfrw import PdfDict, PdfName, PdfString, PdfArray, IndirectPdfDict
+from ..config.constants import GRAPHICS_STATE_NAME, PDF_ANNOTATOR_FONT
+from ..graphics import (
+    BeginText,
+    ContentStream,
+    EndText,
+    FillColor,
+    Font,
+    GraphicsState as CSGraphicsState,
+    Restore,
+    Save,
+    Text,
+    TextMatrix,
+)
+from ..pdfrw import PdfDict, PdfName
 from ..pdfttf import TTFFont
-
-from .base import _make_border_dict
-from .base import Annotation
-from ..config.constants import DEFAULT_BASE_FONT
-from ..config.constants import GRAPHICS_STATE_NAME
-from ..config.constants import PDF_ANNOTATOR_FONT
-from ..graphics import BeginText
-from ..graphics import ContentStream
-from ..graphics import EndText
-from ..graphics import FillColor
-from ..graphics import Font
-from ..graphics import GraphicsState as CSGraphicsState
-from ..graphics import Restore
-from ..graphics import Save
-from ..graphics import Text
-from ..graphics import TextMatrix
 from ..util.geometry import translate
 from ..util.text import get_wrapped_lines
-
+from .base import Annotation, _make_border_dict
 
 HELVETICA_PATH = os.path.join(os.path.dirname(__file__), "..", "fonts", "Helvetica.ttf")
 

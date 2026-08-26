@@ -7,13 +7,10 @@
     :copyright: Copyright 2019 Autodesk, Inc.
     :license: MIT, see LICENSE for details.
 """
-from ..pdfrw import PdfDict, PdfArray, PdfName, IndirectPdfDict
-
 from ..config.constants import GRAPHICS_STATE_NAME
 from ..config.metadata import serialize_value
-from ..util.geometry import transform_rect
-from ..util.geometry import translate
-
+from ..pdfrw import IndirectPdfDict, PdfArray, PdfDict, PdfName
+from ..util.geometry import transform_rect, translate
 
 ALL_VERSIONS = ("1.3", "1.4", "1.5", "1.6", "1.7")
 
@@ -199,7 +196,7 @@ class Annotation(object):
 
     def make_rect(self):
         """Return a bounding box that encompasses the entire annotation."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def make_border_dict(appearance):

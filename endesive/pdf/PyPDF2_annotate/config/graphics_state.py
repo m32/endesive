@@ -8,17 +8,17 @@
     :license: MIT, see LICENSE for details.
 """
 import attr
+
+from ..config.constants import ALLOWED_LINE_CAPS, ALLOWED_LINE_JOINS
 from ..pdfrw import PdfDict, PdfName
-
-from ..config.constants import ALLOWED_LINE_CAPS
-from ..config.constants import ALLOWED_LINE_JOINS
-from ..util.validation import between
-from ..util.validation import Enum
-from ..util.validation import Field
-from ..util.validation import Number
-from ..util.validation import positive
-from ..util.validation import validate_dash_array
-
+from ..util.validation import (
+    Enum,
+    Field,
+    Number,
+    between,
+    positive,
+    validate_dash_array,
+)
 
 NAME_TO_PDF_ATTR = {
     "line_width": "LW",

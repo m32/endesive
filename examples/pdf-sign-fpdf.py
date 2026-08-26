@@ -1,9 +1,8 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import datetime
+
+import fpdf
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives.serialization import pkcs12
-import fpdf
 
 
 def main():

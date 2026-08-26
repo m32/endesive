@@ -1,4 +1,3 @@
-#!/usr/bin/env vpython3
 """Extract pdf structure in XML format"""
 import logging
 import os.path
@@ -9,9 +8,15 @@ from argparse import ArgumentParser
 from pdfminer.pdfdocument import PDFDocument, PDFNoOutlines
 from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
-from pdfminer.pdftypes import PDFObjectNotFound, PDFValueError
-from pdfminer.pdftypes import PDFStream, PDFObjRef, resolve1, stream_value
-from pdfminer.psparser import PSKeyword, PSLiteral, LIT
+from pdfminer.pdftypes import (
+    PDFObjectNotFound,
+    PDFObjRef,
+    PDFStream,
+    PDFValueError,
+    resolve1,
+    stream_value,
+)
+from pdfminer.psparser import LIT, PSKeyword, PSLiteral
 from pdfminer.utils import isnumber
 
 logging.basicConfig()

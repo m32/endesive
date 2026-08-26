@@ -8,7 +8,7 @@
 """
 import attr
 
-from .validation import Number, List, Dict
+from .validation import Dict, List, Number
 
 
 @attr.s

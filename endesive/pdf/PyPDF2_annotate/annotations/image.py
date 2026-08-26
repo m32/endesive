@@ -14,26 +14,20 @@ from io import BytesIO
 from PIL import Image as PILImage
 from PIL.ImageFile import ImageFile
 
-from ..pdfrw import PdfDict, PdfName, IndirectPdfDict
-
-from .rect import RectAnnotation
 from ..config.appearance import set_appearance_state
-from ..config.constants import CMYK_MODE
-from ..config.constants import GRAYSCALE_ALPHA_MODE
-from ..config.constants import GRAYSCALE_MODE
-from ..config.constants import PALETTE_MODE
-from ..config.constants import RGB_MODE
-from ..config.constants import RGBA_MODE
-from ..config.constants import SINGLE_CHANNEL_MODE
-from ..graphics import ContentStream
-from ..graphics import CTM
-from ..graphics import Rect
-from ..graphics import Restore
-from ..graphics import Save
-from ..graphics import XObject
-from ..util.geometry import matrix_multiply
-from ..util.geometry import scale
-from ..util.geometry import translate
+from ..config.constants import (
+    CMYK_MODE,
+    GRAYSCALE_ALPHA_MODE,
+    GRAYSCALE_MODE,
+    PALETTE_MODE,
+    RGB_MODE,
+    RGBA_MODE,
+    SINGLE_CHANNEL_MODE,
+)
+from ..graphics import CTM, ContentStream, Rect, Restore, Save, XObject
+from ..pdfrw import IndirectPdfDict, PdfName
+from ..util.geometry import matrix_multiply, scale, translate
+from .rect import RectAnnotation
 
 
 class Image(RectAnnotation):

@@ -1,7 +1,5 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-from lxml import etree
 import signxml
+from lxml import etree
 
 cert = open("ca/demo2_user1.crt.pem").read()
 key = open("ca/demo2_user1.key.pem").read()

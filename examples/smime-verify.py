@@ -1,6 +1,5 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import io
+
 from endesive import email
 
 

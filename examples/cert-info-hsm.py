@@ -1,9 +1,8 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import pprint
 
 import PyKCS11 as PK11
-from endesive import pdf, hsm
+
+from endesive import hsm, pdf
 from hsm_config_softhsm import DLLPATH
 
 
@@ -47,11 +46,12 @@ class Signer(hsm.HSM):
             self.logout()
 
 import binascii
+
+from asn1crypto import pem, x509
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.serialization import pkcs12
-from asn1crypto import x509, pem
 
 
 def cert2asn(cert, cert_bytes=True):

@@ -1,8 +1,7 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import sys
-from lxml import etree
+
 import signxml
+from lxml import etree
 
 if sys.argv[1:]:
     fname = sys.argv[1]

@@ -1,13 +1,12 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
 import sys
-from lxml import etree
+
+import PyKCS11 as PK11
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from lxml import etree
 
-from endesive import xades, signer, hsm
-import PyKCS11 as PK11
+from endesive import hsm, signer, xades
 from hsm_config_softhsm import DLLPATH
 
 

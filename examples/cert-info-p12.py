@@ -1,13 +1,12 @@
-#!/usr/bin/env vpython3
-# *-* coding: utf-8 *-*
-import sys
-import pprint
 import binascii
+import pprint
+import sys
+
+from asn1crypto import pem, x509
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.serialization import pkcs12
-from asn1crypto import x509, pem
 
 
 def cert2asn(cert):

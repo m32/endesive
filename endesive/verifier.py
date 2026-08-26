@@ -1,4 +1,5 @@
-# *-* coding: utf-8 *-*
+from __future__ import annotations
+
 import datetime
 import hashlib
 import logging
@@ -7,9 +8,15 @@ import certifi
 import certvalidator
 from asn1crypto import cms, core, ocsp, pem, x509
 from cryptography import x509 as cx509
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding
+
+from endesive.exceptions import (
+    HashAlgorithmError,
+    OCSPVerificationError,
+    SignatureVerificationError,
+    TSPVerificationError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +104,20 @@ class Result(object):
 
 
 class SignatureVerifier(object):
-    def __init__(self, trusted_certs: list[bytes | x509.Certificate] | None = None):
+    """CMS/S-MIME Signature verifier.
+
+    Verifies digital signatures in CMS/S-MIME format with certificate validation
+    and optional OCSP/TSP verification.
+    """
+
+    def __init__(
+        self, trusted_certs: list[bytes | x509.Certificate] | None = None
+    ) -> None:
+        """Initialize signature verifier.
+
+        Args:
+            trusted_certs: Optional list of trusted root certificates (bytes in PEM/DER or x509.Certificate objects)
+        """
         certs = []
         with open(certifi.where(), "rb") as f:
             pem_data = f.read()
@@ -162,7 +182,7 @@ class SignatureVerifier(object):
                 normalized = normalized[:-3].rstrip("_")
             hashcls = getattr(hashes, normalized)
         if hashcls is None:
-            raise ValueError(f"Invalid hash algorithm: {algo_name}")
+            raise HashAlgorithmError(f"Invalid hash algorithm: {algo_name}")
         return hashcls
 
     def decompose_signed_data(
@@ -195,12 +215,14 @@ class SignatureVerifier(object):
                 othercerts.append(pdfcert.chosen)
             else:
                 if cert is not None:
-                    raise ValueError(
+                    raise SignatureVerificationError(
                         "Multiple signer certificates with the same serial"
                     )
                 cert = pdfcert.chosen
         if cert is None:
-            raise ValueError("Signer certificate not found in signed data")
+            raise SignatureVerificationError(
+                "Signer certificate not found in signed data"
+            )
 
         public_key = cx509.load_pem_x509_certificate(
             pem.armor("CERTIFICATE", cert.dump())
@@ -250,7 +272,7 @@ class SignatureVerifier(object):
                 logger.exception("Signature verification failed:", exc_info=exc)
                 signatureok = False
         else:
-            raise ValueError("Unknown signature algorithm")
+            raise SignatureVerificationError("Unknown signature algorithm")
 
         tspdata: cms.SignedData | None = None
         for attr in signed_data["signer_infos"][0]["unsigned_attrs"]:
@@ -354,7 +376,9 @@ class SignatureVerifier(object):
                 signedData = crlresp["tbs_response_data"].dump()
                 hash_cls = self._resolve_hash_cls(sigalgo)
                 if hash_cls is None:
-                    raise ValueError(f"Unsupported OCSP signature algorithm: {sigalgo}")
+                    raise OCSPVerificationError(
+                        f"Unsupported OCSP signature algorithm: {sigalgo}"
+                    )
 
                 public_key.verify(
                     sig,
@@ -384,7 +408,7 @@ class SignatureVerifier(object):
             result.tsp_result(None, None, "no TSP data found")
             return
         if result.tsp_data["encap_content_info"]["content_type"].native != "tst_info":
-            raise ValueError(
+            raise TSPVerificationError(
                 f"Unsupported TSP content type: {result.tsp_data['encap_content_info']['content_type'].native}"
             )
 
@@ -399,11 +423,15 @@ class SignatureVerifier(object):
         try:
             prog.validate_usage(key_usage=set(), extended_key_usage={"time_stamping"})
         except certvalidator.errors.PathBuildingError as exc:
-            raise ValueError(f"Invalid TSP certificate path: {exc}") from exc
+            raise TSPVerificationError(f"Invalid TSP certificate path: {exc}") from exc
         except certvalidator.errors.PathValidationError as exc:
-            raise ValueError(f"TSP certificate path validation error: {exc}") from exc
+            raise TSPVerificationError(
+                f"TSP certificate path validation error: {exc}"
+            ) from exc
         except certvalidator.errors.ValidationError as exc:
-            raise ValueError(f"TSP certificate validation error: {exc}") from exc
+            raise TSPVerificationError(
+                f"TSP certificate validation error: {exc}"
+            ) from exc
 
         tst = result.tsp_data["encap_content_info"]["content"].parsed
         if 0:
@@ -415,11 +443,14 @@ class SignatureVerifier(object):
         result.tsp_result(True, tst["gen_time"].native, "valid")
 
     def verify_data(self, datas: bytes, datau: bytes) -> Result:
-        """
-        Verify signed data.
+        """Verify a signed payload against its original content.
 
-        :return:
-            Result
+        Args:
+            datas: Signed CMS payload to verify.
+            datau: Original unsigned content bytes.
+
+        Returns:
+            Verification result object.
         """
         result = self.decompose_signed_data(datas, datau)
         result.certok = self.validate_certificate(result.cert, result.othercerts)
@@ -434,11 +465,15 @@ def verify(
     datau: bytes,
     trusted_certs: list[bytes | x509.Certificate] | None = None,
 ) -> Result:
-    """
-    Verify signed data.
+    """Verify a signed payload using the supplied trusted certificates.
 
-    :return:
-        Result
+    Args:
+        datas: Signed CMS payload to verify.
+        datau: Original unsigned content bytes.
+        trusted_certs: Optional trusted certificate list for chain validation.
+
+    Returns:
+        Verification result object.
     """
     cls = SignatureVerifier(trusted_certs)
     return cls.verify_data(datas, datau)

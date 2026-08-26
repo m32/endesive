@@ -1,11 +1,14 @@
-# *-* coding: utf-8 *-*padding
-import logging
+from __future__ import annotations
 
-from asn1crypto import x509
-from cryptography.hazmat.backends import default_backend
+import logging
+from typing import TYPE_CHECKING
+
 from cryptography.hazmat.primitives import hashes
 
 from endesive import verifier
+
+if TYPE_CHECKING:
+    from asn1crypto import x509
 
 logger = logging.getLogger(__name__)
 

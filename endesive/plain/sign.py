@@ -1,11 +1,23 @@
-# *-* coding: utf-8 *-*
-from cryptography import x509
-from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from endesive import signer
 
+if TYPE_CHECKING:
+    from cryptography import x509
+    from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-def sign(datau:bytes, key: PrivateKeyTypes, cert: x509.Certificate, certs: list[x509.Certificate], hashalgo='sha256', attrs=True, pss=False) -> bytes:
+
+def sign(
+    datau: bytes,
+    key: PrivateKeyTypes,
+    cert: x509.Certificate,
+    certs: list[x509.Certificate],
+    hashalgo: str = "sha256",
+    attrs: bool = True,
+    pss: bool = False,
+) -> bytes:
     """
     Sign data with private key without any encapsulation.
 
