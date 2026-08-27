@@ -220,14 +220,20 @@ def timestamp(
 class Signer:
     """CMS Signer - base class for signing operations.
 
-    Attributes:
+    Parameters:
         datau: Data to sign (bytes)
         cert: Signing certificate (asn1crypto x509.Certificate)
         othercerts: Additional certificates (list of x509.Certificate)
         hashalgo: Hash algorithm name (str)
         attrs: Include attributes - bool or callable (default True)
-        pss: Use PSS padding (bool)
         signed_value: Pre-computed signature value (bytes)
+        pss: Use PSS padding (bool)
+
+    Raises:
+        SignerError: If attrs is not bool or callable
+        HashAlgorithmError: If the specified hash algorithm is not supported
+
+    Attributes:
         certificates: List of certificates in ASN.1 format
         salt_length: Salt length for PSS (int or None)
         signed_time: Signature timestamp (datetime)
@@ -243,20 +249,6 @@ class Signer:
         signed_value: bytes | None = None,
         pss: bool = False,
     ) -> None:
-        """Initialize Signer.
-
-        Args:
-            datau: Data to sign
-            cert: Signing certificate (asn1crypto)
-            othercerts: Additional certificates
-            hashalgo: Hash algorithm name (e.g., 'sha256')
-            attrs: Include attributes - True, False, or callable
-            signed_value: Pre-computed signature value
-            pss: Use PSS padding
-
-        Raises:
-            ValueError: If attrs is not bool or callable
-        """
         if attrs is not True and attrs is not False and not callable(attrs):
             raise SignerError("attrs must be bool or callable")
 
