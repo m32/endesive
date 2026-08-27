@@ -41,32 +41,11 @@
             "cwd": "${workspaceFolder}",
         },
         {
-            "name": "pdf-sign-cms-m32-unizeto.py",
-            "type": "python",
-            "request": "launch",
-            "stopOnEntry": false,
-            "program": "${workspaceFolder}/pdf-sign-cms-m32-unizeto.py",
-            "justMyCode": false,
-            "cwd": "${workspaceFolder}",
-            "args": [
-                "1234",
-            ]
-        },
-        {
             "name": "pdf-verify-hsm.py",
             "type": "python",
             "request": "launch",
             "stopOnEntry": false,
             "program": "${workspaceFolder}/pdf-verify-hsm.py",
-            "justMyCode": false,
-            "cwd": "${workspaceFolder}",
-        },
-        {
-            "name": "pdf-verify-pypdf.py",
-            "type": "python",
-            "request": "launch",
-            "stopOnEntry": false,
-            "program": "${workspaceFolder}/pdf-verify-pypdf.py",
             "justMyCode": false,
             "cwd": "${workspaceFolder}",
         },
