@@ -311,7 +311,7 @@ class SignatureVerifier(object):
         )
 
     def verify_ocsp_data(self, result: Result) -> None:
-        if result.crldata.native is not None:
+        if result.crldata.native is None:
             result.ocsp_result(None, None, "no OCSP data found")
             return
         cert = result.cert
