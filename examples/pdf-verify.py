@@ -1,4 +1,4 @@
-from endesive import pdf
+from endesive import pdf, exceptions
 
 
 def main():
@@ -65,6 +65,8 @@ def main():
             )
             print("tsp ok?", result.tspok, "tsp data:", result.tspdata, result.tspmsg)
             print("more?", more)
+        except exceptions.TSPVerificationError as exc:
+            print('untrusted timestamp:', exc)
         except Exception as exc:
             print(exc)
             import traceback
