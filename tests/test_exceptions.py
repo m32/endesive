@@ -1,3 +1,4 @@
+import base64
 import importlib
 
 import pytest
@@ -9,8 +10,11 @@ from endesive.exceptions import (
     EndesiveError,
     HashAlgorithmError,
     HSMError,
+    OCSPVerificationError,
+    SignatureVerificationError,
     SignerError,
     TimestampError,
+    TSPVerificationError,
 )
 from endesive.hsm import SSHAgentHSM
 from endesive.signer import Signer
@@ -30,14 +34,37 @@ def test_custom_exceptions_are_specific_and_inheritable():
     assert issubclass(TimestampError, EndesiveError)
     assert issubclass(EncryptionError, EndesiveError)
     assert issubclass(HSMError, EndesiveError)
+    assert issubclass(SignatureVerificationError, EndesiveError)
+    assert issubclass(OCSPVerificationError, EndesiveError)
+    assert issubclass(TSPVerificationError, EndesiveError)
 
     with pytest.raises(DecryptionError):
         raise DecryptionError("bad crypt")
 
 
 def test_signer_rejects_invalid_attrs_type():
+    p12 = (
+        importlib.import_module("tests.test_cert")
+        .CA()
+        .pk12_load(importlib.import_module("tests.test_cert").cert1_p12, "1234")
+    )
     with pytest.raises(SignerError, match="attrs must be bool or callable"):
-        Signer(b"data", cert=None, othercerts=[], hashalgo="sha256", attrs="yes")  # type: ignore[arg-type]
+        Signer(
+            b"data",
+            key=p12[0],
+            cert=p12[1],
+            othercerts=[],
+            hashalgo="sha256",
+            attrs="yes",
+            signed_value=None,
+            hsm=None,
+            pss=False,
+            timestampurl=None,
+            timestampcredentials=None,
+            timestamp_req_options=None,
+            ocspurl=None,
+            ocspissuer=None,
+        )
 
 
 def test_email_sign_rejects_unsupported_hash_algorithm():
@@ -87,6 +114,31 @@ def test_email_verify_rejects_missing_signature(message):
         email_verify.verify(message)
 
 
+def test_hsm_decode_fp_accepts_sha256_and_md5_strings():
+    sha256_fp = "SHA256:" + base64.b64encode(b"abc").decode("ascii")
+    assert SSHAgentHSM._decode_fp(sha256_fp) == ("sha256", b"abc")
+
+    md5_fp = "MD5:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff"
+    assert SSHAgentHSM._decode_fp(md5_fp) == (
+        "md5",
+        bytes.fromhex("00112233445566778899aabbccddeeff"),
+    )
+
+    assert SSHAgentHSM._decode_fp(b"SHA256:YWJj") == ("sha256", b"abc")
+
+
+def test_hsm_decode_fp_rejects_malformed_or_blank_input():
+    with pytest.raises(ValueError):
+        SSHAgentHSM._decode_fp("SHA256")
+    with pytest.raises(ValueError):
+        SSHAgentHSM._decode_fp("")
+    with pytest.raises(ValueError):
+        SSHAgentHSM._decode_fp("not-a-fingerprint")
+
+
 def test_hsm_decode_fp_rejects_unsupported_algorithm():
     with pytest.raises(HSMError, match="Unsupported fingerprint algorithm"):
         SSHAgentHSM._decode_fp("SHA3:abcd")
+
+    with pytest.raises(HSMError, match="Unsupported fingerprint algorithm"):
+        SSHAgentHSM._decode_fp("SHA1:abcd")

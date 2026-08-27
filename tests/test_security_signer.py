@@ -81,6 +81,169 @@ class SecuritySignerTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
 
+    def test_fetch_tsp_response_sets_timeout_auth_and_rejects_invalid_http_status(self):
+        payload = b"payload"
+        ok_response = SimpleNamespace(
+            status_code=200,
+            headers={"Content-Type": "application/timestamp-reply"},
+            content=b"timestamp-bytes",
+        )
+
+        with mock.patch("endesive.signer.requests.post", return_value=ok_response) as post_mock:
+            result = signer.fetch_tsp_response(
+                payload,
+                "sha256",
+                "https://tsa.example",
+                {"username": "user", "password": "pass"},
+                {"verify": False},
+            )
+
+        self.assertEqual(result, b"timestamp-bytes")
+        self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
+        self.assertTrue(post_mock.call_args.kwargs["headers"]["Authorization"].startswith("Basic "))
+
+        bad_response = SimpleNamespace(status_code=503, headers={}, content=b"nope")
+        with mock.patch("endesive.signer.requests.post", return_value=bad_response):
+            self.assertIsNone(
+                signer.fetch_tsp_response(
+                    payload,
+                    "sha256",
+                    "https://tsa.example",
+                    None,
+                    None,
+                )
+            )
+
+        wrong_content_type = SimpleNamespace(
+            status_code=200,
+            headers={"Content-Type": "application/json"},
+            content=b"bad",
+        )
+        with mock.patch("endesive.signer.requests.post", return_value=wrong_content_type):
+            self.assertIsNone(
+                signer.fetch_tsp_response(
+                    payload,
+                    "sha256",
+                    "https://tsa.example",
+                    None,
+                    None,
+                )
+            )
+
+    def test_signer_rejects_invalid_attrs_and_hashalgo(self):
+        _, leaf_cert = self._build_chain()
+
+        with self.assertRaises(signer.SignerError):
+            signer.Signer(
+                b"payload",
+                key=None,
+                cert=leaf_cert,
+                othercerts=[],
+                hashalgo="sha256",
+                attrs="nope",
+                signed_value=None,
+                hsm=None,
+                pss=False,
+                timestampurl=None,
+                timestampcredentials=None,
+                timestamp_req_options=None,
+                ocspurl=None,
+                ocspissuer=None,
+            )
+
+        with self.assertRaises(signer.HashAlgorithmError):
+            signer.Signer(
+                b"payload",
+                key=None,
+                cert=leaf_cert,
+                othercerts=[],
+                hashalgo="sha999",
+                attrs=True,
+                signed_value=None,
+                hsm=None,
+                pss=False,
+                timestampurl=None,
+                timestampcredentials=None,
+                timestamp_req_options=None,
+                ocspurl=None,
+                ocspissuer=None,
+            )
+
+    def test_signer_accepts_callable_attrs_and_custom_signed_value(self):
+        issuer_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        principal = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Leaf")])
+        issuer_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Issuer CA")])
+        now = datetime.datetime.now(datetime.UTC)
+
+        issuer_cert = (
+            x509.CertificateBuilder()
+            .subject_name(issuer_name)
+            .issuer_name(issuer_name)
+            .public_key(issuer_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=1))
+            .not_valid_after(now + datetime.timedelta(days=3650))
+            .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+            .sign(issuer_key, hashes.SHA256())
+        )
+
+        leaf_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        leaf_cert = (
+            x509.CertificateBuilder()
+            .subject_name(principal)
+            .issuer_name(issuer_name)
+            .public_key(leaf_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=1))
+            .not_valid_after(now + datetime.timedelta(days=365))
+            .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+            .sign(issuer_key, hashes.SHA256())
+        )
+
+        def attrs_builder(value):
+            return ["custom-attr", value]
+
+        signer_obj = signer.Signer(
+            b"payload",
+            key=leaf_key,
+            cert=leaf_cert,
+            othercerts=[issuer_cert],
+            hashalgo="sha256",
+            attrs=attrs_builder,
+            signed_value=b"custom-signed-value",
+            hsm=None,
+            pss=False,
+            timestampurl=None,
+            timestampcredentials=None,
+            timestamp_req_options=None,
+            ocspurl=None,
+            ocspissuer=None,
+        )
+
+        self.assertIsNotNone(signer_obj.attrs)
+        self.assertEqual(signer_obj.signed_value, b"custom-signed-value")
+        self.assertTrue(callable(signer_obj.attrs))
+
+    def test_fetch_tsp_response_handles_empty_credentials_and_prehashed_data(self):
+        ok_response = SimpleNamespace(
+            status_code=200,
+            headers={"Content-Type": "application/timestamp-reply"},
+            content=b"ts-response",
+        )
+
+        with mock.patch("endesive.signer.requests.post", return_value=ok_response) as post_mock:
+            result = signer.fetch_tsp_response(
+                b"payload",
+                "sha256",
+                "https://tsa.example",
+                {},
+                {"verify": False},
+                prehashed=b"x" * 32,
+            )
+
+        self.assertEqual(result, b"ts-response")
+        self.assertNotIn("Authorization", post_mock.call_args.kwargs["headers"])
+
     def test_cert2asn_accepts_pem_der_and_asn1_input(self):
         _, leaf_cert = self._build_chain()
 
