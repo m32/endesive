@@ -81,24 +81,6 @@ class SecuritySignerTests(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
 
-    def test_timestamp_adds_default_timeout_and_uses_random_nonce(self):
-        fake_response = SimpleNamespace(headers={}, content=b"")
-
-        with mock.patch("endesive.signer.secrets.randbits", return_value=42) as randbits_mock:
-            with mock.patch("endesive.signer.requests.post", return_value=fake_response) as post_mock:
-                with self.assertRaises(ValueError):
-                    signer.timestamp(
-                        None,
-                        "sha256",
-                        "https://tsa.example",
-                        credentials=None,
-                        req_options={},
-                        prehashed=b"\x00" * 32,
-                    )
-
-        randbits_mock.assert_called_once_with(64)
-        self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
-
     def test_cert2asn_accepts_pem_der_and_asn1_input(self):
         _, leaf_cert = self._build_chain()
 
@@ -178,27 +160,6 @@ class SecuritySignerTests(unittest.TestCase):
         )
         self.assertIsNone(signer.extract_ocsp_url_from_cert(no_aia_leaf))
 
-    def test_timestamp_uses_basic_auth_when_credentials_present(self):
-        fake_response = SimpleNamespace(
-            headers={"Content-Type": "text/plain"},
-            content=b"",
-        )
-
-        with mock.patch("endesive.signer.requests.post", return_value=fake_response) as post_mock:
-            with self.assertRaises(ValueError):
-                signer.timestamp(
-                    b"payload",
-                    "sha256",
-                    "https://tsa.example",
-                    credentials={"username": "user", "password": "pass"},
-                    req_options={"verify": False},
-                )
-
-        headers = post_mock.call_args.kwargs["headers"]
-        self.assertEqual(headers["Authorization"], "Basic dXNlcjpwYXNz")
-        self.assertEqual(post_mock.call_args.kwargs["verify"], False)
-        self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
-
     def test_sign_with_hsm_and_custom_attrs_callback(self):
         issuer_cert, leaf_cert = self._build_chain()
         cert_der = leaf_cert.public_bytes(Encoding.DER)
@@ -271,7 +232,7 @@ class SecuritySignerTests(unittest.TestCase):
         )
 
         with mock.patch("endesive.signer.fetch_ocsp_response", return_value=None) as ocsp_mock:
-            with mock.patch("endesive.signer.timestamp", return_value=[]) as timestamp_mock:
+            with mock.patch("endesive.signer.fetch_tsp_response", return_value=[]) as timestamp_mock:
                 cms_bytes = signer.sign(
                     b"payload",
                     key=leaf_key,

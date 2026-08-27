@@ -134,14 +134,14 @@ def fetch_ocsp_response(
         return None
 
 
-def timestamp(
+def fetch_tsp_response(
     unhashed: bytes,
     hashalgo: str,
     url: str,
     credentials: dict[str, str] | None,
     req_options: dict[str, Any] | None,
     prehashed: bytes | None = None,
-) -> list[cms.CMSAttribute]:
+) -> bytes | None:
     """Request a timestamp token from a TSA server.
 
     Args:
@@ -153,10 +153,7 @@ def timestamp(
         prehashed: Precomputed hash value to use instead of hashing ``unhashed``.
 
     Returns:
-        A list of CMS attributes containing the timestamp response.
-
-    Raises:
-        TimestampError: If the TSA response is invalid or not granted.
+        Raw TSP response bytes or ``None`` if the request fails.
     """
     if prehashed:
         hashed_value = prehashed
@@ -188,36 +185,20 @@ def timestamp(
     if req_options is None:
         req_options = {}
     req_options.setdefault("timeout", DEFAULT_HTTP_TIMEOUT)
-    tspresp = requests.post(url, data=tspreq, headers=tspheaders, **req_options)
-    if tspresp.headers.get("Content-Type", None) == "application/timestamp-reply":
-        tspresp = tsp.TimeStampResp.load(tspresp.content)
-        if tspresp["status"]["status"].native == "granted":
-            return [
-                cms.CMSAttribute(
-                    {
-                        "type": cms.CMSAttributeType("signature_time_stamp_token"),
-                        "values": cms.SetOfContentInfo(
-                            [
-                                cms.ContentInfo(
-                                    {
-                                        "content_type": cms.ContentType("signed_data"),
-                                        "content": tspresp["time_stamp_token"][
-                                            "content"
-                                        ],
-                                    }
-                                )
-                            ]
-                        ),
-                    }
-                )
-            ]
-        else:
-            raise TimestampError("TimeStampResponse status is not granted")
-    else:
-        raise TimestampError("TimeStampResponse has invalid content type")
+    try:
+        response = requests.post(url, data=tspreq, headers=tspheaders, **req_options)
+        if (
+            response.status_code != 200
+            or response.headers.get("Content-Type", None)
+            != "application/timestamp-reply"
+        ):
+            return None
+        return response.content
+    except requests.RequestException:
+        return None
 
 
-class Signer:
+class SignerBase:
     """CMS Signer - base class for signing operations.
 
     Parameters:
@@ -512,15 +493,39 @@ class Signer:
         # signed_value_signature = core.OctetString(signed_value_signature)
         datas["content"]["signer_infos"][0]["signature"] = signed_value_signature
 
+        unsigned_attrs = []
         tspresponse = self.get_tsp_response(signed_value_signature)
-        if tspresponse is not None:
-            datas["content"]["signer_infos"][0]["unsigned_attrs"] = tspresponse
+        if (
+            tspresponse is not None
+            and tspresponse["status"]["status"].native == "granted"
+        ):
+            unsigned_attrs.append(
+                cms.CMSAttribute(
+                    {
+                        "type": cms.CMSAttributeType("signature_time_stamp_token"),
+                        "values": cms.SetOfContentInfo(
+                            [
+                                cms.ContentInfo(
+                                    {
+                                        "content_type": cms.ContentType("signed_data"),
+                                        "content": tspresponse["time_stamp_token"][
+                                            "content"
+                                        ],
+                                    }
+                                )
+                            ]
+                        ),
+                    }
+                )
+            )
+        if unsigned_attrs:
+            datas["content"]["signer_infos"][0]["unsigned_attrs"] = unsigned_attrs
 
         # open('signed-content-info', 'wb').write(datas.dump())
         return datas.dump()
 
 
-class Signer1(Signer):  # noqa: E302
+class Signer(SignerBase):
     def __init__(
         self,
         datau,
@@ -574,13 +579,15 @@ class Signer1(Signer):  # noqa: E302
 
     def get_tsp_response(self, signed_value_signature):
         if self.timestampurl:
-            return timestamp(
+            response = fetch_tsp_response(
                 signed_value_signature,
                 self.hashalgo,
                 self.timestampurl,
                 self.timestampcredentials,
                 self.timestamp_req_options,
             )
+            if response:
+                return tsp.TimeStampResp.load(response)
         return None
 
     def sign(self, tosign):
@@ -623,7 +630,7 @@ def sign(
     ocspurl=None,
     ocspissuer=None,
 ):
-    cls = Signer1(
+    cls = Signer(
         datau,
         key,
         cert,

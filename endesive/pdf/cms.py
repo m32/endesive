@@ -8,12 +8,14 @@ import struct
 import time
 from typing import Any
 
+from asn1crypto import tsp
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import ObjectIdentifier
 from pypdf import PdfReader, PdfWriter, generic as po
 
 from endesive import signer
+from endesive.exceptions import TimestampError
 
 
 def _b_(s: str | bytes) -> bytes:
@@ -747,14 +749,20 @@ class SignedData(PdfWriter):
         else:
             md = getattr(hashlib, algomd)().digest()
             if mode == "timestamp":
-                contents = signer.timestamp(
-                    None,
+                response = signer.fetch_tsp_response(
+                    b"",
                     algomd,
                     timestampurl,
                     timestampcredentials,
                     timestamp_req_options,
                     prehashed=md,
-                )[0]["values"][0].dump()
+                )
+                if response is None:
+                    raise TimestampError("No response from timestamp server")
+                tspresp = tsp.TimeStampResp.load(response)
+                if tspresp["status"]["status"].native != "granted":
+                    raise TimestampError("Timestamp request was not granted")
+                contents = tspresp["time_stamp_token"].dump()
             else:
                 attrs = udct.get("attrs", True)
                 pss = udct.get("pss", False)
@@ -777,6 +785,7 @@ class SignedData(PdfWriter):
             zeros = contents.hex().encode("utf-8")
             # add some extra space to avoid problems with signature size
             aligned = len(zeros) + 512
+            zeros += b"00" * aligned
 
         params = {"mode": mode, "use_signingdate": use_signingdate}
         if not timestampurl:
@@ -835,14 +844,20 @@ class SignedData(PdfWriter):
         md = md.digest()
 
         if mode == "timestamp":
-            contents = signer.timestamp(
-                None,
+            response = signer.fetch_tsp_response(
+                b"",
                 algomd,
                 timestampurl,
                 timestampcredentials,
                 timestamp_req_options,
                 prehashed=md,
-            )[0]["values"][0].dump()
+            )
+            if response is None:
+                raise TimestampError("No response from timestamp server")
+            tspresp = tsp.TimeStampResp.load(response)
+            if tspresp["status"]["status"].native != "granted":
+                raise TimestampError("Timestamp request was not granted")
+            contents = tspresp["time_stamp_token"].dump()
         else:
             attrs = udct.get("attrs", True)
             pss = udct.get("pss", False)

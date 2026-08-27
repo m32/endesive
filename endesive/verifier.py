@@ -6,7 +6,7 @@ import logging
 
 import certifi
 import certvalidator
-from asn1crypto import cms, core, ocsp, pem, x509
+from asn1crypto import cms, core, ocsp, pem, x509, tsp
 from cryptography import x509 as cx509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding
@@ -435,6 +435,10 @@ class SignatureVerifier(object):
 
         # verify the message imprint against the signed data hash
         tst = result.tsp_data["encap_content_info"]["content"].parsed
+        if result.signed_data is None:
+            # timestamped document without signed data
+            result.tsp_result(True, tst["gen_time"].native, "valid")
+            return
         signature_bytes = result.signed_data["signer_infos"][0]["signature"].native
         md = hashlib.sha256(signature_bytes).digest()
         if md == tst["message_imprint"]["hashed_message"].native:

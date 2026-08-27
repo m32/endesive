@@ -100,9 +100,23 @@ class PDFVerifier(verifier.SignatureVerifier):
         datau = data1 + data2
 
         result = self.decompose_signed_data(signaturebytes, datau)
-        result.certok = self.validate_certificate(result.cert, result.othercerts)
-        self.verify_ocsp_data(result)
-        self.verify_tsp_data(result)
+        if (
+            result.signed_data["encap_content_info"]["content_type"].native
+            == "tst_info"
+        ):
+            # timestamped document without signed data
+            result.tsp_data = result.signed_data
+            result.signed_data = None
+            result.crldata = None
+            result.cert = None
+            result.othercerts = None
+            result.hashok = None
+            result.signatureok = None
+            self.verify_tsp_data(result)
+        else:
+            result.certok = self.validate_certificate(result.cert, result.othercerts)
+            self.verify_ocsp_data(result)
+            self.verify_tsp_data(result)
 
         return result
 
