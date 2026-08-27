@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # https://dss.nowina.lu/validation
 # https://signatures-conformance-checker.etsi.org/pub/index.php
 #
@@ -92,7 +91,7 @@ class BES:
     def __init__(self) -> None:
         """Initialize BES signer."""
         self.guid: str = str(uuid.uuid4())
-        self.time: str = datetime.datetime.now(datetime.timezone.utc).strftime(
+        self.time: str = datetime.datetime.now(datetime.UTC).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
 
@@ -118,11 +117,11 @@ class BES:
             Base64 encoded string with 64-char line wrapping
         """
         b64 = b"".join(base64.encodebytes(data).split())
-        data = []
+        result = []
         for i in range(0, len(b64), 64):
-            data.append(b64[i : i + 64])
-        data = b"\n".join(data).decode()
-        return data
+            result.append(b64[i : i + 64])
+        result = b"\n".join(result).decode()
+        return result
 
     def _get_rdns_name(self, rdns: Any) -> str:
         """Get Distinguished Name from RDN sequence.
@@ -137,16 +136,16 @@ class BES:
         for rdn in rdns:
             for attr in rdn._attributes:
                 if len(name) > 0:
-                    name = name + ","
+                    name = f"{name},"
                 if attr.oid in OID_NAMES:
-                    name = name + OID_NAMES[attr.oid]
+                    name = f"{name}{OID_NAMES[attr.oid]}"
                 else:
-                    name = name + attr.oid.dotted_string
-                    s = "".join(["%02x" % int(b) for b in attr.value.encode()])
-                    s = "#0C%02X%s" % (len(attr.value), s)
-                    name = name + "=" + s
+                    name = f"{name}{attr.oid.dotted_string}"
+                    s = "".join([f"{int(b):02x}" for b in attr.value.encode()])
+                    s = f"#0C{len(attr.value):02X}{s}"
+                    name = f"{name}={s}"
                     continue
-                name = name + "=" + attr.value
+                name = f"{name}={attr.value}"
         return name
 
     def _c14n(self, nodes, algorithm, inclusive_ns_prefixes=None):
@@ -177,7 +176,7 @@ class BES:
     def _unsignedproperties(self, signed_value, tspurl, tspcred, hashalgo="sha256"):
         if tspurl is None:
             unsignedproperties = UnsignedProperties(
-                Id="UnsignedProperties_" + self.guid + self._mapa["_5d"]
+                Id=f"UnsignedProperties_{self.guid}_02"
             )
         else:
             tspreq = tsp.TimeStampReq(
@@ -205,7 +204,7 @@ class BES:
                 password = tspcred.get("password", None)
                 if username and password:
                     auth_header_value = base64.b64encode(
-                        bytes(username + ":" + password, "utf-8")
+                        bytes(f"{username}:{password}", "utf-8")
                     ).decode("ascii")
                     tspheaders["Authorization"] = f"Basic {auth_header_value}"
             tspresp = requests.post(
@@ -236,26 +235,12 @@ class BES:
                         EncapsulatedTimeStamp(
                             attr, Encoding="http://uri.etsi.org/01903/v1.2.2#DER"
                         ),
-                        Id="SignatureTimeStamp_" + self.guid,
+                        Id=f"SignatureTimeStamp_{self.guid}",
                     )
                 ),
-                Id="UnsignedProperties_" + self.guid + self._mapa["_5d"],
+                Id=f"UnsignedProperties_{self.guid}_02",
             )
         return unsignedproperties
-
-    _mapa = {
-        "_02": "_5d",
-        "_2f": "_70",
-        "_43": "_1c",
-        "_20": "_7f",
-        "_46": "_19",
-        "_49": "_16",
-        "_5a": "_05",
-        "_2c": "_73",
-        "_4b": "_14",
-        "_11": "_4e",
-        "_5d": "_02",
-    }
 
     def enveloped(
         self, data, cert, certcontent, signproc, tspurl, tspcred, signaturemethod=None
@@ -286,7 +271,7 @@ class BES:
 
         certdigest = self._sha256(certcontent)
         certcontent = self._base64(certcontent)
-        certserialnumber = "%d" % cert.serial_number
+        certserialnumber = f"{cert.serial_number:d}"
         certissuer = self._get_rdns_name(cert.issuer.rdns)
 
         signedproperties = SignedProperties(
@@ -306,7 +291,7 @@ class BES:
                         ),
                     )
                 ),
-                Id="SignedSignatureProperties_" + self.guid + self._mapa["_02"],
+                Id=f"SignedSignatureProperties_{self.guid}_5d",
             ),
             SignedDataObjectProperties(
                 DataObjectFormat(
@@ -331,11 +316,11 @@ Content-Disposition: filename="document.xml"\
                         ),
                     ),
                     MimeType("text/xml"),
-                    ObjectReference="#Reference1_" + self.guid + self._mapa["_2f"],
+                    ObjectReference=f"#Reference1_{self.guid}_70",
                 ),
-                Id="SignedDataObjectProperties_" + self.guid + self._mapa["_43"],
+                Id=f"SignedDataObjectProperties_{self.guid}_1c",
             ),
-            Id="SignedProperties_" + self.guid + self._mapa["_46"],
+            Id=f"SignedProperties_{self.guid}_19",
         )
 
         canonicalizedxml = self._c14n(signedproperties, "")
@@ -363,17 +348,17 @@ Content-Disposition: filename="document.xml"\
                 ),
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue1),
-                Id="Reference1_" + self.guid + self._mapa["_2f"],
+                Id=f"Reference1_{self.guid}_70",
                 URI="",
             ),
             Reference(
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue2),
-                Id="SignedProperties-Reference_" + self.guid + self._mapa["_20"],
+                Id=f"SignedProperties-Reference_{self.guid}_7f",
                 Type="http://uri.etsi.org/01903#SignedProperties",
-                URI="#SignedProperties_" + self.guid + self._mapa["_46"],
+                URI=f"#SignedProperties_{self.guid}_19",
             ),
-            Id="SignedInfo_" + self.guid + self._mapa["_49"],
+            Id=f"SignedInfo_{self.guid}_16",
         )
 
         canonicalizedxml = self._c14n(signedinfo, "")
@@ -388,22 +373,20 @@ Content-Disposition: filename="document.xml"\
 
         DOC = Signature(
             signedinfo,
-            SignatureValue(
-                digestvalue3, Id="SignatureValue_" + self.guid + self._mapa["_5a"]
-            ),
+            SignatureValue(digestvalue3, Id=f"SignatureValue_{self.guid}_05"),
             KeyInfo(
                 X509Data(X509Certificate(certcontent)),
-                Id="KeyInfo_" + self.guid + self._mapa["_2c"],
+                Id=f"KeyInfo_{self.guid}_73",
             ),
             Object(
                 QualifyingProperties(
                     signedproperties,
                     unsignedproperties,
-                    Id="QualifyingProperties_" + self.guid + self._mapa["_4b"],
-                    Target="#Signature_" + self.guid + self._mapa["_11"],
+                    Id=f"QualifyingProperties_{self.guid}_14",
+                    Target=f"#Signature_{self.guid}_4e",
                 )
             ),
-            Id="Signature_" + self.guid + self._mapa["_11"],
+            Id=f"Signature_{self.guid}_4e",
         )
 
         signedobj.append(DOC)
@@ -457,7 +440,7 @@ Content-Disposition: filename="document.xml"\
 
         certdigest = self._sha256(certcontent)
         certcontent = self._base64(certcontent)
-        certserialnumber = "%d" % cert.serial_number
+        certserialnumber = f"{cert.serial_number:d}"
         certissuer = self._get_rdns_name(cert.issuer.rdns)
 
         signedprop = SignedProperties(
@@ -477,18 +460,17 @@ Content-Disposition: filename="document.xml"\
                         ),
                     )
                 ),
-                Id="SignedSignatureProperties_" + self.guid + self._mapa["_02"],
+                Id=f"SignedSignatureProperties_{self.guid}_5d",
             ),
             SignedDataObjectProperties(
                 DataObjectFormat(
                     Description(
-                        """\
+                        f"""\
 MIME-Version: 1.0
-Content-Type: %s
+Content-Type: {smime}
 Content-Transfer-Encoding: binary
-Content-Disposition: filename="%s"\
+Content-Disposition: filename="{fname}"\
 """
-                        % (smime, fname)
                     ),
                     ObjectIdentifier(
                         Identifier(
@@ -503,11 +485,11 @@ Content-Disposition: filename="%s"\
                         ),
                     ),
                     MimeType(smime),
-                    ObjectReference="#Reference1_" + self.guid + self._mapa["_2f"],
+                    ObjectReference=f"#Reference1_{self.guid}_70",
                 ),
-                Id="SignedDataObjectProperties_" + self.guid + self._mapa["_43"],
+                Id=f"SignedDataObjectProperties_{self.guid}_1c",
             ),
-            Id="SignedProperties_" + self.guid + self._mapa["_46"],
+            Id=f"SignedProperties_{self.guid}_19",
         )
 
         canonicalizedxml = self._c14n(signedprop, "")
@@ -525,23 +507,22 @@ Content-Disposition: filename="%s"\
             Reference(
                 Transforms(
                     Transform(
-                        Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
-                        + swithcomments
+                        Algorithm=f"http://www.w3.org/TR/2001/REC-xml-c14n-20010315{swithcomments}"
                     )
                 ),
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue1),
                 URI=URI,
-                Id="Reference1_" + self.guid + self._mapa["_2f"],
+                Id=f"Reference1_{self.guid}_70",
             ),
             Reference(
                 DigestMethod(Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"),
                 DigestValue(digestvalue2),
-                Id="SignedProperties-Reference_" + self.guid + self._mapa["_20"],
+                Id=f"SignedProperties-Reference_{self.guid}_7f",
                 Type="http://uri.etsi.org/01903#SignedProperties",
-                URI="#SignedProperties_" + self.guid + self._mapa["_46"],
+                URI=f"#SignedProperties_{self.guid}_19",
             ),
-            Id="SignedInfo_" + self.guid + self._mapa["_49"],
+            Id=f"SignedInfo_{self.guid}_16",
         )
 
         canonicalizedxml = self._c14n(signedinfo, "")
@@ -560,22 +541,20 @@ Content-Disposition: filename="%s"\
 
         DOC = Signature(
             signedinfo,
-            SignatureValue(
-                digestvalue3, Id="SignatureValue_" + self.guid + self._mapa["_5a"]
-            ),
+            SignatureValue(digestvalue3, Id=f"SignatureValue_{self.guid}_05"),
             KeyInfo(
                 X509Data(X509Certificate(certcontent)),
-                Id="KeyInfo_" + self.guid + self._mapa["_2c"],
+                Id=f"KeyInfo_{self.guid}_73",
             ),
             Object(
                 QualifyingProperties(
                     signedprop,
                     unsignedproperties,
-                    Id="QualifyingProperties_" + self.guid + self._mapa["_4b"],
-                    Target="#Signature_" + self.guid + self._mapa["_11"],
+                    Id=f"QualifyingProperties_{self.guid}_14",
+                    Target=f"#Signature_{self.guid}_4e",
                 )
             ),
-            Id="Signature_" + self.guid + self._mapa["_11"],
+            Id=f"Signature_{self.guid}_4e",
         )
         if signedobj is not None:
             DOC.append(signedobj)
