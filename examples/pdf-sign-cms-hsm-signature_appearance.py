@@ -79,7 +79,7 @@ def main():
     }
 
     othercerts = [
-        signer.cert2asn(open('softhsm2/cert-hsm-ca-sub.pem', 'rb').read(), False),
+        signer.cert2asn(open('softhsm2/cert-hsm-ca-sub.pem', 'rb').read()),
     ]
 
     clshsm = Signer(DLLPATH)

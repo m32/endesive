@@ -2,11 +2,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "cert-make-hsm.py",
+            "name": "make-cert-ca.py",
             "type": "python",
             "request": "launch",
             "stopOnEntry": false,
-            "program": "${workspaceFolder}/cert-make-hsm.py",
+            "program": "${workspaceFolder}/make-cert-ca.py",
             "justMyCode": false,
             "cwd": "${workspaceFolder}",
             "args": [

@@ -67,7 +67,7 @@ def main():
     clshsm = Signer(DLLPATH)
 
     othercerts = [
-        signer.cert2asn(open('softhsm2/cert-hsm-ca-sub.pem', 'rb').read(), False),
+        signer.cert2asn(open('softhsm2/cert-hsm-ca-sub.pem', 'rb').read()),
     ]
 
     fname = 'generated/pdf.pdf'

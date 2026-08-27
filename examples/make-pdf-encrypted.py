@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from pypdf import PdfReader, PdfWriter
 
 fname = "generated/pdf.pdf"

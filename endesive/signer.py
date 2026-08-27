@@ -22,27 +22,25 @@ DEFAULT_HTTP_TIMEOUT = 10
 
 
 def cert2asn(
-    cert: x509.Certificate | cryptography_x509.Certificate | bytes,
-    cert_bytes: bool = True,
+    cert: x509.Certificate | cryptography_x509.Certificate | bytes
 ) -> x509.Certificate:
     """Convert a certificate object to the asn1crypto representation.
 
     Args:
         cert: Certificate value as asn1crypto, cryptography, or raw bytes.
-        cert_bytes: Whether the input is a PEM/DER-encoded certificate blob.
 
     Returns:
         The certificate as an asn1crypto ``x509.Certificate`` instance.
     """
     if isinstance(cert, x509.Certificate):
         return cert
-    if cert_bytes:
-        cert_bytes_data: bytes = cert.public_bytes(serialization.Encoding.PEM)  # type: ignore
+    if isinstance(cert, cryptography_x509.Certificate):
+        data: bytes = cert.public_bytes(serialization.Encoding.DER) 
     else:
-        cert_bytes_data = cert  # type: ignore
-    if pem.detect(cert_bytes_data):
-        _, _, cert_bytes_data = pem.unarmor(cert_bytes_data)
-    return x509.Certificate.load(cert_bytes_data)
+        data = cert
+    if pem.detect(data):
+        data = pem.unarmor(data)[2]
+    return x509.Certificate.load(data)
 
 
 def extract_ocsp_url_from_cert(
@@ -224,7 +222,7 @@ class SignerBase:
         self,
         datau: bytes,
         cert: x509.Certificate,
-        othercerts: list[x509.Certificate | cryptography_x509.Certificate],
+        othercerts: list[x509.Certificate | cryptography_x509.Certificate | bytes],
         hashalgo: str,
         attrs: bool | Callable[..., Any] = True,
         signed_value: bytes | None = None,
@@ -235,12 +233,15 @@ class SignerBase:
 
         self.datau: bytes = datau
         self.cert: x509.Certificate = cert
-        self.othercerts: list[x509.Certificate | cryptography_x509.Certificate] = (
-            othercerts
-        )
+        certificates: list[x509.Certificate] = []
+        certificates.append(cert)
+        for certo in othercerts:
+            certificates.append(cert2asn(certo))
+        self.othercerts: list[x509.Certificate] = certificates
         self.hashalgo: str = hashalgo.lower()
         self.attrs: bool | Callable[..., Any] = attrs
         self.pss: bool = pss
+
         try:
             hashlib.new(self.hashalgo)
         except ValueError as exc:
@@ -250,13 +251,7 @@ class SignerBase:
         if signed_value is None:
             signed_value = getattr(hashlib, self.hashalgo)(datau).digest()
 
-        certificates: list[x509.Certificate] = []
-        certificates.append(cert)
-        for certo in othercerts:
-            certificates.append(cert2asn(certo))
-
-        self.signed_value: bytes = signed_value
-        self.certificates: list[x509.Certificate] = certificates
+        self.signed_value: bytes | None = signed_value
         self.signed_time: datetime = datetime.now(tz=util.timezone.utc)
 
     def sign(self, tosign: bytes) -> bytes | None:
@@ -456,7 +451,7 @@ class SignerBase:
             "encap_content_info": {
                 "content_type": "data",
             },
-            "certificates": self.certificates,
+            "certificates": self.othercerts,
             "signer_infos": [
                 signer,
             ],
@@ -528,28 +523,25 @@ class SignerBase:
 class Signer(SignerBase):
     def __init__(
         self,
-        datau,
-        key,
-        cert,
-        othercerts,
-        hashalgo,
-        attrs,
-        signed_value,
-        hsm,
-        pss,
-        timestampurl,
-        timestampcredentials,
-        timestamp_req_options,
-        ocspurl,
-        ocspissuer,
+        datau: bytes,
+        key: Any,
+        cert: x509.Certificate | cryptography_x509.Certificate | bytes,
+        othercerts: list[x509.Certificate | cryptography_x509.Certificate],
+        hashalgo: str,
+        attrs: bool | Callable[..., Any] = True,
+        signed_value: bytes | None = None,
+        hsm: Any = None,
+        pss: bool = False,
+        timestampurl: str|None = None,
+        timestampcredentials: dict|None = None,
+        timestamp_req_options: dict|None = None,
+        ocspurl: str|None = None,
+        ocspissuer: x509.Certificate|None = None,
     ):
         if hsm is not None:
-            keyid, cert = hsm.certificate()
-            cert = cert2asn(cert, False)
-            self.key = keyid
-        else:
-            cert = cert2asn(cert)
-            self.key = key
+            key, cert = hsm.certificate()
+        cert = cert2asn(cert)
+        self.key = key
         self.hsm = hsm
         self.timestampurl = timestampurl
         self.timestampcredentials = timestampcredentials
@@ -595,9 +587,9 @@ class Signer(SignerBase):
             signed_value_signature = self.hsm.sign(self.key, tosign, self.hashalgo)
         elif self.pss:
             md = getattr(hashes, self.hashalgo.upper())
-            hasher = hashes.Hash(md(), backend=backends.default_backend())
-            hasher.update(tosign)
-            digest = hasher.finalize()
+            digest = hashes.Hash(md(), backend=backends.default_backend())
+            digest.update(tosign)
+            digest = digest.finalize()
             signed_value_signature = self.key.sign(
                 digest,
                 padding.PSS(mgf=padding.MGF1(md()), salt_length=self.salt_length),
@@ -615,20 +607,20 @@ class Signer(SignerBase):
 
 
 def sign(
-    datau,
-    key,
-    cert,
-    othercerts,
-    hashalgo,
-    attrs=True,
-    signed_value=None,
-    hsm=None,
-    pss=False,
-    timestampurl=None,
-    timestampcredentials=None,
-    timestamp_req_options=None,
-    ocspurl=None,
-    ocspissuer=None,
+    datau : bytes,
+    key: Any,
+    cert: x509.Certificate | cryptography_x509.Certificate | bytes,
+    othercerts: list[x509.Certificate | cryptography_x509.Certificate | bytes],
+    hashalgo: str,
+    attrs: bool | Callable[..., Any] = True,
+    signed_value: bytes | None = None,
+    hsm: Any = None,
+    pss: bool = False,
+    timestampurl: str|None = None,
+    timestampcredentials: dict|None = None,
+    timestamp_req_options: dict|None = None,
+    ocspurl: str|None = None,
+    ocspissuer: x509.Certificate|None = None,
 ):
     cls = Signer(
         datau,

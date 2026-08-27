@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import datetime
 import glob
 import os
@@ -18,10 +19,13 @@ force = "--force" in sys.argv
 (
     ca_root,
     ca_root_key,
+    ca_root_p12,
     ca_sub,
     ca_sub_key,
+    ca_sub_p12,
     ca_tsp,
     ca_tsp_key,
+    ca_tsp_p12,
     cert1,
     cert1_key,
     cert1_pub,
@@ -37,10 +41,13 @@ force = "--force" in sys.argv
 ) = (
     "demo2_ca.root.crt.pem",
     "demo2_ca.root.key.pem",
+    "demo2_ca.root.p12",
     "demo2_ca.sub.crt.pem",
     "demo2_ca.sub.key.pem",
+    "demo2_ca.sub.p12",
     "demo2_ca.tsp.crt.pem",
     "demo2_ca.tsp.key.pem",
+    "demo2_ca.tsp.p12",
     "demo2_user1.crt.pem",
     "demo2_user1.key.pem",
     "demo2_user1.pub.pem",
@@ -93,9 +100,7 @@ class Main(object):
                     )
                 )
 
-    def key_load(
-        self, fname: str, password: str
-    ) -> rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey:
+    def key_load(self, fname: str, password: str) -> PrivateKeyTypes:
         with open(os.path.join("ca", fname), "rb") as f:
             private_key = serialization.load_pem_private_key(
                 f.read(), password.encode("utf-8"), default_backend()
@@ -293,6 +298,7 @@ class Main(object):
         self,
         name: bytes,
         cert: x509.Certificate,
+        cas: list[x509.Certificate] | None,
         key: rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey,
         fname: str,
         password: str,
@@ -301,7 +307,7 @@ class Main(object):
             name=name,
             key=key,
             cert=cert,
-            cas=[self.ca_sub_cert],
+            cas=cas or [],
             encryption_algorithm=serialization.BestAvailableEncryption(
                 password.encode("utf8")
             ),
@@ -538,11 +544,7 @@ class Main(object):
                 datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=10 * 365)
             )
             .add_extension(
-                x509.BasicConstraints(
-                    ca=True,
-                    path_length=0,  # pathlen: is equal to the number of CAs/ICAs it can sign
-                ),
-                critical=True,
+                x509.BasicConstraints(ca=False, path_length=None), critical=True
             )
             .add_extension(
                 x509.CRLDistributionPoints(
@@ -637,6 +639,9 @@ class Main(object):
             )
 
             self.key_save(ca_root_key, ca_root_pk, "1234")
+            self.pk12_save(
+                "ROOT".encode(), ca_root_cert, [], ca_root_pk, ca_root_p12, "1234"
+            )
             self.cert_save(ca_root, ca_root_cert)
 
             ca_sub_pk = self.key_create()
@@ -649,10 +654,18 @@ class Main(object):
             )
 
             self.key_save(ca_sub_key, ca_sub_pk, "1234")
+            self.pk12_save(
+                "SUB".encode(),
+                ca_sub_cert,
+                [ca_root_cert],
+                ca_sub_pk,
+                ca_sub_p12,
+                "1234",
+            )
             self.cert_save(ca_sub, ca_sub_cert)
 
             ca_tsp_pk = self.key_create()
-            ca_tsp_cert = self.ca_createsub(
+            ca_tsp_cert = self.ca_createtsp(
                 ca_tsp_pk,
                 ca_root_cert,
                 ca_root_pk,
@@ -661,6 +674,14 @@ class Main(object):
             )
 
             self.key_save(ca_tsp_key, ca_tsp_pk, "1234")
+            self.pk12_save(
+                "TSP".encode(),
+                ca_tsp_cert,
+                [ca_root_cert],
+                ca_tsp_pk,
+                ca_tsp_p12,
+                "1234",
+            )
             self.cert_save(ca_tsp, ca_tsp_cert)
         else:
             print("CA using certificate")
@@ -689,7 +710,7 @@ class Main(object):
                 client_pk = self.key_create()
             client_csr = self.csr_create(
                 client_pk,
-                email="demo%d@trisoft.com.pl" % no,
+                email=f"demo{no}@trisoft.com.pl",
                 organization="TriSoft",
             )
             client_cert = self.csr_sign(client_csr)
@@ -697,7 +718,12 @@ class Main(object):
             self.key_save(cert_key, client_pk, "1234")
             self.key_save(cert_pub, client_pk, None)
             self.pk12_save(
-                "USER cert".encode("utf-8"), client_cert, client_pk, cert_p12, "1234"
+                "USER cert".encode(),
+                client_cert,
+                [self.ca_sub_cert],
+                client_pk,
+                cert_p12,
+                "1234",
             )
 
             # os.chmod(pkcs12 % user, stat.S_IRUSR | stat.S_IWUSR)  # 0o600 perms
