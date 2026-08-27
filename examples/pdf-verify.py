@@ -8,16 +8,15 @@ def main():
         # demo ca chain
         open("ca/demo2_ca.root.crt.pem", "rb").read(),
         # demo hsm ca chain
-        #open("cert-hsm-ca.pem", "rb").read(),
+        # open("cert-hsm-ca.pem", "rb").read(),
     ]
     for fname in (
-        #"generated/test-PDFXRef-signed-cms.pdf",
-        #"generated/test-PDFXRefStream-signed-cms.pdf",
-        #"generated/test-SHA256_RSA-signed-cms.pdf",
-        #"generated/pdf-acrobat.pdf",
-        #"generated/pdf-signed-cms-hsm-certum.pdf",
-        #"generated/pdf-signed-cms-hsm.pdf",
-
+        # "generated/test-PDFXRef-signed-cms.pdf",
+        # "generated/test-PDFXRefStream-signed-cms.pdf",
+        # "generated/test-SHA256_RSA-signed-cms.pdf",
+        # "generated/pdf-acrobat.pdf",
+        # "generated/pdf-signed-cms-hsm-certum.pdf",
+        # "generated/pdf-signed-cms-hsm.pdf",
         "generated/pdf-encrypted-AES-128-signed-cms.pdf",
         "generated/pdf-encrypted-AES-256-signed-cms.pdf",
         "generated/pdf-encrypted-AES-256-signed-cms.pdf",
@@ -35,31 +34,34 @@ def main():
         "generated/pdf-signed-cms-twice-2.pdf",
         "generated/pdf-signed-cms-twice-end.pdf",
         "generated/pdf-signed-fpdf.pdf",
-
-        #"pdf-signed-java.pdf",
-        #"pdf-signed-pypdf.pdf",
-        #"pdf-encrypted-signed-java.pdf",
-        #"pdf-encrypted-signed-pypdf.pdf",
-        #"pdf-link-signed-java.pdf",
-        #"pdf-link-signed-pypdf.pdf",
+        # "pdf-signed-java.pdf",
+        # "pdf-signed-pypdf.pdf",
+        # "pdf-encrypted-signed-java.pdf",
+        # "pdf-encrypted-signed-pypdf.pdf",
+        # "pdf-link-signed-java.pdf",
+        # "pdf-link-signed-pypdf.pdf",
     ):
         print("*" * 20, fname)
         try:
             data = open(fname, "rb").read()
         except:
-            print('skip')
+            print("skip")
             continue
         try:
             result, more = pdf.verify(data, trusted_cert_pems)
             print("signature ok?", result.signatureok)
             print("hash ok?", result.hashok)
             print("cert ok?", result.certok)
-            print("ocsp ok?", result.ocspok, "ocsp data:", result.ocspdata)
-            print("tsp ok?", result.tspok, "tsp data:", result.tspdata)
+            print(
+                "ocsp ok?", result.ocspok, "ocsp data:", result.ocspdata, result.ocspmsg
+            )
+            print("tsp ok?", result.tspok, "tsp data:", result.tspdata, result.tspmsg)
             print("more?", more)
         except Exception as exc:
             print(exc)
             import traceback
+
             traceback.print_exc()
+
 
 main()
