@@ -23,6 +23,14 @@ _SIG_HASH_ALGOS = {
 
 
 class RemainingData(object):
+    """
+    Information about the remaining part of the pdf document that is not signed
+
+    Args:
+        start: Beginning of unsigned data
+        stop: End of unsigned data
+
+    """
     def __init__(self, start, stop):
         self.start = start
         self.stop = stop
@@ -31,8 +39,10 @@ class RemainingData(object):
 class PDFVerifier(verifier.SignatureVerifier):
     """
     PDF signature verifier.
-        :param pdf_data: PDF document as bytes.
-        :param trusted_certs: List of system independent trusted certificates used to verify certificates.
+
+    Args:
+        pdf_data: PDF document as bytes.
+        trusted_certs: List of system independent trusted certificates used to verify certificates.
     """
 
     def __init__(
@@ -128,6 +138,14 @@ class PDFVerifier(verifier.SignatureVerifier):
         return results
 
     def get_remaining_data(self) -> RemainingData | None:
+        """
+        Information about the unsigned part of the pdf document.
+
+        :return:
+            RemainingData: If there is an unsigned part of the pdf file, otherwise None
+
+        :raises ValueError: If start of signed data != 0
+        """
         if self.whole_file:
             return None
         byte_range = self.byte_ranges[-1]  # last signature
