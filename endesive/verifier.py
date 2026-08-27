@@ -433,14 +433,14 @@ class SignatureVerifier(object):
                 f"TSP certificate validation error: {exc}"
             ) from exc
 
+        # verify the message imprint against the signed data hash
         tst = result.tsp_data["encap_content_info"]["content"].parsed
-        if 0:
-            # TODO: verify the message imprint against the signed data hash
-            signature_bytes = tspdata["signer_infos"][0]["signature"].native
-            md = hashlib.sha256(signature_bytes).digest()
-            if md == tst["message_imprint"]["hashed_message"].native:
-                result.tsp(True, tst["gen_time"].native)
-        result.tsp_result(True, tst["gen_time"].native, "valid")
+        signature_bytes = result.signed_data["signer_infos"][0]["signature"].native
+        md = hashlib.sha256(signature_bytes).digest()
+        if md == tst["message_imprint"]["hashed_message"].native:
+            result.tsp_result(True, tst["gen_time"].native, "valid")
+        else:
+            result.tsp_result(False, None, "Invalid hash value")
 
     def verify_data(self, datas: bytes, datau: bytes) -> Result:
         """Verify a signed payload against its original content.
