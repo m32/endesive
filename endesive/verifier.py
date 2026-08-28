@@ -192,6 +192,10 @@ class SignatureVerifier(object):
             signed_data = cms.ContentInfo.load(signaturebytes)["content"]
         else:
             signed_data = signaturebytes
+        if len(signed_data["signer_infos"]) != 1:
+            raise SignatureVerificationError(
+                "Expected to find exactly one SignerInfo structure"
+            )
         signature = signed_data["signer_infos"][0]["signature"].native
         algo = signed_data["digest_algorithms"][0]["algorithm"].native
         attrs = signed_data["signer_infos"][0]["signed_attrs"]
@@ -410,6 +414,10 @@ class SignatureVerifier(object):
         if result.tsp_data["encap_content_info"]["content_type"].native != "tst_info":
             raise TSPVerificationError(
                 f"Unsupported TSP content type: {result.tsp_data['encap_content_info']['content_type'].native}"
+            )
+        if result.tsp_data["encap_content_info"]["content"].native["version"] != "v1":
+            raise TSPVerificationError(
+                f"Unsupported TSP content version: {result.tsp_data["encap_content_info"]["content"].native["version"]}"
             )
 
         sub = self.decompose_signed_data(result.tsp_data, b"")
