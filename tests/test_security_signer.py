@@ -247,8 +247,8 @@ class SecuritySignerTests(unittest.TestCase):
     def test_cert2asn_accepts_pem_der_and_asn1_input(self):
         _, leaf_cert = self._build_chain()
 
-        pem_result = signer.cert2asn(leaf_cert.public_bytes(Encoding.PEM), cert_bytes=False)
-        der_result = signer.cert2asn(leaf_cert.public_bytes(Encoding.DER), cert_bytes=False)
+        pem_result = signer.cert2asn(leaf_cert.public_bytes(Encoding.PEM))
+        der_result = signer.cert2asn(leaf_cert.public_bytes(Encoding.DER))
         passthrough = signer.cert2asn(der_result)
 
         self.assertEqual(pem_result.serial_number, leaf_cert.serial_number)
@@ -298,7 +298,7 @@ class SecuritySignerTests(unittest.TestCase):
             "https://ocsp.example.test",
         )
 
-        leaf_asn1 = signer.cert2asn(leaf_cert.public_bytes(Encoding.DER), cert_bytes=False)
+        leaf_asn1 = signer.cert2asn(leaf_cert.public_bytes(Encoding.DER))
         self.assertEqual(
             signer.extract_ocsp_url_from_cert(leaf_asn1),
             "https://ocsp.example.test",
