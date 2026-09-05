@@ -59,11 +59,10 @@ def test_signer_rejects_invalid_attrs_type():
             signed_value=None,
             hsm=None,
             pss=False,
-            timestampurl=None,
-            timestampcredentials=None,
-            timestamp_req_options=None,
+            tspurl=None,
+            tspoptions=None,
             ocspurl=None,
-            ocspissuer=None,
+            ocspoptions=None,
         )
 
 

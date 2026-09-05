@@ -5,12 +5,14 @@ from types import SimpleNamespace
 from unittest import mock
 
 from asn1crypto import ocsp, x509 as asn1_x509
+import certvalidator
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 from endesive import verifier as generic_verifier
+from endesive.exceptions import HashAlgorithmError, TSPVerificationError
 from endesive.pdf.verify import PDFVerifier, verify as pdf_verify
 
 
@@ -23,6 +25,11 @@ class SecurityVerifierTests(unittest.TestCase):
         def __init__(self, serial):
             self.native = {"tbs_certificate": {"serial_number": serial}}
             self.chosen = SimpleNamespace(dump=lambda: b"DER")
+
+    class _FakeRevocationInfoChoices(list):
+        def __init__(self, items, native):
+            super().__init__(items)
+            self.native = native
 
     def _build_chain(self):
         issuer_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -140,6 +147,142 @@ class SecurityVerifierTests(unittest.TestCase):
             with mock.patch("endesive.verifier.cx509.load_pem_x509_certificate", return_value=mock.Mock()):
                 with self.assertRaises(ValueError):
                     verify_data.verify_data(b"cms", b"payload")
+
+    def test_generic_verifier_resolve_hash_cls_handles_common_algorithms(self):
+        verifier = generic_verifier.SignatureVerifier()
+
+        self.assertIs(verifier._resolve_hash_cls("sha256"), hashes.SHA256)
+        self.assertIs(verifier._resolve_hash_cls("sha256RSA"), hashes.SHA256)
+        self.assertIs(verifier._resolve_hash_cls("sha384"), hashes.SHA384)
+
+        with self.assertRaises(HashAlgorithmError):
+            verifier._resolve_hash_cls(None)
+
+        with self.assertRaises(HashAlgorithmError):
+            verifier._resolve_hash_cls("not-supported")
+
+    def test_generic_verifier_validate_certificate_handles_validator_errors(self):
+        verifier = generic_verifier.SignatureVerifier()
+        cert = mock.Mock()
+
+        for exc in (
+            certvalidator.errors.PathBuildingError("path building"),
+            certvalidator.errors.PathValidationError("path validation"),
+            certvalidator.errors.ValidationError("validation"),
+        ):
+            validator = mock.Mock()
+            validator.validate_usage.side_effect = exc
+            with mock.patch.object(verifier, "_validator", return_value=validator):
+                self.assertFalse(verifier.validate_certificate(cert))
+
+    def test_generic_verifier_verify_ocsp_data_handles_known_failure_modes(self):
+        verifier = generic_verifier.SignatureVerifier()
+        issuer = object()
+        cert = SimpleNamespace(issuer=issuer, serial_number=7)
+
+        result = generic_verifier.Result(
+            mock.Mock(),
+            SimpleNamespace(native=None),
+            cert,
+            [],
+            True,
+            True,
+        )
+        verifier.verify_ocsp_data(result)
+        self.assertIsNone(result.ocspok)
+        self.assertEqual(result.ocspmsg, "no OCSP data found")
+
+        result = generic_verifier.Result(
+            mock.Mock(),
+            self._FakeRevocationInfoChoices(
+                [SimpleNamespace(native={"other_rev_info_format": "ocsp_response"})],
+                {"other_rev_info_format": "ocsp_response"},
+            ),
+            cert,
+            [],
+            True,
+            True,
+        )
+        verifier.verify_ocsp_data(result)
+        self.assertFalse(result.ocspok)
+        self.assertEqual(result.ocspmsg, "cannot resolve issuer certificate")
+
+        result = generic_verifier.Result(
+            mock.Mock(),
+            self._FakeRevocationInfoChoices(
+                [
+                    SimpleNamespace(native={"other_rev_info_format": "ocsp_response"}),
+                    SimpleNamespace(native={"other_rev_info_format": "ocsp_response"}),
+                ],
+                {"other_rev_info_format": "ocsp_response"},
+            ),
+            cert,
+            [SimpleNamespace(subject=issuer)],
+            True,
+            True,
+        )
+        verifier.verify_ocsp_data(result)
+        self.assertFalse(result.ocspok)
+        self.assertEqual(result.ocspmsg, "unsupported number of OCSP responses")
+
+        result = generic_verifier.Result(
+            mock.Mock(),
+            self._FakeRevocationInfoChoices(
+                [SimpleNamespace(native={"other_rev_info_format": "bad"})],
+                {"other_rev_info_format": "bad"},
+            ),
+            cert,
+            [SimpleNamespace(subject=issuer)],
+            True,
+            True,
+        )
+        verifier.verify_ocsp_data(result)
+        self.assertFalse(result.ocspok)
+        self.assertEqual(result.ocspmsg, "bad ocsp data")
+
+    def test_generic_verifier_verify_tsp_data_rejects_invalid_payloads(self):
+        verifier = generic_verifier.SignatureVerifier()
+        result = generic_verifier.Result(
+            mock.Mock(),
+            mock.Mock(),
+            mock.Mock(),
+            [],
+            True,
+            True,
+        )
+
+        result.tsp_data = {
+            "encap_content_info": {
+                "content_type": self._Native("not_tst_info"),
+                "content": self._Native({"version": "v1"}),
+            }
+        }
+        with self.assertRaises(TSPVerificationError):
+            verifier.verify_tsp_data(result)
+
+        result.tsp_data = {
+            "encap_content_info": {
+                "content_type": self._Native("tst_info"),
+                "content": self._Native({"version": "v2"}),
+            }
+        }
+        with self.assertRaises(TSPVerificationError):
+            verifier.verify_tsp_data(result)
+
+    def test_generic_verifier_verify_data_calls_all_substeps(self):
+        verifier = generic_verifier.SignatureVerifier()
+        result = mock.Mock()
+
+        with mock.patch.object(verifier, "decompose_signed_data", return_value=result), \
+             mock.patch.object(verifier, "validate_certificate", return_value=True) as validate_mock, \
+             mock.patch.object(verifier, "verify_ocsp_data") as ocsp_mock, \
+             mock.patch.object(verifier, "verify_tsp_data") as tsp_mock:
+            returned = verifier.verify_data(b"cms", b"payload")
+
+        self.assertIs(returned, result)
+        validate_mock.assert_called_once_with(result.cert, result.othercerts)
+        ocsp_mock.assert_called_once_with(result)
+        tsp_mock.assert_called_once_with(result)
 
 
 if __name__ == "__main__":

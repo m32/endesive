@@ -235,11 +235,10 @@ class SecuritySignerTests(unittest.TestCase):
                 signed_value=None,
                 hsm=None,
                 pss=False,
-                timestampurl=None,
-                timestampcredentials=None,
-                timestamp_req_options=None,
+                tspurl=None,
+                tspoptions=None,
                 ocspurl=None,
-                ocspissuer=None,
+                ocspoptions=None,
             )
 
         with self.assertRaises(signer.HashAlgorithmError):
@@ -253,11 +252,10 @@ class SecuritySignerTests(unittest.TestCase):
                 signed_value=None,
                 hsm=None,
                 pss=False,
-                timestampurl=None,
-                timestampcredentials=None,
-                timestamp_req_options=None,
+                tspurl=None,
+                tspoptions=None,
                 ocspurl=None,
-                ocspissuer=None,
+                ocspoptions=None,
             )
 
     def test_signer_accepts_callable_attrs_and_custom_signed_value(self):
@@ -304,11 +302,10 @@ class SecuritySignerTests(unittest.TestCase):
             signed_value=b"custom-signed-value",
             hsm=None,
             pss=False,
-            timestampurl=None,
-            timestampcredentials=None,
-            timestamp_req_options=None,
+            tspurl=None,
+            tspoptions=None,
             ocspurl=None,
-            ocspissuer=None,
+            ocspoptions=None,
         )
 
         self.assertIsNotNone(signer_obj.attrs)
@@ -494,11 +491,10 @@ class SecuritySignerTests(unittest.TestCase):
                     hashalgo="sha256",
                     attrs=True,
                     pss=False,
-                    timestampurl="https://tsa.example",
-                    timestampcredentials={"username": "user", "password": "pass"},
-                    timestamp_req_options={"verify": False},
+                    tspurl="https://tsa.example",
+                    tspoptions={"verify": False, "username": "user", "password": "pass"},
                     ocspurl="https://ocsp.example",
-                    ocspissuer=issuer_cert,
+                    ocspoptions={"issuer": issuer_cert},
                 )
 
         parsed = signer.cms.ContentInfo.load(cms_bytes)

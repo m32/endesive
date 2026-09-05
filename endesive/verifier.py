@@ -180,7 +180,10 @@ class SignatureVerifier(object):
             normalized = algo_name.upper().replace("-", "")
             if normalized.endswith("RSA"):
                 normalized = normalized[:-3].rstrip("_")
-            hashcls = getattr(hashes, normalized)
+            try:
+                hashcls = getattr(hashes, normalized)
+            except AttributeError as exc:
+                raise HashAlgorithmError(f"Invalid hash algorithm: {algo_name}") from exc
         if hashcls is None:
             raise HashAlgorithmError(f"Invalid hash algorithm: {algo_name}")
         return hashcls

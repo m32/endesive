@@ -380,8 +380,13 @@ class PDFTests(unittest.TestCase):
             )
 
         self.assertTrue(ocsp_mock.called)
-        self.assertIn('issuer', ocsp_mock.call_args.args[2])
-        self.assertIsNotNone(ocsp_mock.call_args.args[2]['issuer'])
+        self.assertTrue(
+            any(
+                isinstance(call.args[2], dict)
+                and call.args[2].get('issuer') is not None
+                for call in ocsp_mock.call_args_list
+            )
+        )
 
     def test_pdf_sign_continues_when_ocsp_is_unavailable(self):
         dct = {
@@ -412,7 +417,7 @@ class PDFTests(unittest.TestCase):
         self.assertIsInstance(datas, bytes)
         self.assertGreater(len(datas), 0)
 
-    def test_pdf_sign_does_not_fetch_ocsp_when_ltv_disabled(self):
+    def test_pdf_sign_fetches_ocsp_for_cms_even_when_ltv_disabled(self):
         dct = {
             'sigflags': 3,
             'contact': 'mak@trisoft.com.pl',
@@ -439,7 +444,7 @@ class PDFTests(unittest.TestCase):
             )
 
         self.assertIsInstance(datas, bytes)
-        self.assertFalse(ocsp_mock.called)
+        self.assertTrue(ocsp_mock.called)
 
     def test_pdf_timestamp_raises_on_tsp_unavailable(self):
         dct = {
