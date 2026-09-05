@@ -22,7 +22,7 @@ DEFAULT_HTTP_TIMEOUT = 10
 
 
 def cert2asn(
-    cert: x509.Certificate | cryptography_x509.Certificate | bytes
+    cert: x509.Certificate | cryptography_x509.Certificate | bytes,
 ) -> x509.Certificate:
     """Convert a certificate object to the asn1crypto representation.
 
@@ -35,7 +35,7 @@ def cert2asn(
     if isinstance(cert, x509.Certificate):
         return cert
     if isinstance(cert, cryptography_x509.Certificate):
-        data: bytes = cert.public_bytes(serialization.Encoding.DER) 
+        data: bytes = cert.public_bytes(serialization.Encoding.DER)
     else:
         data = cert
     if pem.detect(data):
@@ -81,15 +81,15 @@ def extract_ocsp_url_from_cert(
 
 def fetch_ocsp_response(
     cert: x509.Certificate | cryptography_x509.Certificate,
-    issuer: x509.Certificate | cryptography_x509.Certificate,
     url: str,
+    ocspoptions: dict[str, Any] | None = None,
 ) -> bytes | None:
     """Fetch an OCSP response for the supplied certificate pair.
 
     Args:
         cert: The certificate to validate.
-        issuer: Issuer certificate.
         url: OCSP responder URL.
+        ocspoptions: Optional OCSP request options.
 
     Returns:
         Raw OCSP response bytes or ``None`` if the request fails.
@@ -104,12 +104,16 @@ def fetch_ocsp_response(
     else:
         cert_crypto = cert  # type: ignore
 
+    ocspoptions = dict(ocspoptions or {}).copy()
+
+    issuer_crypto: cryptography_x509.Certificate
+    issuer = ocspoptions.pop("issuer", None)
+    if issuer is None:
+        return None
     if hasattr(issuer, "dump"):
         issuer_bytes_data: bytes = issuer.dump()  # type: ignore
-        issuer_crypto: cryptography_x509.Certificate = (
-            cryptography_x509.load_der_x509_certificate(
-                issuer_bytes_data, backends.default_backend()
-            )
+        issuer_crypto = cryptography_x509.load_der_x509_certificate(
+            issuer_bytes_data, backends.default_backend()
         )
     else:
         issuer_crypto = issuer  # type: ignore
@@ -119,11 +123,12 @@ def fetch_ocsp_response(
     req = builder.build()
     data = req.public_bytes(serialization.Encoding.DER)
     try:
+        ocspoptions.setdefault("timeout", DEFAULT_HTTP_TIMEOUT)
         response = requests.post(
             url,
             headers={"Content-Type": "application/ocsp-request"},
             data=data,
-            timeout=DEFAULT_HTTP_TIMEOUT,
+            **ocspoptions,
         )
         if response.status_code != 200:
             return None
@@ -136,8 +141,7 @@ def fetch_tsp_response(
     unhashed: bytes,
     hashalgo: str,
     url: str,
-    credentials: dict[str, str] | None,
-    req_options: dict[str, Any] | None,
+    reqoptions: dict[str, Any] | None,
     prehashed: bytes | None = None,
 ) -> bytes | None:
     """Request a timestamp token from a TSA server.
@@ -146,8 +150,7 @@ def fetch_tsp_response(
         unhashed: Data to timestamp.
         hashalgo: Hash algorithm name.
         url: Timestamp authority URL.
-        credentials: Optional credentials for the timestamp request.
-        req_options: Optional request options passed to the HTTP client.
+        reqoptions: Optional request options passed to the HTTP client.
         prehashed: Precomputed hash value to use instead of hashing ``unhashed``.
 
     Returns:
@@ -172,19 +175,18 @@ def fetch_tsp_response(
     )
     tspreq = tspreq.dump()
     tspheaders = {"Content-Type": "application/timestamp-query"}
-    if credentials is not None:
-        username = credentials.get("username", None)
-        password = credentials.get("password", None)
+    reqoptions = dict(reqoptions or {}).copy()
+    if reqoptions.get("username") is not None:
+        username = reqoptions.pop("username", None)
+        password = reqoptions.pop("password", None)
         if username and password:
             auth_header_value = b64encode(
                 bytes(username + ":" + password, "utf-8")
             ).decode("ascii")
             tspheaders["Authorization"] = f"Basic {auth_header_value}"
-    if req_options is None:
-        req_options = {}
-    req_options.setdefault("timeout", DEFAULT_HTTP_TIMEOUT)
+    reqoptions.setdefault("timeout", DEFAULT_HTTP_TIMEOUT)
     try:
-        response = requests.post(url, data=tspreq, headers=tspheaders, **req_options)
+        response = requests.post(url, data=tspreq, headers=tspheaders, **reqoptions)
         if (
             response.status_code != 200
             or response.headers.get("Content-Type", None)
@@ -532,22 +534,20 @@ class Signer(SignerBase):
         signed_value: bytes | None = None,
         hsm: Any = None,
         pss: bool = False,
-        timestampurl: str|None = None,
-        timestampcredentials: dict|None = None,
-        timestamp_req_options: dict|None = None,
-        ocspurl: str|None = None,
-        ocspissuer: x509.Certificate|None = None,
+        tspurl: str | None = None,
+        tspoptions: dict | None = None,
+        ocspurl: str | None = None,
+        ocspoptions: dict | None = None,
     ):
         if hsm is not None:
             key, cert = hsm.certificate()
         cert = cert2asn(cert)
         self.key = key
         self.hsm = hsm
-        self.timestampurl = timestampurl
-        self.timestampcredentials = timestampcredentials
-        self.timestamp_req_options = timestamp_req_options
+        self.tspurl = tspurl
+        self.tspoptions = tspoptions
         self.ocspurl = ocspurl
-        self.ocspissuer = ocspissuer
+        self.ocspoptions = ocspoptions
         super().__init__(datau, cert, othercerts, hashalgo, attrs, signed_value, pss)
 
     def get_pss_salt_length(self) -> int:
@@ -563,20 +563,19 @@ class Signer(SignerBase):
         return salt_length
 
     def get_ocsp_response(self, cert):
-        if self.ocspissuer and self.ocspurl:
-            response = fetch_ocsp_response(cert, self.ocspissuer, self.ocspurl)
+        if self.ocspurl:
+            response = fetch_ocsp_response(cert, self.ocspurl, self.ocspoptions)
             if response:
                 return ocsp.OCSPResponse.load(response)
         return None
 
     def get_tsp_response(self, signed_value_signature):
-        if self.timestampurl:
+        if self.tspurl:
             response = fetch_tsp_response(
                 signed_value_signature,
                 self.hashalgo,
-                self.timestampurl,
-                self.timestampcredentials,
-                self.timestamp_req_options,
+                self.tspurl,
+                self.tspoptions,
             )
             if response:
                 return tsp.TimeStampResp.load(response)
@@ -607,7 +606,7 @@ class Signer(SignerBase):
 
 
 def sign(
-    datau : bytes,
+    datau: bytes,
     key: Any,
     cert: x509.Certificate | cryptography_x509.Certificate | bytes,
     othercerts: list[x509.Certificate | cryptography_x509.Certificate | bytes],
@@ -616,11 +615,10 @@ def sign(
     signed_value: bytes | None = None,
     hsm: Any = None,
     pss: bool = False,
-    timestampurl: str|None = None,
-    timestampcredentials: dict|None = None,
-    timestamp_req_options: dict|None = None,
-    ocspurl: str|None = None,
-    ocspissuer: x509.Certificate|None = None,
+    tspurl: str | None = None,
+    tspoptions: dict | None = None,
+    ocspurl: str | None = None,
+    ocspoptions: dict | None = None,
 ):
     cls = Signer(
         datau,
@@ -632,10 +630,9 @@ def sign(
         signed_value,
         hsm,
         pss,
-        timestampurl,
-        timestampcredentials,
-        timestamp_req_options,
+        tspurl,
+        tspoptions,
         ocspurl,
-        ocspissuer,
+        ocspoptions,
     )
     return cls.build()

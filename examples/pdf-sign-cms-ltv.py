@@ -54,11 +54,13 @@ def main():
         print("No additional certificates found in P12 file")
 
     # ocsp_url = "http://ca.trisoft.com.pl/ocsp"
+    ocspoptions = {
+        'issuer': issuer_cert
+    }
 
     datas = cms.sign(datau, dct, p12[0], p12[1], p12[2], "sha256",
-                    #  ocspurl=ocsp_url,
-                     ocspissuer=issuer_cert,
-                     timestampurl=dct['tsa_url'])
+                     ocspoptions=ocspoptions,
+                     tspurl=dct['tsa_url'])
     fname = fname.replace(".pdf", "-signed-cms-ltv.pdf")
     with open(fname, "wb") as fp:
         fp.write(datau)

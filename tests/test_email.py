@@ -18,6 +18,7 @@ from test_cert import (
 )
 
 from endesive import email
+from endesive.exceptions import DecryptionError, EmailVerificationError
 
 
 class EMAILTests(unittest.TestCase):
@@ -192,6 +193,47 @@ class EMAILTests(unittest.TestCase):
         assert stderr == b'Verification successful\n'
         assert datau.replace(b'\n', b'\r\n') == stdout
 
+    def test_email_verify_rejects_multiple_signature_parts(self):
+        msg = (
+            'MIME-Version: 1.0\n'
+            'Content-Type: multipart/mixed; boundary="b"\n\n'
+            '--b\n'
+            'Content-Type: text/plain\n\n'
+            'hello\n'
+            '--b\n'
+            'Content-Type: application/x-pkcs7-signature\n'
+            'Content-Transfer-Encoding: base64\n\n'
+            'AA==\n'
+            '--b\n'
+            'Content-Type: application/pkcs7-signature\n'
+            'Content-Transfer-Encoding: base64\n\n'
+            'AA==\n'
+            '--b--\n'
+        )
+
+        with self.assertRaises(EmailVerificationError):
+            email.verify(msg)
+
+    def test_email_verify_rejects_multiple_plain_parts(self):
+        msg = (
+            'MIME-Version: 1.0\n'
+            'Content-Type: multipart/mixed; boundary="b"\n\n'
+            '--b\n'
+            'Content-Type: text/plain\n\n'
+            'hello\n'
+            '--b\n'
+            'Content-Type: text/plain\n\n'
+            'world\n'
+            '--b\n'
+            'Content-Type: application/x-pkcs7-signature\n'
+            'Content-Transfer-Encoding: base64\n\n'
+            'AA==\n'
+            '--b--\n'
+        )
+
+        with self.assertRaises(EmailVerificationError):
+            email.verify(msg)
+
     def test_email_crypt(self):
         certs = (
             CA().cert_load(cert1_cert),
@@ -249,6 +291,24 @@ class EMAILTests(unittest.TestCase):
         with self.assertRaises(Exception):
             email.decrypt(msg, key)
 
+    def test_email_decrypt_rejects_multiple_encrypted_parts(self):
+        key = CA().key_load(cert1_key, '1234')
+        msg = (
+            'MIME-Version: 1.0\n'
+            'Content-Type: multipart/mixed; boundary="b"\n\n'
+            '--b\n'
+            'Content-Type: application/pkcs7-mime\n'
+            'Content-Transfer-Encoding: base64\n\n'
+            'AA==\n'
+            '--b\n'
+            'Content-Type: application/x-pkcs7-mime\n'
+            'Content-Transfer-Encoding: base64\n\n'
+            'AA==\n'
+            '--b--\n'
+        )
+        with self.assertRaises(DecryptionError):
+            email.decrypt(msg, key)
+
     def test_email_decrypt_tampered_ciphertext_does_not_match_plaintext(self):
         datau, datae = self._encrypt_for_cert(cert1_cert)
 
@@ -281,6 +341,23 @@ class EMAILTests(unittest.TestCase):
             encrypted_data = cms_info['content']
             encrypted_content_info = encrypted_data['encrypted_content_info']
             encrypted_content_info['content_encryption_algorithm']['algorithm'] = cms.EncryptionAlgorithmId('des')
+
+        tampered = self._tamper_smime_cms(datae, mutator)
+        key = CA().key_load(cert1_key, '1234')
+        with self.assertRaises(Exception):
+            email.decrypt(tampered, key)
+
+    def test_email_decrypt_rejects_missing_recipient_infos(self):
+        certs = (
+            CA().cert_load(cert1_cert),
+        )
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        datae = email.encrypt(datau, certs, 'aes256_ofb')
+
+        def mutator(cms_info):
+            encrypted_data = cms_info['content']
+            encrypted_data['recipient_infos'] = cms.RecipientInfos([])
 
         tampered = self._tamper_smime_cms(datae, mutator)
         key = CA().key_load(cert1_key, '1234')

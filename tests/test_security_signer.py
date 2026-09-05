@@ -59,6 +59,38 @@ class SecuritySignerTests(unittest.TestCase):
         self.assertEqual(inspect.signature(pdf_cms.sign).parameters["algomd"].default, "sha256")
         self.assertEqual(inspect.signature(pdf_cms.timestamp).parameters["algomd"].default, "sha256")
 
+    def test_pdf_cms_sign_uses_tsp_and_ocsp_options_keywords(self):
+        sign_params = inspect.signature(pdf_cms.sign).parameters
+
+        self.assertIn("tspurl", sign_params)
+        self.assertIn("tspoptions", sign_params)
+        self.assertIn("ocspoptions", sign_params)
+        self.assertNotIn("timestampurl", sign_params)
+        self.assertNotIn("timestampcredentials", sign_params)
+        self.assertNotIn("timestamp_req_options", sign_params)
+        self.assertNotIn("ocspissuer", sign_params)
+
+    def test_pdf_cms_timestamp_uses_tsp_keywords(self):
+        timestamp_params = inspect.signature(pdf_cms.timestamp).parameters
+
+        self.assertIn("tspurl", timestamp_params)
+        self.assertIn("tspoptions", timestamp_params)
+        self.assertNotIn("timestampurl", timestamp_params)
+        self.assertNotIn("timestampcredentials", timestamp_params)
+        self.assertNotIn("timestamp_req_options", timestamp_params)
+
+    def test_pdf_cms_sign_rejects_legacy_timestamp_kwargs(self):
+        issuer_cert, leaf_cert = self._build_chain()
+        with self.assertRaises(TypeError):
+            pdf_cms.sign(
+                b"%PDF-1.4\n",  # type: ignore[arg-type]
+                {},
+                key=None,
+                cert=leaf_cert,
+                othercerts=[issuer_cert],
+                timestampurl="https://tsa.example",
+            )
+
     def test_fetch_ocsp_response_sets_timeout_and_handles_request_error(self):
         issuer_cert, leaf_cert = self._build_chain()
 
@@ -66,20 +98,80 @@ class SecuritySignerTests(unittest.TestCase):
             "endesive.signer.requests.post",
             side_effect=requests.exceptions.Timeout("timeout"),
         ) as post_mock:
-            result = signer.fetch_ocsp_response(leaf_cert, issuer_cert, "https://ocsp.example")
+            ocspoptions = {
+                'issuer': issuer_cert
+            }
+            result = signer.fetch_ocsp_response(leaf_cert, "https://ocsp.example", ocspoptions)
 
         self.assertIsNone(result)
-        self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
 
     def test_fetch_ocsp_response_returns_none_on_http_error(self):
         issuer_cert, leaf_cert = self._build_chain()
         fake_response = SimpleNamespace(status_code=503, content=b"")
 
         with mock.patch("endesive.signer.requests.post", return_value=fake_response) as post_mock:
-            result = signer.fetch_ocsp_response(leaf_cert, issuer_cert, "https://ocsp.example")
+            ocspoptions = {
+                'issuer': issuer_cert
+            }
+            result = signer.fetch_ocsp_response(leaf_cert, "https://ocsp.example", ocspoptions)
 
         self.assertIsNone(result)
+
+    def test_fetch_ocsp_response_forwards_request_options(self):
+        issuer_cert, leaf_cert = self._build_chain()
+        ok_response = SimpleNamespace(status_code=200, content=b"ocsp-ok")
+
+        with mock.patch("endesive.signer.requests.post", return_value=ok_response) as post_mock:
+            result = signer.fetch_ocsp_response(
+                leaf_cert,
+                "https://ocsp.example",
+                {
+                    "issuer": issuer_cert,
+                    "timeout": 3,
+                    "verify": False,
+                },
+            )
+
+        self.assertEqual(result, b"ocsp-ok")
+        self.assertEqual(post_mock.call_args.kwargs["timeout"], 3)
+        self.assertEqual(post_mock.call_args.kwargs["verify"], False)
+        self.assertNotIn("issuer", post_mock.call_args.kwargs)
+
+    def test_fetch_ocsp_response_returns_none_without_issuer(self):
+        _, leaf_cert = self._build_chain()
+        self.assertIsNone(
+            signer.fetch_ocsp_response(
+                leaf_cert,
+                "https://ocsp.example",
+                {"verify": False},
+            )
+        )
+
+    def test_fetch_ocsp_response_sets_default_timeout(self):
+        issuer_cert, leaf_cert = self._build_chain()
+        ok_response = SimpleNamespace(status_code=200, content=b"ok")
+
+        with mock.patch("endesive.signer.requests.post", return_value=ok_response) as post_mock:
+            signer.fetch_ocsp_response(
+                leaf_cert,
+                "https://ocsp.example",
+                {"issuer": issuer_cert},
+            )
+
         self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
+
+    def test_fetch_request_options_are_not_mutated(self):
+        issuer_cert, leaf_cert = self._build_chain()
+        ocsp_options = {"issuer": issuer_cert, "verify": False}
+        tsp_options = {"verify": False, "username": "user", "password": "pass"}
+
+        with mock.patch("endesive.signer.requests.post", return_value=SimpleNamespace(status_code=200, content=b"ok", headers={"Content-Type": "application/timestamp-reply"})):
+            signer.fetch_ocsp_response(leaf_cert, "https://ocsp.example", ocsp_options)
+            signer.fetch_tsp_response(b"payload", "sha256", "https://tsa.example", tsp_options)
+
+        self.assertIn("issuer", ocsp_options)
+        self.assertIn("username", tsp_options)
+        self.assertIn("password", tsp_options)
 
     def test_fetch_tsp_response_sets_timeout_auth_and_rejects_invalid_http_status(self):
         payload = b"payload"
@@ -94,8 +186,7 @@ class SecuritySignerTests(unittest.TestCase):
                 payload,
                 "sha256",
                 "https://tsa.example",
-                {"username": "user", "password": "pass"},
-                {"verify": False},
+                {"verify": False, "username": "user", "password": "pass"},
             )
 
         self.assertEqual(result, b"timestamp-bytes")
@@ -236,7 +327,6 @@ class SecuritySignerTests(unittest.TestCase):
                 b"payload",
                 "sha256",
                 "https://tsa.example",
-                {},
                 {"verify": False},
                 prehashed=b"x" * 32,
             )

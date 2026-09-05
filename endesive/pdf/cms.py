@@ -419,7 +419,7 @@ class SignedData(PdfWriter):
         self._objects[page0ref.idnum - 1] = page0
 
     def _makepdf(
-        self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params
+        self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspoptions, **params
     ):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]
@@ -676,17 +676,19 @@ class SignedData(PdfWriter):
             if ocspurl is None:
                 ocspurl = signer.extract_ocsp_url_from_cert(cert)
             if ocspurl is not None:
+                ocspoptions = ocspoptions or {}
+                ocspissuer = ocspoptions.get("issuer")
                 if ocspissuer is None:
                     for othercert in othercerts:
                         if othercert.subject == cert.issuer:
                             ocspissuer = othercert
                             break
-                certissuer = ocspissuer
-                ocspresp = signer.fetch_ocsp_response(cert, certissuer, ocspurl)
-            if ocspresp is not None:
-                obj = po.StreamObject()
-                obj._data = ocspresp
-                ocsps.append(self._add_object(obj))
+                    ocspoptions["issuer"] = ocspissuer
+                ocspresp = signer.fetch_ocsp_response(cert, ocspurl, ocspoptions)
+                if ocspresp is not None:
+                    obj = po.StreamObject()
+                    obj._data = ocspresp
+                    ocsps.append(self._add_object(obj))
             obj = po.StreamObject()
             obj._data = cert.public_bytes(serialization.Encoding.DER)
             certs.append(self._add_object(obj))
@@ -709,12 +711,11 @@ class SignedData(PdfWriter):
         othercerts,
         algomd,
         hsm,
-        timestampurl=None,
-        timestampcredentials=None,
-        timestamp_req_options=None,
+        tspurl=None,
+        tspoptions=None,
         mode="sign",
         ocspurl=None,
-        ocspissuer=None,
+        ocspoptions=None,
         use_signingdate=True,
     ):
         startdata = len(datau)
@@ -749,12 +750,13 @@ class SignedData(PdfWriter):
         else:
             md = getattr(hashlib, algomd)().digest()
             if mode == "timestamp":
+                if tspurl is None:
+                    raise TimestampError("No timestamp server URL provided")
                 response = signer.fetch_tsp_response(
                     b"",
                     algomd,
-                    timestampurl,
-                    timestampcredentials,
-                    timestamp_req_options,
+                    tspurl,
+                    tspoptions,
                     prehashed=md,
                 )
                 if response is None:
@@ -776,11 +778,10 @@ class SignedData(PdfWriter):
                     md,
                     hsm,
                     pss,
-                    timestampurl,
-                    timestampcredentials,
-                    timestamp_req_options,
+                    tspurl,
+                    tspoptions,
                     ocspurl,
-                    ocspissuer,
+                    ocspoptions,
                 )
             zeros = contents.hex().encode("utf-8")
             # add some extra space to avoid problems with signature size
@@ -788,11 +789,11 @@ class SignedData(PdfWriter):
             zeros += b"00" * aligned
 
         params = {"mode": mode, "use_signingdate": use_signingdate}
-        if not timestampurl:
+        if not tspurl:
             params["use_signingdate"] = True
 
         self._makepdf(
-            prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspissuer, **params
+            prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspoptions, **params
         )
 
         # ID[0] is used in password protection, must be unchanged
@@ -846,9 +847,8 @@ class SignedData(PdfWriter):
             response = signer.fetch_tsp_response(
                 b"",
                 algomd,
-                timestampurl,
-                timestampcredentials,
-                timestamp_req_options,
+                tspurl,
+                tspoptions,
                 prehashed=md,
             )
             if response is None:
@@ -870,11 +870,10 @@ class SignedData(PdfWriter):
                 md,
                 hsm,
                 pss,
-                timestampurl,
-                timestampcredentials,
-                timestamp_req_options,
+                tspurl,
+                tspoptions,
                 ocspurl,
-                ocspissuer,
+                ocspoptions,
             )
         contents = contents.hex().encode("utf-8")
         nb = len(zeros) - len(contents)
@@ -892,9 +891,8 @@ def timestamp(
     datau: bytes,
     udct: dict[str, Any],
     algomd: str = "sha256",
-    timestampurl: str | None = None,
-    timestampcredentials: dict[str, str] | None = None,
-    timestamp_req_options: dict[str, Any] | None = None,
+    tspurl: str | None = None,
+    tspoptions: dict[str, Any] | None = None,
 ) -> bytes:
     """
     parameters:
@@ -927,9 +925,8 @@ def timestamp(
         algomd:string                   default: sha256 - name of the hashing algorithm used to calculate
                                             the hash of the document being signed e.g.: sha1, sha256, sha384, sha512, ripemd160
         hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
-        timestampurl: timestamp server URL or None
-        timestampcredentials:Dict username and password for authentication against timestamp server. Default: None
-        timestamp_req_options: Dict to set options to the POST http call against the timestamp server. Default: None
+        tspurl: timestamp server URL or None
+        tspoptions: Dict to set options to the POST http call against the timestamp server. Default: None
 
     returns: bytes ready for writing after unsigned pdf document containing its electronic timestamp
     """
@@ -943,9 +940,8 @@ def timestamp(
         None,  # othercerts,
         algomd,
         None,  # hsm,
-        timestampurl,
-        timestampcredentials,
-        timestamp_req_options,
+        tspurl,
+        tspoptions,
         mode="timestamp",
     )
 
@@ -958,11 +954,10 @@ def sign(
     othercerts: list[Any],
     algomd: str = "sha256",
     hsm: Any = None,
-    timestampurl: str | None = None,
-    timestampcredentials: dict[str, str] | None = None,
-    timestamp_req_options: dict[str, Any] | None = None,
+    tspurl: str | None = None,
+    tspoptions: dict[str, Any] | None = None,
     ocspurl: str | None = None,
-    ocspissuer: Any = None,
+    ocspoptions: dict[str, Any] | None = None,
     use_signingdate: bool = True,
 ) -> bytes:
     """
@@ -1033,11 +1028,10 @@ def sign(
         algomd:string                   default: sha256 - name of the hashing algorithm used to calculate
                                             the hash of the document being signed e.g.: sha1, sha256, sha384, sha512, ripemd160
         hsm: an instance of endesive.hsm.HSM class used to sign using a hardware token or None
-        timestampurl: timestamp server URL or None
-        timestampcredentials:Dict username and password for authentication against timestamp server. Default: None
-        timestamp_req_options: Dict to set options to the POST http call against the timestamp server. Default: None
+        tspurl: timestamp server URL or None
+        tspoptions: Dict to set options to the POST http call against the timestamp server, when basic authorization is required include username and password. Default: None
         ocsppurl: ocsp server URL or None
-        ocspissuer: certificate of issuer or None
+        ocspoptions: Dict to set options to the POST http call against the OCSP server, certificate of issuer is under issuer key. Default: None
         ltv: boolean enable LTV signature
         use_signingdate: boolean include signingdate from udct in signer info block of pdf
 
@@ -1103,11 +1097,10 @@ def sign(
         othercerts,
         algomd,
         hsm,
-        timestampurl,
-        timestampcredentials,
-        timestamp_req_options,
+        tspurl,
+        tspoptions,
         "sign",
         ocspurl,
-        ocspissuer,
+        ocspoptions,
         use_signingdate,
     )

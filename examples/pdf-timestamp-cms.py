@@ -33,8 +33,8 @@ def main():
         # { # Timestamp server credentials
         #     'username': 'user',
         #     'password': 'hunter2'
+        #   # Timestamp server options
         #     },
-        # {}, Timestamp server options
     )
     fname = fname.replace(".pdf", "-timestamped-cms.pdf")
     with open(fname, "wb") as fp:

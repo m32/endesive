@@ -40,6 +40,9 @@ def main():
     ocspurl = 'https://ocsp.certum.pl/'
     ocspissuer = open('CertumDigitalIdentificationCASHA2.pem', 'rb').read()
     ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+    ocspoptions = {
+        'issuer': ocspissuer
+    }
 
     fname = "generated/pdf.pdf"
     if len(sys.argv) > 2:
@@ -55,7 +58,7 @@ def main():
         None,
         tspurl,
         ocspurl=ocspurl,
-        ocspissuer=ocspissuer,
+        ocspoptions=ocspoptions,
     )
     fname = fname.replace(".pdf", "-signed-cms-m32-unizeto.pdf")
     with open(fname, "wb") as fp:

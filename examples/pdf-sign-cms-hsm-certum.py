@@ -69,7 +69,9 @@ def main():
 
     ocspurl = 'https://ocsp.certum.pl/'
     ocspissuer = open('CertumDigitalIdentificationCASHA2.crt', 'rb').read()
-    ocspissuer = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+    ocspoptions = {
+        'issuer': x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+    }
 
     clshsm = Signer(DLLPATH)
     fname = 'generated/pdf.pdf'
@@ -83,7 +85,7 @@ def main():
         clshsm,
         tspurl,
         ocspurl=ocspurl,
-        ocspissuer=ocspissuer
+        ocspoptions=ocspoptions
     )
     fname = fname.replace('.pdf', '-signed-cms-hsm-certum.pdf')
     with open(fname, 'wb') as fp:

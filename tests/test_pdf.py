@@ -1,5 +1,7 @@
 import datetime
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 
 from test_cert import (
     CA,
@@ -10,9 +12,29 @@ from test_cert import (
 )
 
 from endesive import pdf
+from endesive import exceptions
 
 
 class PDFTests(unittest.TestCase):
+    @staticmethod
+    def _build_minimal_signed_pdf(signature_hex: bytes = b"30") -> bytes:
+        # Build a minimal PDF-like byte stream containing a valid ByteRange marker.
+        base = (
+            b"%PDF-1.7\n"
+            b"/ByteRange [0000000000 0000000000 0000000000 0000000000]\n<"
+            + signature_hex
+            + b">\n"
+        )
+        start = base.find(b"[")
+        stop = base.find(b"]", start)
+        open_angle = base.find(b"<", stop)
+        close_angle = base.find(b">", open_angle)
+        br = [0, open_angle, close_angle + 1, len(base) - (close_angle + 1)]
+        bto = b"[%d %d %d %d]" % tuple(br)
+        original = base[start : stop + 1]
+        bto = bto + b" " * (len(original) - len(bto))
+        return base[:start] + bto + base[stop + 1 :]
+
     def test_pdf(self):
         dct = {
             'sigflags': 3,
@@ -319,4 +341,183 @@ class PDFTests(unittest.TestCase):
             data, trusted_cert_pems
         )
         assert result.signatureok and result.hashok and result.certok
+
+    def test_pdf_timestamp_requires_tspurl(self):
+        dct = {
+            'sigflags': 3,
+        }
+        fname = fixture('pdf.pdf')
+        with open(fname, 'rb') as fh:
+            datau = fh.read()
+
+        with self.assertRaises(exceptions.TimestampError):
+            pdf.cms.timestamp(datau, dct, 'sha256', None, None)
+
+    def test_pdf_sign_autofills_ocsp_issuer_from_chain(self):
+        dct = {
+            'sigflags': 3,
+            'contact': 'mak@trisoft.com.pl',
+            'location': 'Szczecin',
+            'signingdate': '20180731082642+02\'00\'',
+            'reason': 'Dokument podpisany cyfrowo',
+            'ltv': True,
+        }
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        fname = fixture('pdf.pdf')
+        with open(fname, 'rb') as fh:
+            datau = fh.read()
+
+        with mock.patch('endesive.pdf.cms.signer.fetch_ocsp_response', return_value=None) as ocsp_mock:
+            pdf.cms.sign(
+                datau,
+                dct,
+                p12[0],
+                p12[1],
+                p12[2],
+                'sha256',
+                ocspurl='https://ocsp.example',
+                ocspoptions={},
+            )
+
+        self.assertTrue(ocsp_mock.called)
+        self.assertIn('issuer', ocsp_mock.call_args.args[2])
+        self.assertIsNotNone(ocsp_mock.call_args.args[2]['issuer'])
+
+    def test_pdf_sign_continues_when_ocsp_is_unavailable(self):
+        dct = {
+            'sigflags': 3,
+            'contact': 'mak@trisoft.com.pl',
+            'location': 'Szczecin',
+            'signingdate': '20180731082642+02\'00\'',
+            'reason': 'Dokument podpisany cyfrowo',
+            'ltv': True,
+        }
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        fname = fixture('pdf.pdf')
+        with open(fname, 'rb') as fh:
+            datau = fh.read()
+
+        with mock.patch('endesive.pdf.cms.signer.fetch_ocsp_response', return_value=None):
+            datas = pdf.cms.sign(
+                datau,
+                dct,
+                p12[0],
+                p12[1],
+                p12[2],
+                'sha256',
+                ocspurl='https://ocsp.example',
+                ocspoptions={'issuer': p12[2][0]},
+            )
+
+        self.assertIsInstance(datas, bytes)
+        self.assertGreater(len(datas), 0)
+
+    def test_pdf_sign_does_not_fetch_ocsp_when_ltv_disabled(self):
+        dct = {
+            'sigflags': 3,
+            'contact': 'mak@trisoft.com.pl',
+            'location': 'Szczecin',
+            'signingdate': '20180731082642+02\'00\'',
+            'reason': 'Dokument podpisany cyfrowo',
+            'ltv': False,
+        }
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        fname = fixture('pdf.pdf')
+        with open(fname, 'rb') as fh:
+            datau = fh.read()
+
+        with mock.patch('endesive.pdf.cms.signer.fetch_ocsp_response', return_value=None) as ocsp_mock:
+            datas = pdf.cms.sign(
+                datau,
+                dct,
+                p12[0],
+                p12[1],
+                p12[2],
+                'sha256',
+                ocspurl='https://ocsp.example',
+                ocspoptions={'issuer': p12[2][0]},
+            )
+
+        self.assertIsInstance(datas, bytes)
+        self.assertFalse(ocsp_mock.called)
+
+    def test_pdf_timestamp_raises_on_tsp_unavailable(self):
+        dct = {
+            'sigflags': 3,
+        }
+        fname = fixture('pdf.pdf')
+        with open(fname, 'rb') as fh:
+            datau = fh.read()
+
+        with mock.patch('endesive.pdf.cms.signer.fetch_tsp_response', return_value=None):
+            with self.assertRaises(exceptions.TimestampError):
+                pdf.cms.timestamp(
+                    datau,
+                    dct,
+                    'sha256',
+                    'https://tsa.example',
+                    {'verify': False},
+                )
+
+    def test_pdf_verifier_maps_timestamp_only_payload(self):
+        pdf_data = self._build_minimal_signed_pdf(b'30')
+
+        verifier = pdf.PDFVerifier(pdf_data)
+        fake_result = SimpleNamespace(
+            signed_data={
+                'encap_content_info': {
+                    'content_type': SimpleNamespace(native='tst_info')
+                }
+            },
+            crldata='crl',
+            tsp_data=None,
+        )
+
+        with mock.patch.object(pdf.PDFVerifier, 'decompose_signed_data', return_value=fake_result):
+            with mock.patch.object(pdf.PDFVerifier, 'verify_tsp_data', return_value=None) as tsp_mock:
+                result, remaining = verifier.verify()
+
+        self.assertIsNone(result.signed_data)
+        self.assertEqual(result.tsp_data['encap_content_info']['content_type'].native, 'tst_info')
+        self.assertIsNone(result.crldata)
+        self.assertIsNone(remaining)
+        tsp_mock.assert_called_once()
+
+    def test_pdf_verifier_rejects_invalid_byterange_markers(self):
+        pdf_data = self._build_minimal_signed_pdf(b'30').replace(b'<30>', b'(30)')
+
+        with self.assertRaises(ValueError):
+            pdf.PDFVerifier(pdf_data)
+
+    def test_pdf_verifier_rejects_non_numeric_byterange(self):
+        pdf_data = b"%PDF-1.7\n/ByteRange [a b c d]\n<30>\n"
+
+        with self.assertRaises(ValueError):
+            pdf.PDFVerifier(pdf_data)
+
+    def test_pdf_verifier_verify_all_signatures_for_double_signed_pdf(self):
+        dct = {
+            'sigflags': 3,
+            'contact': 'mak@trisoft.com.pl',
+            'location': 'Szczecin',
+            'signingdate': '20180731082642+02\'00\'',
+            'reason': 'Dokument podpisany cyfrowo',
+        }
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        fname = fixture('pdf.pdf')
+        with open(fname, 'rb') as fh:
+            datau = fh.read()
+
+        first_signed = datau + pdf.cms.sign(datau, dct, p12[0], p12[1], p12[2], 'sha256')
+        second_signed = first_signed + pdf.cms.sign(first_signed, dct, p12[0], p12[1], p12[2], 'sha256')
+
+        with open(ca_root_cert, 'rb') as fh:
+            trusted_cert_pems = [fh.read()]
+
+        verifier = pdf.PDFVerifier(second_signed, trusted_cert_pems)
+        results = verifier.verify_all_signatures()
+
+        self.assertGreaterEqual(len(results), 2)
+        self.assertTrue(results[-1].signatureok)
+        self.assertTrue(results[-1].hashok)
 
