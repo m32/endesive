@@ -811,7 +811,6 @@ class SignedData(PdfWriter):
         )
         # if document was encrypted, encrypt this version too
         if prev.is_encrypted:
-            # TODO: sprawdzić czy to działa
             prev._encryption.id1_entry = id1_entry
 
         fo = io.BytesIO()

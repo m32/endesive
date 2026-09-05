@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "endesive"
-description = "Library for digital signing and verification of digital signatures in mail, PDF and XML documents."
+description = "Digital signatures for PDF, S/MIME, XML (XAdES), and CMS in Python."
 authors = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
 maintainers = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
-readme = "README.rst"
+readme = "README.md"
 version = "3.0.0"
 license = "MIT"
 license-files = ["LICENSE", "LICENSE.pdf-annotate", "LICENSE.pyfpdf"]
@@ -29,6 +29,7 @@ classifiers = [
 dependencies = [
     "cryptography",
     "asn1crypto",
+    "certvalidator",
     "lxml",
     "pykcs11",
     "Pillow",
