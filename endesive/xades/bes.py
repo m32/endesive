@@ -243,7 +243,14 @@ class BES:
         return unsignedproperties
 
     def enveloped(
-        self, data, cert, certcontent, signproc, tspurl, tspcred, signaturemethod=None
+        self,
+        data,
+        cert,
+        certcontent,
+        signproc,
+        tspurl,
+        tspcred,
+        signaturemethod=None,
     ):
         tree = etree.parse(io.BytesIO(data))
         signedobj = tree.getroot()
