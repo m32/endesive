@@ -11,7 +11,8 @@ if TYPE_CHECKING:
 
 
 def verify(
-    message: str, certs: list[bytes | x509.Certificate] | None = None
+    message: str,
+    certs: list[bytes | x509.Certificate] | None = None,
 ) -> verifier.Result:
     """Verify the signature of an S/MIME email message.
 

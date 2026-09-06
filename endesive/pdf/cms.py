@@ -419,7 +419,16 @@ class SignedData(PdfWriter):
         self._objects[page0ref.idnum - 1] = page0
 
     def _makepdf(
-        self, prev, udct, algomd, zeros, cert, othercerts, ocspurl, ocspoptions, **params
+        self,
+        prev,
+        udct,
+        algomd,
+        zeros,
+        cert,
+        othercerts,
+        ocspurl,
+        ocspoptions,
+        **params,
     ):
         catalog = prev.trailer["/Root"]
         size = prev.trailer["/Size"]

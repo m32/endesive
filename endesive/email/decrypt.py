@@ -124,7 +124,10 @@ class DecryptedData(object):
         return udata
 
 
-def decrypt(data: str, key: PrivateKeyTypes) -> bytes:
+def decrypt(
+    data: str,
+    key: PrivateKeyTypes,
+) -> bytes:
     """Decrypt the supplied S/MIME payload using the provided private key.
 
     Args:

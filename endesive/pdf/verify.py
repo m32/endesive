@@ -31,6 +31,7 @@ class RemainingData(object):
         stop: End of unsigned data
 
     """
+
     def __init__(self, start, stop):
         self.start = start
         self.stop = stop

@@ -6,7 +6,7 @@ import logging
 
 import certifi
 import certvalidator
-from asn1crypto import cms, core, ocsp, pem, x509, tsp
+from asn1crypto import cms, core, ocsp, pem, tsp, x509
 from cryptography import x509 as cx509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding
@@ -183,7 +183,9 @@ class SignatureVerifier(object):
             try:
                 hashcls = getattr(hashes, normalized)
             except AttributeError as exc:
-                raise HashAlgorithmError(f"Invalid hash algorithm: {algo_name}") from exc
+                raise HashAlgorithmError(
+                    f"Invalid hash algorithm: {algo_name}"
+                ) from exc
         if hashcls is None:
             raise HashAlgorithmError(f"Invalid hash algorithm: {algo_name}")
         return hashcls
@@ -420,7 +422,7 @@ class SignatureVerifier(object):
             )
         if result.tsp_data["encap_content_info"]["content"].native["version"] != "v1":
             raise TSPVerificationError(
-                f"Unsupported TSP content version: {result.tsp_data["encap_content_info"]["content"].native["version"]}"
+                f"Unsupported TSP content version: {result.tsp_data['encap_content_info']['content'].native['version']}"
             )
 
         sub = self.decompose_signed_data(result.tsp_data, b"")
