@@ -7,7 +7,7 @@ from unittest import mock
 import requests
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, rsa
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.x509.oid import (
     AuthorityInformationAccessOID,
@@ -15,11 +15,158 @@ from cryptography.x509.oid import (
     ObjectIdentifier,
 )
 
-from endesive import email, plain, signer
+from endesive import email, plain, signer, verifier
+from endesive.exceptions import HashAlgorithmError
 from endesive.pdf import cms as pdf_cms
 
 
 class SecuritySignerTests(unittest.TestCase):
+    def _build_ec_chain(self):
+        now = datetime.datetime.now(datetime.UTC)
+        ca_key = ec.generate_private_key(ec.SECP384R1())
+        ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "EC CA")])
+        ca_cert = (
+            x509.CertificateBuilder()
+            .subject_name(ca_name)
+            .issuer_name(ca_name)
+            .public_key(ca_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=1))
+            .not_valid_after(now + datetime.timedelta(days=30))
+            .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+            .sign(ca_key, hashes.SHA384())
+        )
+        leaf_key = ec.generate_private_key(ec.SECP256R1())
+        leaf_cert = (
+            x509.CertificateBuilder()
+            .subject_name(
+                x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "EC Leaf")])
+            )
+            .issuer_name(ca_name)
+            .public_key(leaf_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=1))
+            .not_valid_after(now + datetime.timedelta(days=30))
+            .add_extension(
+                x509.BasicConstraints(ca=False, path_length=None), critical=True
+            )
+            .sign(ca_key, hashes.SHA384())
+        )
+        return ca_cert, leaf_key, leaf_cert
+
+    def test_sign_ec_key_uses_ecdsa_signature_algorithm(self):
+        ca_cert, leaf_key, leaf_cert = self._build_ec_chain()
+
+        for hashalgo, expected in (
+            ("sha256", "sha256_ecdsa"),
+            ("sha384", "sha384_ecdsa"),
+            ("sha512", "sha512_ecdsa"),
+        ):
+            for attrs in (True, False):
+                with self.subTest(hashalgo=hashalgo, attrs=attrs):
+                    cms_bytes = signer.sign(
+                        b"payload",
+                        leaf_key,
+                        leaf_cert,
+                        [ca_cert],
+                        hashalgo,
+                        attrs=attrs,
+                    )
+                    signer_info = signer.cms.ContentInfo.load(cms_bytes)["content"][
+                        "signer_infos"
+                    ][0]
+                    self.assertEqual(
+                        signer_info["signature_algorithm"]["algorithm"].native,
+                        expected,
+                    )
+                    result = verifier.verify(
+                        cms_bytes, b"payload", [ca_cert.public_bytes(Encoding.PEM)]
+                    )
+                    self.assertTrue(result.hashok)
+                    self.assertTrue(result.signatureok)
+                    self.assertTrue(result.certok)
+
+    def _build_eddsa_chain(self, leaf_key):
+        now = datetime.datetime.now(datetime.UTC)
+        ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "RSA CA")])
+        ca_cert = (
+            x509.CertificateBuilder()
+            .subject_name(ca_name)
+            .issuer_name(ca_name)
+            .public_key(ca_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=1))
+            .not_valid_after(now + datetime.timedelta(days=30))
+            .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+            .sign(ca_key, hashes.SHA256())
+        )
+        leaf_cert = (
+            x509.CertificateBuilder()
+            .subject_name(
+                x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "EdDSA Leaf")])
+            )
+            .issuer_name(ca_cert.subject)
+            .public_key(leaf_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=1))
+            .not_valid_after(now + datetime.timedelta(days=30))
+            .add_extension(
+                x509.BasicConstraints(ca=False, path_length=None), critical=True
+            )
+            .sign(ca_key, hashes.SHA256())
+        )
+        return ca_cert, leaf_cert
+
+    def test_sign_ed25519_key(self):
+        leaf_key = ed25519.Ed25519PrivateKey.generate()
+        issuer_cert, leaf_cert = self._build_eddsa_chain(leaf_key)
+
+        cms_bytes = signer.sign(
+            b"payload", leaf_key, leaf_cert, [issuer_cert], "sha512"
+        )
+        signer_info = signer.cms.ContentInfo.load(cms_bytes)["content"][
+            "signer_infos"
+        ][0]
+        self.assertEqual(
+            signer_info["signature_algorithm"]["algorithm"].native, "ed25519"
+        )
+        self.assertEqual(signer_info["digest_algorithm"]["algorithm"].native, "sha512")
+        result = verifier.verify(
+            cms_bytes, b"payload", [issuer_cert.public_bytes(Encoding.PEM)]
+        )
+        self.assertTrue(result.hashok)
+        self.assertTrue(result.signatureok)
+        self.assertTrue(result.certok)
+
+    def test_sign_eddsa_rejects_invalid_parameters(self):
+        leaf_key = ed25519.Ed25519PrivateKey.generate()
+        issuer_cert, leaf_cert = self._build_eddsa_chain(leaf_key)
+
+        with self.assertRaises(HashAlgorithmError):
+            signer.sign(b"payload", leaf_key, leaf_cert, [issuer_cert], "sha256")
+        with self.assertRaises(signer.SignerError):
+            signer.sign(
+                b"payload", leaf_key, leaf_cert, [issuer_cert], "sha512", pss=True
+            )
+        with self.assertRaises(signer.SignerError):
+            signer.sign(
+                b"payload", leaf_key, leaf_cert, [issuer_cert], "sha512", attrs=False
+            )
+
+        ed448_key = ed448.Ed448PrivateKey.generate()
+        _, ed448_cert = self._build_eddsa_chain(ed448_key)
+        with self.assertRaises(signer.SignerError):
+            signer.sign(b"payload", ed448_key, ed448_cert, [issuer_cert], "sha512")
+
+    def test_sign_ec_key_rejects_pss_and_unsupported_hash(self):
+        ca_cert, leaf_key, leaf_cert = self._build_ec_chain()
+
+        with self.assertRaises(signer.SignerError):
+            signer.sign(b"payload", leaf_key, leaf_cert, [ca_cert], "sha256", pss=True)
+        with self.assertRaises(HashAlgorithmError):
+            signer.sign(b"payload", leaf_key, leaf_cert, [ca_cert], "md5")
+
     def _build_chain(self):
         issuer_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         issuer_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Issuer CA")])

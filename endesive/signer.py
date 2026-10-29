@@ -13,7 +13,7 @@ from asn1crypto import algos, cms, keys, ocsp, pem, tsp, util, x509
 from cryptography import x509 as cryptography_x509
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, padding, utils
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, utils
 from cryptography.x509 import ocsp as cryptography_ocsp
 
 from endesive.exceptions import HashAlgorithmError, SignerError, TimestampError
@@ -248,6 +248,24 @@ class SignerBase:
             hashlib.new(self.hashalgo)
         except ValueError as exc:
             raise HashAlgorithmError(f"Unsupported hash algorithm: {hashalgo}") from exc
+        key_algorithm = self.cert.public_key.algorithm
+        if pss and key_algorithm not in ("rsa", "rsassa_pss"):
+            raise SignerError("PSS padding requires an RSA key")
+        if key_algorithm == "ec":
+            # fail early on hashes without an ECDSA signature algorithm
+            self._ecdsa_signature_algorithm()
+        elif key_algorithm == "ed25519":
+            # RFC 8419 section 3.1: signed attributes are digested with SHA-512
+            if self.hashalgo != "sha512":
+                raise HashAlgorithmError(
+                    f"Ed25519 signatures require sha512, not {hashalgo}"
+                )
+            if attrs is False:
+                # RFC 8419 permits it, but OpenSSL cannot verify PureEdDSA
+                # over detached content
+                raise SignerError("Ed25519 signatures require signed attributes")
+        elif key_algorithm not in ("rsa", "rsassa_pss"):
+            raise SignerError(f"Unsupported signing key algorithm: {key_algorithm}")
         self.salt_length: int | None = None if not pss else self.get_pss_salt_length()
 
         if signed_value is None:
@@ -299,6 +317,18 @@ class SignerBase:
         """
         return None
 
+    def _ecdsa_signature_algorithm(self) -> algos.SignedDigestAlgorithm:
+        # the algorithm follows the certificate key, as the private key may live
+        # in an HSM or the signature may be computed externally
+        try:
+            return algos.SignedDigestAlgorithm(
+                {"algorithm": algos.SignedDigestAlgorithmId(f"{self.hashalgo}_ecdsa")}
+            )
+        except ValueError as exc:
+            raise HashAlgorithmError(
+                f"Unsupported hash algorithm for ECDSA: {self.hashalgo}"
+            ) from exc
+
     def build(self) -> dict[str, Any]:
         """Build CMS signer structure.
 
@@ -321,7 +351,13 @@ class SignerBase:
             "signature": self.signed_value,
         }
 
-        if self.pss:
+        if self.cert.public_key.algorithm == "ec":
+            signer["signature_algorithm"] = self._ecdsa_signature_algorithm()
+        elif self.cert.public_key.algorithm == "ed25519":
+            signer["signature_algorithm"] = algos.SignedDigestAlgorithm(
+                {"algorithm": "ed25519"}
+            )
+        elif self.pss:
             signer["signature_algorithm"] = algos.SignedDigestAlgorithm(
                 {
                     "algorithm": "rsassa_pss",
@@ -594,6 +630,9 @@ class Signer(SignerBase):
                 padding.PSS(mgf=padding.MGF1(md()), salt_length=self.salt_length),
                 utils.Prehashed(md()),
             )
+        elif isinstance(self.key, ed25519.Ed25519PrivateKey):
+            # PureEdDSA: the hash is part of the algorithm
+            signed_value_signature = self.key.sign(tosign)
         elif isinstance(self.key, ec.EllipticCurvePrivateKey):
             signed_value_signature = self.key.sign(
                 tosign, ec.ECDSA(getattr(hashes, self.hashalgo.upper())())
