@@ -27,9 +27,8 @@ classifiers = [
     "Topic :: Multimedia :: Graphics",
 ]
 dependencies = [
-    "cryptography",
+    "cryptography>=45",
     "asn1crypto",
-    "certvalidator",
     "lxml",
     "pykcs11",
     "Pillow",

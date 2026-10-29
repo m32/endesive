@@ -191,7 +191,7 @@ class PLAINTests(unittest.TestCase):
         result_pem = plain.verify(datas, datau, [trusted_pem])
         assert result_pem.signatureok and result_pem.hashok and result_pem.certok
 
-    def test_plain_verify_rejects_trusted_cert_object_input(self):
+    def test_plain_verify_accepts_trusted_cert_object_input(self):
         p12 = CA().pk12_load(cert1_p12, '1234')
         with open(fixture('plain-unsigned.txt'), 'rb') as fh:
             datau = fh.read()
@@ -201,8 +201,8 @@ class PLAINTests(unittest.TestCase):
         with open(ca_root_cert, 'rb') as fp:
             trusted_obj = x509.load_pem_x509_certificate(fp.read())
 
-        with self.assertRaises(TypeError):
-            plain.verify(datas, datau, [trusted_obj])
+        result = plain.verify(datas, datau, [trusted_obj])
+        assert result.signatureok and result.hashok and result.certok
 
     def test_plain_sign_rejects_unsupported_hash_algorithm(self):
         p12 = CA().pk12_load(cert1_p12, '1234')
