@@ -175,7 +175,17 @@ class BES:
 
         return c14n
 
-    def _unsignedproperties(self, signed_value, tspurl, tspcred, hashalgo="sha256"):
+    def _unsignedproperties(self, timestamped, tspurl, tspcred, hashalgo="sha256"):
+        """Build xades:UnsignedProperties, with a SignatureTimeStamp if asked.
+
+        Args:
+            timestamped: The ds:SignatureValue element canonicalized with
+                inclusive C14N 1.0, which a SignatureTimeStamp covers
+                (ETSI EN 319 132-1 section 5.3).
+            tspurl: Timestamp server URL, or None for no timestamp.
+            tspcred: Optional dict with ``username`` and ``password``.
+            hashalgo: Message imprint hash algorithm.
+        """
         if tspurl is None:
             unsignedproperties = UnsignedProperties(
                 Id=f"UnsignedProperties_{self.guid}_02"
@@ -189,7 +199,9 @@ class BES:
                             "hash_algorithm": algos.DigestAlgorithm(
                                 {"algorithm": hashalgo}
                             ),
-                            "hashed_message": signed_value.encode(),
+                            "hashed_message": hashlib.new(
+                                hashalgo, timestamped
+                            ).digest(),
                         }
                     ),
                     #'req_policy', ObjectIdentifier, {'optional': True}),
@@ -337,10 +349,6 @@ Content-Disposition: filename="document.xml"\
         logger.debug("canonicalizedxml: %s", canonicalizedxml)
         logger.debug("digestvalue2: %s", digestvalue2)
 
-        unsignedproperties = self._unsignedproperties(
-            digestvalue2, tspurl, tspcred, "sha256"
-        )
-
         if signaturemethod is None:
             signaturemethod = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
         signedinfo = SignedInfo(
@@ -380,25 +388,32 @@ Content-Disposition: filename="document.xml"\
             digestvalue3.append(actualdigestencoded[i : i + 64])
         digestvalue3 = "\n".join(digestvalue3)
 
+        signaturevalue = SignatureValue(
+            digestvalue3, Id=f"SignatureValue_{self.guid}_05"
+        )
+        qualifyingproperties = QualifyingProperties(
+            signedproperties,
+            Id=f"QualifyingProperties_{self.guid}_14",
+            Target=f"#Signature_{self.guid}_4e",
+        )
         DOC = Signature(
             signedinfo,
-            SignatureValue(digestvalue3, Id=f"SignatureValue_{self.guid}_05"),
+            signaturevalue,
             KeyInfo(
                 X509Data(X509Certificate(certcontent)),
                 Id=f"KeyInfo_{self.guid}_73",
             ),
-            Object(
-                QualifyingProperties(
-                    signedproperties,
-                    unsignedproperties,
-                    Id=f"QualifyingProperties_{self.guid}_14",
-                    Target=f"#Signature_{self.guid}_4e",
-                )
-            ),
+            Object(qualifyingproperties),
             Id=f"Signature_{self.guid}_4e",
         )
 
         signedobj.append(DOC)
+        # canonicalized in place, as it inherits the document's namespaces
+        qualifyingproperties.append(
+            self._unsignedproperties(
+                self._c14n(signaturevalue, ""), tspurl, tspcred, "sha256"
+            )
+        )
         return tree
 
     def enveloping(
@@ -544,26 +559,28 @@ Content-Disposition: filename="{fname}"\
             digestvalue3.append(actualdigestencoded[i : i + 64])
         digestvalue3 = "\n".join(digestvalue3)
 
-        unsignedproperties = self._unsignedproperties(
-            digestvalue2, tspurl, tspcred, "sha256"
+        signaturevalue = SignatureValue(
+            digestvalue3, Id=f"SignatureValue_{self.guid}_05"
         )
-
+        qualifyingproperties = QualifyingProperties(
+            signedprop,
+            Id=f"QualifyingProperties_{self.guid}_14",
+            Target=f"#Signature_{self.guid}_4e",
+        )
         DOC = Signature(
             signedinfo,
-            SignatureValue(digestvalue3, Id=f"SignatureValue_{self.guid}_05"),
+            signaturevalue,
             KeyInfo(
                 X509Data(X509Certificate(certcontent)),
                 Id=f"KeyInfo_{self.guid}_73",
             ),
-            Object(
-                QualifyingProperties(
-                    signedprop,
-                    unsignedproperties,
-                    Id=f"QualifyingProperties_{self.guid}_14",
-                    Target=f"#Signature_{self.guid}_4e",
-                )
-            ),
+            Object(qualifyingproperties),
             Id=f"Signature_{self.guid}_4e",
+        )
+        qualifyingproperties.append(
+            self._unsignedproperties(
+                self._c14n(signaturevalue, ""), tspurl, tspcred, "sha256"
+            )
         )
         if signedobj is not None:
             DOC.append(signedobj)

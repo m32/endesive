@@ -104,7 +104,7 @@ class TSPTests(unittest.TestCase):
         with self.subTest("xades"):
             tsa = FakeTSA(status="granted_with_mods")
             with mock.patch("requests.post", side_effect=tsa.post):
-                props = BES()._unsignedproperties("c2lnbmF0dXJl", TSPURL, None)
+                props = BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
             self.assertEqual(len(tsa.requests), 1)
             self.assertEqual(len(props.findall(".//{*}EncapsulatedTimeStamp")), 1)
 
@@ -121,7 +121,7 @@ class TSPTests(unittest.TestCase):
             tsa = FakeTSA(status="rejection")
             with mock.patch("requests.post", side_effect=tsa.post):
                 with self.assertRaises(ValueError):
-                    BES()._unsignedproperties("c2lnbmF0dXJl", TSPURL, None)
+                    BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
 
 
 if __name__ == "__main__":
