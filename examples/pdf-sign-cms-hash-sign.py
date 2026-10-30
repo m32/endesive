@@ -4,9 +4,9 @@ import sys
 
 import PyKCS11 as PK11
 from asn1crypto import pem as asn1pem
+from hsm_config_softhsm import DLLPATH
 
 from endesive import hsm
-from hsm_config_softhsm import DLLPATH
 
 
 class Signer(hsm.HSM):

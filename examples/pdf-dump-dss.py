@@ -1,27 +1,14 @@
-from asn1crypto import (
-    algos,
-    cms,
-    core,
-    crl,
-    keys,
-    ocsp,
-    parser,
-    pdf,
-    pem,
-    pkcs12,
-    tsp,
-    util,
-    version,
-    x509,
-)
-from endesive.pdf.PyPDF2 import generic as po, pdf
+import sys
+
+from asn1crypto import ocsp
+from pypdf import PdfReader
 
 from endesive.signer import cert2asn
 
 
 class Dumper:
     def __init__(self, fname):
-        self.pdf = pdf.PdfFileReader(open(fname, "rb"))
+        self.pdf = PdfReader(fname)
 
     def show(self):
         root = self.pdf.trailer["/Root"]
@@ -33,11 +20,11 @@ class Dumper:
         self.showCRLs(dss["/CRLs"])
 
     def showCert(self, der):
-        pem = cert2asn(der, False)
-        # pem.debug()
-        print(pem.serial_number)
-        print(pem.issuer.native)
-        print(pem.subject.native)
+        certasn = cert2asn(der)
+        # certasn.debug()
+        print(certasn.serial_number)
+        print(certasn.issuer.native)
+        print(certasn.subject.native)
 
     def showOCSP(self, der):
         data = ocsp.OCSPResponse.load(der)
@@ -51,19 +38,19 @@ class Dumper:
     def showCerts(self, objs):
         print("*" * 20, "Certs")
         for robj in objs:
-            obj = robj.getObject()
-            der = obj.getData()
+            obj = robj.get_object()
+            der = obj.get_data()
             self.showCert(der)
 
     def showVRI(self, obj):
         print("*" * 20, "VRI")
         for k, robj in obj.items():
             print("*" * 20, k)
-            vobj = robj.getObject()
+            vobj = robj.get_object()
             print("/TU", vobj["/TU"])
             print("*" * 10, "VRI-cert")
             for robj in vobj["/Cert"]:
-                der = robj.getObject().getData()
+                der = robj.get_object().get_data()
                 self.showCert(der)
             try:
                 robjs = vobj["/OCSP"]
@@ -71,26 +58,29 @@ class Dumper:
                 robjs = []
             for robj in robjs:
                 print("*" * 10, "VRI-OCSP")
-                der = robj.getObject().getData()
+                der = robj.get_object().get_data()
                 self.showOCSP(der)
 
     def showOCSPs(self, objs):
         print("*" * 20, "OCSPs")
         for robj in objs:
-            obj = robj.getObject()
-            der = obj.getData()
+            obj = robj.get_object()
+            der = obj.get_data()
             print("*" * 10, "OCSP")
             self.showOCSP(der)
 
     def showCRLs(self, objs):
         print("*" * 20, "CRLs")
         for robj in objs:
-            obj = robj.getObject()
+            obj = robj.get_object()
             print(obj)
 
 
 def main():
-    cls = Dumper("pdf-signed-cms-m32_ocsp.pdf")
+    fname = "generated/pdf-signed-cms-ltv.pdf"
+    if len(sys.argv) > 1:
+        fname = sys.argv[1]
+    cls = Dumper(fname)
     cls.show()
 
 

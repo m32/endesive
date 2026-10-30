@@ -23,7 +23,7 @@ doc.set_compression(0)
 font = 'helvetica'
 if options.pdf_font:
     font = options.pdf_font.replace('\\', '/').split('/')[-1].split('.')[0]
-    doc.add_font(font, '', options.pdf_font, True)
+    doc.add_font(font, '', options.pdf_font)
 
 for i in range(2):
     doc.add_page()
@@ -34,5 +34,5 @@ for i in range(2):
         doc.set_link(link, page=2)
     doc.cell(w=75.0, h=22.0, align='C', text='Hello, world page=%d.' % i, border=0, link=link, new_x=fpdf.XPos.RIGHT, new_y=fpdf.YPos.TOP)
     if font != 'helvetica':
-        pdf.cell(w=75.0, h=22.0, align='C', text='Hello, world page=%d.' % i, border=0, new_x=fpdf.XPos.RIGHT, new_y=fpdf.YPos.TOP)
+        doc.cell(w=75.0, h=22.0, align='C', text='Hello, world page=%d.' % i, border=0, new_x=fpdf.XPos.RIGHT, new_y=fpdf.YPos.TOP)
 doc.output(options.filename)

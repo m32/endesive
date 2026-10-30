@@ -1,20 +1,22 @@
 import sys
 
-from jnius import autoclass
-
 import pdfbox
+from jnius import JavaException, autoclass
 
 pdfname = 'generated/pdf.pdf'
 if len(sys.argv) > 1:
     pdfname = sys.argv[1]
-signature = autoclass('org.apache.pdfbox.examples.examples.ShowSignature')
-signature.showSignature('', pdfname)
-parser.parse()
-#org.apache.pdfbox.preflight.PreflightDocument
-document = parser.getPreflightDocument()
-document.validate()
-result = document.getResult()
-document.close()
+# needs pdfbox-examples-3.0.5.jar; showSignature is private, main takes [password, file]
+try:
+    ShowSignature = autoclass('org.apache.pdfbox.examples.signature.ShowSignature')
+    ShowSignature.main(['', pdfname])
+except JavaException as e:
+    # no examples jar, or e.g. the chain of a demo certificate without its root CA
+    print("ShowSignature failed:", e.classname, e.innermessage)
+# PDFBox 3: PreflightParser.validate replaces parse/getPreflightDocument/validate
+File = autoclass('java.io.File')
+PreflightParser = autoclass('org.apache.pdfbox.preflight.parser.PreflightParser')
+result = PreflightParser.validate(File(pdfname))
 if result.isValid():
     print("The file:{} is a valid PDF/A-1b file".format(pdfname))
 else:

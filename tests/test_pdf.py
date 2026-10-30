@@ -8,6 +8,7 @@ from unittest import mock
 
 import PIL.Image
 import pypdf
+from cryptography import x509
 
 from test_cert import (
     CA,
@@ -209,6 +210,26 @@ class PDFTests(unittest.TestCase):
         result, moredata = pdf.verify(
             data, trusted_cert_pems
         )
+        assert result.signatureok and result.hashok and result.certok
+
+    def test_pdf_signature_appearance_cn_of_certificate_without_cn(self):
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        self.assertEqual(
+            p12[1].subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME), []
+        )
+        dct = {
+            'sigflags': 3,
+            'sigpage': 0,
+            'auto_sigfield': True,
+            'signaturebox': (72, 396, 360, 468),
+            'signingdate': "D:20260101000000+00'00'",
+            'signature_appearance': {'labels': True, 'display': ['CN', 'DN']},
+        }
+        with open(fixture('pdf.pdf'), 'rb') as fh:
+            datau = fh.read()
+        datas = pdf.cms.sign(datau, dct, p12[0], p12[1], p12[2], 'sha256')
+        with open(ca_root_cert, 'rb') as fh:
+            result, _ = pdf.verify(datau + datas, [fh.read()])
         assert result.signatureok and result.hashok and result.certok
 
     def test_pdf_signature_appearance_ec(self):

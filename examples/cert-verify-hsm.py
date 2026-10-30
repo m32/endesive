@@ -5,9 +5,9 @@ import datetime
 import certifi
 import certvalidator
 from asn1crypto import pem, x509
+from hsm_config_softhsm import DLLPATH
 
 from endesive import hsm
-from hsm_config_softhsm import DLLPATH
 
 
 class HSM(hsm.HSM):

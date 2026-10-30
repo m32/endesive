@@ -55,6 +55,7 @@ def main():
         if data2:
             dig.update(data2)
         data = dig.digest()
+    signature = dcontents[3:] # ASN1 STRING
     if 0:
         open("a-cert.der", "wb").write(dcert)
         open("a-sig.der", "wb").write(signature)
@@ -62,7 +63,6 @@ def main():
         open("a-data-2.der", "wb").write(data2)
 
     cert = x509.load_der_x509_certificate(dcert, default_backend())
-    signature = dcontents[3:] # ASN1 STRING
     pubkey = cert.public_key()
     try:
         pubkey.verify(signature, data, padding.PKCS1v15(), hashes.SHA1())

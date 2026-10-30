@@ -4,9 +4,9 @@ import sys
 import PyKCS11 as PK11
 from cryptography import x509
 from cryptography.hazmat import backends
+from hsm_config_certum import DLLPATH
 
 from endesive import hsm, pdf
-from hsm_config_certum import DLLPATH
 
 
 class Signer(hsm.HSM):

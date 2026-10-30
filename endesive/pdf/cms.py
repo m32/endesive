@@ -357,9 +357,10 @@ class SignedData(PdfWriter):
                 if "date" in toggles:
                     sig["date"] = udct["signingdate"]
                 if "CN" in toggles:
-                    sig["CN"] = cert.subject.get_attributes_for_oid(
+                    cn = cert.subject.get_attributes_for_oid(
                         ObjectIdentifier("2.5.4.3")
-                    )[0].value
+                    )
+                    sig["CN"] = cn[0].value if cn else "CN unknown"
                 if "DN" in toggles:
                     sig["DN"] = cert.subject.rfc4514_string()
             annotation.simple_signature(sig)

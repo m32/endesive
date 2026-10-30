@@ -1,4 +1,6 @@
-from endesive import pdf, exceptions
+import traceback
+
+from endesive import exceptions, pdf
 
 
 def main():
@@ -69,7 +71,6 @@ def main():
             print('untrusted timestamp:', exc)
         except Exception as exc:
             print(exc)
-            import traceback
 
             traceback.print_exc()
 

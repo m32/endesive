@@ -35,9 +35,9 @@ class GoogleHSM(hsm.BaseHSM):
 
     def sign(self, keyid, data, mech):
 
-        """ 
-        Following the example here: 
-        https://github.com/googleapis/python-kms/blob/master/samples/snippets/sign_asymmetric.py 
+        """
+        Following the example here:
+        https://github.com/googleapis/python-kms/blob/master/samples/snippets/sign_asymmetric.py
         """
 
         client = kms.KeyManagementServiceClient()

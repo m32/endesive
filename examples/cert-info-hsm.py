@@ -1,9 +1,9 @@
 import pprint
 
 import PyKCS11 as PK11
+from hsm_config_softhsm import DLLPATH
 
 from endesive import hsm, pdf
-from hsm_config_softhsm import DLLPATH
 
 
 class Signer(hsm.HSM):

@@ -4,9 +4,9 @@ import sys
 import PyKCS11 as PK11
 from cryptography import x509
 from cryptography.hazmat import backends
+from hsm_config_kir import DLLPATH
 
 from endesive import hsm, pdf
-from hsm_config_kir import DLLPATH
 
 
 class Signer(hsm.HSM):
@@ -70,7 +70,7 @@ def main():
     ocspurl = 'https://ocsp.certum.pl/'
     ocspissuer = open('CertumDigitalIdentificationCASHA2.crt', 'rb').read()
     ocspoptions = {
-        'issuer' = x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
+        'issuer': x509.load_pem_x509_certificate(ocspissuer, backends.default_backend())
     }
 
     clshsm = Signer(DLLPATH)

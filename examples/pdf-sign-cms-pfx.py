@@ -100,8 +100,8 @@ OID_NAMES = {
 
 def get_rdns_names(rdns):
     names = {}
-    for oid in OID_NAMES:
-        names[OID_NAMES[oid]] = ""
+    for value in OID_NAMES.values():
+        names[value] = ""
     for rdn in rdns:
         for attr in rdn._attributes:
             if attr.oid in OID_NAMES:
@@ -139,7 +139,6 @@ def run():
             #'location': subject.C.encode(),
             "location": "Szczecin",
             "signingdate": date,
-            "signingdate": "20201119195200+02'00'",
             "reason": "Signed by endurance",
             "signature": signature,
             "signaturebox": tuple(coords[:4]),
