@@ -1,0 +1,179 @@
+endesive - lista proponowanych zmian
+=====================================
+
+Stan na commit c96e35b (2026-10-30). Numery linii podane przy plikach
+odnoszą się do tego commitu; przy rozpoczęciu pracy sprawdź je ponownie
+(najpewniej po nazwie funkcji).
+
+
+JAK ZACZĄĆ
+----------
+
+Testy:
+    python -m pytest -q                      # ok. 139 testów, kilkanaście sekund
+    python -W error -m unittest discover tests   # tak jak w Makefile
+    ruff check endesive                      # bez błędów
+
+- pyproject.toml ma filterwarnings = ["error"]: każde ostrzeżenie
+  (np. DeprecationWarning z Pillow) wywraca test.
+- tests/fake_tsa.py: lokalny, fałszywy serwer TSA (RFC 3161) z własnym CA.
+  Użycie: tsa = FakeTSA(); mock.patch("requests.post", side_effect=tsa.post);
+  zaufać tsa.root_pem. Opcje: status, tamper_imprint, swap_tst_info,
+  content_type, wrong_nonce, gen_time. tsa.requests to lista żądań.
+- Testy HSM nadpisują
+  examples/softhsm2/c7f2c5de-50e3-5765-ecca-01044f073ba4/token.object -
+  tej zmiany nie commitować.
+- Błąd ruff istniejący przed tą pracą: I001 (kolejność importów)
+  w tests/test_pdf.py.
+
+Przyjęty sposób pracy:
+- jeden commit na jeden problem, z testem, który bez poprawki nie przechodzi
+  (sprawdzać to, uruchamiając nowy test na starej wersji pliku);
+- przed commitem: pełny pytest, unittest discover i ruff;
+- push na origin/master dopiero po akceptacji.
+
+
+DO ZROBIENIA (od najważniejszych)
+----------------------------------
+
+1. [błąd, potwierdzony] Weryfikacja S/MIME nie działa, gdy podpisana część
+   ma nagłówki MIME
+   Gdzie: endesive/email/verify.py (pętla po msg.walk(), ok. linii 43-53).
+   Problem: email.sign podpisuje całą część (nagłówki + treść), a
+   email.verify porównuje tylko treść części text/plain
+   (part.get_payload(decode=False)). Dla datau z nagłówkami, np.
+   b'Content-Type: text/plain; charset="utf-8"\n\nHello\n', endesive daje
+   hashok=False, a "openssl smime -verify" ten sam podpis akceptuje.
+   Wiadomości bez nagłówków w części (jak tests/fixtures/smime-unsigned.txt)
+   działają tylko przypadkiem.
+   Propozycja: weryfikować surową pierwszą część multipart/signed (bajty
+   między granicami boundary, z nagłówkami), zgodnie z RFC 5751 3.4.3, a nie
+   treść wybranej części text/plain. Obsłużyć też treść, która nie jest
+   text/plain (np. multipart/mixed z załącznikami).
+   Testy: podpis z nagłówkami, z załącznikiem, porównanie z openssl smime.
+
+2. [bezpieczeństwo] Szyfrowanie S/MIME (dawny punkt 9)
+   Gdzie: endesive/email/decrypt.py:113-118, endesive/email/encrypt.py:191-192.
+   Problemy:
+   - padding oracle: osobne komunikaty "Unknown block size" i
+     "Unknown padding" przy usuwaniu dopełnienia CBC; usuwanie dopełnienia
+     nie jest w stałym czasie;
+   - domyślnie oaep=False (RSA PKCS#1 v1.5, podatne na Bleichenbacher);
+   - brak szyfrowania z uwierzytelnieniem (AES-GCM, AuthEnvelopedData,
+     RFC 5083/5084).
+   Propozycja: cryptography.hazmat.primitives.padding.PKCS7 do usuwania
+   dopełnienia, jeden ogólny DecryptionError; domyślnie OAEP; dodać
+   AES-GCM. Uwaga na zgodność: zmiana domyślnych wartości to zmiana
+   API - do uzgodnienia; tests/test_email.py ma testy złego dopełnienia
+   (_tamper_padding_value), które trzeba będzie dostosować.
+
+3. [funkcja, duże] Wykrywanie zmian w PDF po podpisie (dawny punkt 16)
+   Gdzie: endesive/pdf/verify.py (verify, verify_signature, get_remaining_data).
+   Problem: verify() sprawdza tylko ostatni podpis; nie analizuje, co
+   zmieniły późniejsze aktualizacje inkrementalne (shadow attacks), nie
+   egzekwuje uprawnień DocMDP (/Perms, /TransformParams /P).
+   Warunek ByteRange[0] == 0 też jest sprawdzany tylko dla ostatniego podpisu.
+   Propozycja: dla każdego podpisu wczytać wersję dokumentu z jego
+   ByteRange i porównać obiekty z kolejnymi wersjami; dopuszczać tylko zmiany
+   zgodne z DocMDP (pola formularza, adnotacje, kolejne podpisy, DSS).
+   Wymaga projektu przed implementacją.
+
+4. [funkcja] OCSP na czas pieczęci czasu
+   Gdzie: endesive/verifier.py, verify_ocsp_data (now = ... ok. linii 633).
+   Problem: od c96e35b certyfikat podpisującego jest sprawdzany na czas
+   ważnej pieczęci (Result.certtime), ale OCSP nadal na chwilę obecną:
+   dla starszych podpisów zapisana odpowiedź OCSP jest "response is stale",
+   a odwołanie certyfikatu po dacie pieczęci daje ocspok=False.
+   Propozycja: sprawdzać świeżość i status OCSP względem result.certtime;
+   odwołanie po certtime nie unieważnia podpisu (ewentualnie osobny komunikat).
+
+5. [funkcja, duże] Weryfikacja długoterminowa (LTV)
+   Problem: certyfikat TSA jest sprawdzany na chwilę obecną, więc po jego
+   wygaśnięciu verify_tsp_data rzuca TSPVerificationError. Brak obsługi
+   pieczęci archiwalnych i danych DSS/VRI przy weryfikacji PDF (podpisywanie
+   je zapisuje: endesive/pdf/cms.py, _makepdf, gałąź ltv).
+   Propozycja: łańcuch pieczęci (najnowsza pieczęć dokumentu poświadcza
+   wcześniejsze), walidacja na podstawie danych z DSS.
+
+6. [funkcja] Wybór algorytmów w XAdES (reszta dawnego punktu 14)
+   Gdzie: endesive/xades/bes.py - SHA-256 zaszyte w URI DigestMethod
+   (linie 262, 323, 329, 434, 494, 500), signproc(..., "sha256") (341, 512),
+   domyślny SignatureMethod rsa-sha256 (310, 482), C14N 1.0 (204, 313, 485, 491).
+   Propozycja: parametr algorytmu skrótu (sha256/384/512) z mapą na URI
+   xmlenc / xmldsig-more; SignatureMethod dobierany do klucza (RSA, ECDSA);
+   opcjonalnie exclusive C14N. Sprawdzić wynik walidatorem
+   (https://dss.nowina.lu/validation - adres jest w nagłówku bes.py).
+   Uwaga: XAdES nie ma weryfikatora w endesive; testy tylko po stronie
+   budowy dokumentu (tests/test_xades.py).
+
+7. [drobne] Weryfikator obsługuje tylko jeden SignerInfo
+   Gdzie: endesive/verifier.py:357 ("Expected to find exactly one SignerInfo").
+   CMS z kilkoma podpisującymi jest odrzucany. Do rozważenia, jeśli
+   potrzebne.
+
+8. [drobne] Zwykły podpis PDF wymaga udct["signingdate"]
+   Gdzie: endesive/pdf/cms.py:515 (/M) i :359 (wyświetlanie daty w wyglądzie).
+   Dla trybu timestamp naprawione w 56076a2; dla zwykłego podpisu brak
+   klucza daje KeyError, choć /M jest w PDF opcjonalne. Dokumentacja sign()
+   mówi, że pole jest wymagane - do decyzji: zostawić albo domyślnie
+   bieżący czas.
+
+9. [drobne] Podwójne podpisywanie PDF przy aligned=0
+   Gdzie: endesive/pdf/cms.py, SignedData.sign (ok. linii 751-795).
+   Bez udct["aligned"] (domyślnie 0 dla RSA) dokument jest podpisywany dwa
+   razy: najpierw próbnie, żeby poznać rozmiar podpisu. Przy HSM to dwa
+   użycia klucza (np. dwa razy PIN), przy TSA dwa żądania. Do rozważenia:
+   szacowanie rozmiaru z długości klucza zamiast próbnego podpisu.
+
+10. [porządki] Kolejność importów w tests/test_pdf.py (ruff I001,
+    "ruff check --select I001 --fix tests/test_pdf.py").
+
+
+DECYZJE - NIE ZMIENIAĆ BEZ UZGODNIENIA
+--------------------------------------
+
+- OCSP przy podpisywaniu jest opcjonalny: gdy podany ocspurl nie odpowiada,
+  podpis powstaje bez odpowiedzi OCSP (test
+  test_pdf_sign_continues_when_ocsp_is_unavailable). Dla TSA jest odwrotnie:
+  brak pieczęci przy podanym tspurl to TimestampError (33c9a88).
+- micalg dla SHA-1 zostaje "sha1" (jak RFC 3851 i OpenSSL), mimo że
+  RFC 5751 podaje "sha-1".
+- Od c96e35b certok przy ważnej pieczęci czasu znaczy "certyfikat był ważny
+  w chwili podpisu", nie "jest ważny teraz" (Result.certtime).
+
+Fałszywe alarmy - sprawdzone, nie zgłaszać ponownie:
+- "/FlatDecode" w SignedData._extend: strumienie są już skompresowane,
+  poprawienie pisowni dałoby podwójną kompresję; martwy kod usunięty
+  w 72e8c49, test pilnuje jednokrotnej kompresji.
+- Limit ok. 100 MB dla ByteRange (_WNumberObject "%08d"): nie istnieje;
+  PDF 136 MB podpisuje się i weryfikuje, faktyczny limit to pliki
+  rzędu terabajtów.
+
+Znane ograniczenia zależności:
+- asn1crypto wymaga pola timeStampToken w TimeStampResp, choć RFC 3161
+  podaje je jako opcjonalne; obejście w signer.tsp_granted().
+
+
+ZROBIONE (0a5d5fd..c96e35b)
+---------------------------
+
+b8b12e5 imprint TSP sprawdzany algorytmem z tokenu (nie zawsze SHA-256)
+fb07da5 pieczęć czasu dokumentu PDF porównywana z treścią dokumentu
+4fbf53f odrzucanie tokenów TSA z TSTInfo niezgodnym z message_digest
+436f537 attrs jako dowolny callable
+72e8c49 usunięty martwy warunek /FlatDecode
+10ac5d6 granted_with_mods; odmowa TSA bez błędu parsowania
+933dc5e XAdES: pieczęć czasu nad kanonizowanym ds:SignatureValue
+80145d7 Pillow: tobytes() zamiast przestarzałego getdata
+06b76c3 certifi w zależnościach
+51eaff7 S/MIME: końce linii CRLF
+33c9a88 TimestampError, gdy TSA nie odpowie lub odmówi
+883b5c7 Content-Type odpowiedzi TSA z parametrami
+56076a2 timestamp() bez wymaganego signingdate
+2612051 usunięty martwy kod (signer, decrypt)
+e27a0dc sprawdzanie nonce i imprintu w odpowiedzi TSA
+55d9b5a usunięty wyłączony test z prawdziwym TSA
+4886e8c /ID w PDF z secrets
+180f883 S/MIME: sha224 i sha384, algorytm sprawdzany przed podpisem
+b44ca8d XAdES: wspólny kod żądań TSA
+c96e35b certyfikat sprawdzany na czas ważnej pieczęci czasu

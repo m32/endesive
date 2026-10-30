@@ -15,6 +15,10 @@ from pypdf import PdfReader, PdfWriter, generic as po
 
 from endesive import signer
 from endesive.exceptions import TimestampError
+from endesive.pdf.PyPDF2_annotate.annotations.signature import Signature
+from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
+from endesive.pdf.PyPDF2_annotate.config.location import Location
+from endesive.pdf.PyPDF2_annotate.util.geometry import identity
 
 
 def _b_(s: str | bytes) -> bytes:
@@ -257,11 +261,6 @@ class SignedData(PdfWriter):
         return annot, annot_ref
 
     def _addAnnotation(self, cert, udct, box, page0ref, obj13, obj13ref, new_13):
-        from endesive.pdf.PyPDF2_annotate.annotations.signature import Signature
-        from endesive.pdf.PyPDF2_annotate.config.appearance import Appearance
-        from endesive.pdf.PyPDF2_annotate.config.location import Location
-        from endesive.pdf.PyPDF2_annotate.util.geometry import identity
-
         x1, y1, x2, y2 = box
         annotation = Signature(
             Location(x1=x1, y1=y1, x2=x2, y2=y2, page=0), Appearance()

@@ -5,7 +5,6 @@ from email.mime.application import MIMEApplication
 from typing import TYPE_CHECKING
 
 from asn1crypto import algos, cms, core
-from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
 try:
@@ -18,6 +17,9 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as 
 
 from endesive import signer
 from endesive.exceptions import EncryptionError
+
+if TYPE_CHECKING:
+    from cryptography import x509
 
 
 class EncryptedData(object):
