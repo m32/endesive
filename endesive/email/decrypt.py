@@ -104,14 +104,6 @@ class DecryptedData(object):
             "AES256",
         ):
             cipher = Cipher(algorithms.AES(udata), proc(param), default_backend())
-        elif algorithm == "TRIPLEDES":
-            raise DecryptionError(f"Unknown algorithm: {algo}")
-            # XXX will be removed in version 48.0.0
-            from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
-
-            # XXX howto decode parameters to CBC mode ?
-            mode = "cbc"
-            cipher = Cipher(TripleDES(udata), proc(param), default_backend())
         else:
             raise DecryptionError(f"Unknown algorithm: {algo}")
 

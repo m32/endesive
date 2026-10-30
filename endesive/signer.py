@@ -420,39 +420,6 @@ class SignerBase:
             )
 
         if self.attrs is True:
-            signing_certificate1 = cms.CMSAttribute(
-                {
-                    "type": cms.CMSAttributeType("signing_certificate"),
-                    "values": (
-                        tsp.SigningCertificate(
-                            {
-                                "certs": [
-                                    tsp.ESSCertID(
-                                        {
-                                            "cert_hash": hashlib.sha1(
-                                                self.cert.dump()
-                                            ).digest(),
-                                            "issuer_serial": tsp.IssuerSerial(
-                                                {
-                                                    "issuer": (
-                                                        x509.GeneralName(
-                                                            {
-                                                                "directory_name": self.cert.issuer,
-                                                            }
-                                                        ),
-                                                    ),
-                                                    "serial_number": self.cert.serial_number,
-                                                }
-                                            ),
-                                        }
-                                    ),
-                                ]
-                            }
-                        ),
-                    ),
-                }
-            )
-
             signing_certificate2 = cms.CMSAttribute(
                 {
                     "type": cms.CMSAttributeType("signing_certificate_v2"),
@@ -619,15 +586,9 @@ class Signer(SignerBase):
 
     def get_pss_salt_length(self) -> int:
         md = getattr(hashes, self.hashalgo.upper())
-        if isinstance(self.key, keys.PrivateKeyInfo):
-            salt_length = self.key.byte_size - md.digest_size - 2
-            salt_length = md.digest_size
-        else:
-            if self.key is None:
-                salt_length = md.digest_size
-            else:
-                salt_length = padding.calculate_max_pss_salt_length(self.key, md)
-        return salt_length
+        if self.key is None or isinstance(self.key, keys.PrivateKeyInfo):
+            return md.digest_size
+        return padding.calculate_max_pss_salt_length(self.key, md)
 
     def get_ocsp_response(self, cert):
         if self.ocspurl:
