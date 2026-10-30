@@ -91,6 +91,25 @@ class EMAILTests(unittest.TestCase):
         assert stderr == b'Verification successful\n'
         assert datau.replace(b'\n', b'\r\n') == stdout
 
+    def test_email_sign_and_verify_with_crlf_line_endings(self):
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        with open(ca_sub_cert, 'rb') as fp:
+            cert = fp.read()
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        self.assertNotIn(b'\r', datau)
+        crlf = datau.replace(b'\n', b'\r\n')
+
+        for label, signed_input in (('lf input', datau), ('crlf input', crlf)):
+            with self.subTest(label):
+                datas = email.sign(signed_input, p12[0], p12[1], p12[2], 'sha256', attrs=True)
+                self.assertNotIn(b'\r\r\n', datas)
+                self.assertIn(crlf, datas)
+                # as signed, and as stored by a mail system using CRLF throughout
+                for message in (datas, datas.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')):
+                    result = email.verify(message.decode('utf-8'), [cert])
+                    assert result.hashok and result.signatureok and result.certok
+
     def test_email_signed_attr_pss(self):
         p12 = CA().pk12_load(cert1_p12, '1234')
 

@@ -64,7 +64,8 @@ Content-Disposition: attachment; filename="smime.p7s"
         Raises:
             ValueError: If hash algorithm is unsupported
         """
-        datau = datau.replace(b"\n", b"\r\n")
+        # canonical CRLF line endings, also for input already using them
+        datau = datau.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
         datas = signer.sign(datau, key, cert, othercerts, hashalgo, attrs, pss=pss)
         datas = base64.encodebytes(datas)
         if hashalgo == "sha1":

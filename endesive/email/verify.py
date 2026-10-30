@@ -50,6 +50,7 @@ def verify(
         raise EmailVerificationError("part of signed email not found")
 
     plain = plain.encode("utf-8")
-    plain = plain.replace(b"\n", b"\r\n")
+    # canonical CRLF line endings, whichever the message was stored with
+    plain = plain.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
 
     return verifier.verify(sig, plain, certs)
