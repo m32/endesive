@@ -11,6 +11,17 @@ if TYPE_CHECKING:
     from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
 
+# micalg parameter values (RFC 5751 section 3.4.3.2); SHA-1 keeps the
+# "sha1" spelling of RFC 3851, which OpenSSL also writes
+MICALG = {
+    "sha1": b"sha1",
+    "sha224": b"sha-224",
+    "sha256": b"sha-256",
+    "sha384": b"sha-384",
+    "sha512": b"sha-512",
+}
+
+
 class SignedData(object):
     """S/MIME signed data container."""
 
@@ -62,20 +73,16 @@ Content-Disposition: attachment; filename="smime.p7s"
             Signed S/MIME data as bytes
 
         Raises:
-            ValueError: If hash algorithm is unsupported
+            HashAlgorithmError: If hash algorithm is unsupported
         """
+        # checked before signing, which may ask for an HSM PIN
+        bhashalgo = MICALG.get(hashalgo.lower())
+        if bhashalgo is None:
+            raise HashAlgorithmError(f"Unsupported hash algorithm: {hashalgo}")
         # canonical CRLF line endings, also for input already using them
         datau = datau.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
         datas = signer.sign(datau, key, cert, othercerts, hashalgo, attrs, pss=pss)
         datas = base64.encodebytes(datas)
-        if hashalgo == "sha1":
-            bhashalgo = b"sha1"
-        elif hashalgo == "sha256":
-            bhashalgo = b"sha-256"
-        elif hashalgo == "sha512":
-            bhashalgo = b"sha-512"
-        else:
-            raise HashAlgorithmError(f"Unsupported hash algorithm: {hashalgo}")
         prefix = [b"x-", b""][pss]
         data = self._email(bhashalgo, datau, datas, prefix)
         return data

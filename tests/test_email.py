@@ -4,6 +4,7 @@ import io
 import unittest
 from email import message_from_string
 from subprocess import PIPE, Popen
+from unittest import mock
 
 from asn1crypto import cms
 from test_cert import (
@@ -18,7 +19,11 @@ from test_cert import (
 )
 
 from endesive import email
-from endesive.exceptions import DecryptionError, EmailVerificationError
+from endesive.exceptions import (
+    DecryptionError,
+    EmailVerificationError,
+    HashAlgorithmError,
+)
 
 
 class EMAILTests(unittest.TestCase):
@@ -109,6 +114,42 @@ class EMAILTests(unittest.TestCase):
                 for message in (datas, datas.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')):
                     result = email.verify(message.decode('utf-8'), [cert])
                     assert result.hashok and result.signatureok and result.certok
+
+    def test_email_sign_micalg_for_each_hash_algorithm(self):
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        with open(ca_sub_cert, 'rb') as fp:
+            cert = fp.read()
+        with open(fixture('smime-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+
+        for hashalgo, micalg in (
+            ('sha224', 'sha-224'),
+            ('sha256', 'sha-256'),
+            ('sha384', 'sha-384'),
+            ('sha512', 'sha-512'),
+            ('SHA384', 'sha-384'),
+        ):
+            with self.subTest(hashalgo):
+                datas = email.sign(datau, p12[0], p12[1], p12[2], hashalgo, attrs=True)
+                msg = message_from_string(datas.decode('utf-8'))
+                self.assertEqual(msg.get_param('micalg'), micalg)
+
+                result = email.verify(datas.decode('utf-8'), [cert])
+                assert result.hashok and result.signatureok and result.certok
+
+                process = Popen(
+                    ['openssl', 'smime', '-verify', '-CAfile', ca_root_cert, '-inform', 'SMIME'],
+                    stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                )
+                stdout, stderr = process.communicate(datas)
+                self.assertEqual(stderr, b'Verification successful\n')
+
+    def test_email_sign_rejects_unsupported_hash_before_signing(self):
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        with mock.patch('endesive.signer.sign') as sign_mock:
+            with self.assertRaisesRegex(HashAlgorithmError, 'Unsupported hash algorithm: md5'):
+                email.sign(b'payload', p12[0], p12[1], p12[2], 'md5', attrs=True)
+        sign_mock.assert_not_called()
 
     def test_email_signed_attr_pss(self):
         p12 = CA().pk12_load(cert1_p12, '1234')
