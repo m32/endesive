@@ -82,6 +82,29 @@ class TSPTests(unittest.TestCase):
                         tspurl=TSPURL,
                     )
 
+    def test_reply_content_type_parameters_and_case_are_ignored(self):
+        for content_type in (
+            "application/timestamp-reply; charset=binary",
+            "Application/Timestamp-Reply",
+        ):
+            with self.subTest(content_type):
+                tsa = FakeTSA(content_type=content_type)
+                result = self._sign_and_verify(tsa, "sha256")
+                self.assertIs(result.tspok, True, result.tspmsg)
+
+                tsa = FakeTSA(content_type=content_type)
+                with mock.patch("requests.post", side_effect=tsa.post):
+                    props = BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
+                self.assertEqual(len(props.findall(".//{*}EncapsulatedTimeStamp")), 1)
+
+    def test_reply_with_other_content_type_is_rejected(self):
+        tsa = FakeTSA(content_type="text/html")
+        with self.assertRaisesRegex(TimestampError, "No response"):
+            self._sign_and_verify(tsa, "sha256")
+        with mock.patch("requests.post", side_effect=tsa.post):
+            with self.assertRaisesRegex(ValueError, "invalid content type"):
+                BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
+
     def _pdf(self):
         with open(fixture("pdf.pdf"), "rb") as fh:
             return fh.read()

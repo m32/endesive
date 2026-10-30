@@ -27,6 +27,7 @@ class FakeTSA:
         tamper_imprint: Answer with an imprint which does not match the request.
         swap_tst_info: Sign a TSTInfo with a wrong imprint, but encapsulate
             one with the requested imprint, as a forger would.
+        content_type: Content-Type header of the HTTP responses.
     """
 
     def __init__(
@@ -34,10 +35,12 @@ class FakeTSA:
         status: str = "granted",
         tamper_imprint: bool = False,
         swap_tst_info: bool = False,
+        content_type: str = "application/timestamp-reply",
     ):
         self.status = status
         self.tamper_imprint = tamper_imprint
         self.swap_tst_info = swap_tst_info
+        self.content_type = content_type
         self.requests: list[tsp.TimeStampReq] = []
 
         now = datetime.datetime.now(datetime.UTC)
@@ -189,6 +192,6 @@ class FakeTSA:
     def post(self, url, data=None, headers=None, **kwargs):
         return SimpleNamespace(
             status_code=200,
-            headers={"Content-Type": "application/timestamp-reply"},
+            headers={"Content-Type": self.content_type},
             content=self.respond(data),
         )

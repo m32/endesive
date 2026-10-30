@@ -17,7 +17,7 @@ from asn1crypto import algos, tsp
 from cryptography.x509.oid import NameOID
 from lxml import builder, etree
 
-from endesive.signer import tsp_granted
+from endesive.signer import is_tsp_reply, tsp_granted
 
 logger = logging.getLogger(__name__)
 
@@ -227,10 +227,7 @@ class BES:
                 headers=tspheaders,
                 timeout=DEFAULT_HTTP_TIMEOUT,
             )
-            if (
-                tspresp.headers.get("Content-Type", None)
-                == "application/timestamp-reply"
-            ):
+            if is_tsp_reply(tspresp.headers.get("Content-Type")):
                 tspresp = tsp.TimeStampResp.load(tspresp.content)
 
                 if tsp_granted(tspresp):

@@ -39,6 +39,22 @@ def tsp_granted(response: tsp.TimeStampResp) -> bool:
         return False
 
 
+def is_tsp_reply(content_type: str | None) -> bool:
+    """Tell whether an HTTP Content-Type is a time-stamp reply (RFC 3161 3.4).
+
+    Args:
+        content_type: Value of the Content-Type header, or None.
+
+    Returns:
+        True for ``application/timestamp-reply``, ignoring letter case and
+        parameters such as a charset.
+    """
+    if content_type is None:
+        return False
+    media_type = content_type.split(";", 1)[0].strip().lower()
+    return media_type == "application/timestamp-reply"
+
+
 def cert2asn(
     cert: x509.Certificate | cryptography_x509.Certificate | bytes,
 ) -> x509.Certificate:
@@ -205,10 +221,8 @@ def fetch_tsp_response(
     reqoptions.setdefault("timeout", DEFAULT_HTTP_TIMEOUT)
     try:
         response = requests.post(url, data=tspreq, headers=tspheaders, **reqoptions)
-        if (
-            response.status_code != 200
-            or response.headers.get("Content-Type", None)
-            != "application/timestamp-reply"
+        if response.status_code != 200 or not is_tsp_reply(
+            response.headers.get("Content-Type")
         ):
             return None
         return response.content
