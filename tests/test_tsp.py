@@ -46,6 +46,17 @@ class TSPTests(unittest.TestCase):
         self.assertIs(result.tspok, False)
         self.assertEqual(result.tspmsg, "Invalid hash value")
 
+    def test_signature_timestamp_with_swapped_tst_info_is_rejected(self):
+        result = self._sign_and_verify(FakeTSA(swap_tst_info=True), "sha256")
+        self.assertIs(result.tspok, False)
+        self.assertEqual(result.tspmsg, "TSP message digest is invalid")
+
+    def test_pdf_document_timestamp_with_swapped_tst_info_is_rejected(self):
+        tsa = FakeTSA(swap_tst_info=True)
+        result, _ = pdf.verify(self._timestamp_pdf(tsa), [tsa.root_pem])
+        self.assertIs(result.tspok, False)
+        self.assertEqual(result.tspmsg, "TSP message digest is invalid")
+
     def _timestamp_pdf(self, tsa):
         with open(fixture("pdf.pdf"), "rb") as fh:
             datau = fh.read()

@@ -673,6 +673,11 @@ class SignatureVerifier(object):
             )
 
         sub = self.decompose_signed_data(result.tsp_data, b"")
+        if not sub.hashok:
+            # the signature covers only the signed attributes; without this the
+            # TSTInfo, and so the imprint and time, could be swapped freely
+            result.tsp_result(False, None, "TSP message digest is invalid")
+            return
         if not sub.signatureok:
             result.tsp_result(False, None, "TSP signature is invalid")
             return

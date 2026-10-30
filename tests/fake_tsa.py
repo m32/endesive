@@ -25,11 +25,19 @@ class FakeTSA:
     Args:
         status: PKI status put into every response.
         tamper_imprint: Answer with an imprint which does not match the request.
+        swap_tst_info: Sign a TSTInfo with a wrong imprint, but encapsulate
+            one with the requested imprint, as a forger would.
     """
 
-    def __init__(self, status: str = "granted", tamper_imprint: bool = False):
+    def __init__(
+        self,
+        status: str = "granted",
+        tamper_imprint: bool = False,
+        swap_tst_info: bool = False,
+    ):
         self.status = status
         self.tamper_imprint = tamper_imprint
+        self.swap_tst_info = swap_tst_info
         self.requests: list[tsp.TimeStampReq] = []
 
         now = datetime.datetime.now(datetime.UTC)
@@ -94,22 +102,32 @@ class FakeTSA:
             return tsp.TimeStampResp({"status": {"status": self.status}}).dump()
 
         imprint = req["message_imprint"]
-        if self.tamper_imprint:
-            hashed = bytearray(imprint["hashed_message"].native)
-            hashed[0] ^= 0xFF
-            imprint = tsp.MessageImprint(
-                {"hash_algorithm": imprint["hash_algorithm"], "hashed_message": bytes(hashed)}
-            )
-        tst_info = tsp.TSTInfo(
-            {
-                "version": "v1",
-                "policy": "1.2.3.4",
-                "message_imprint": imprint,
-                "serial_number": len(self.requests),
-                "gen_time": datetime.datetime.now(datetime.UTC),
-                "nonce": req["nonce"],
-            }
+        hashed = bytearray(imprint["hashed_message"].native)
+        hashed[0] ^= 0xFF
+        wrong_imprint = tsp.MessageImprint(
+            {"hash_algorithm": imprint["hash_algorithm"], "hashed_message": bytes(hashed)}
         )
+        gen_time = datetime.datetime.now(datetime.UTC)
+
+        def make_tst_info(message_imprint):
+            return tsp.TSTInfo(
+                {
+                    "version": "v1",
+                    "policy": "1.2.3.4",
+                    "message_imprint": message_imprint,
+                    "serial_number": len(self.requests),
+                    "gen_time": gen_time,
+                    "nonce": req["nonce"],
+                }
+            )
+
+        tst_info = make_tst_info(imprint)
+        if self.tamper_imprint or self.swap_tst_info:
+            signed_tst_info = make_tst_info(wrong_imprint)
+        else:
+            signed_tst_info = tst_info
+        if self.tamper_imprint:
+            tst_info = signed_tst_info
 
         cert = asn1_x509.Certificate.load(self.cert.public_bytes(serialization.Encoding.DER))
         signer_info = cms.SignerInfo(
@@ -127,7 +145,7 @@ class FakeTSA:
                     {"type": "content_type", "values": ["tst_info"]},
                     {
                         "type": "message_digest",
-                        "values": [hashlib.sha256(tst_info.dump()).digest()],
+                        "values": [hashlib.sha256(signed_tst_info.dump()).digest()],
                     },
                     {
                         "type": "signing_certificate_v2",
