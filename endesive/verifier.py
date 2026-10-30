@@ -46,6 +46,9 @@ class Result(object):
             True if signature is valid, False otherwise.
         certok: bool
             True if certificate is valid, False otherwise.
+        certtime: datetime.datetime|None
+            The moment the signer's certificate path was validated for: the
+            time of a valid TSP token, otherwise the time of verification.
         ocspok: bool|None
             True if OCSP is valid, False if invalid, None if not present.
         ocspdata: tuple[datetime.datetime, datetime.datetime | None] | None
@@ -80,6 +83,7 @@ class Result(object):
         self.tsp_data = tsp_data
         #
         self.certok: bool | None = None
+        self.certtime: datetime.datetime | None = None
         self.ocspok: bool | None = None
         self.ocspdata: tuple[datetime.datetime, datetime.datetime | None] | None = None
         self.ocspmsg: str | None = None
@@ -159,6 +163,7 @@ class SignatureVerifier(object):
     def _validator(
         self,
         trustedcerts: list[cx509.Certificate] | None = None,
+        validation_time: datetime.datetime | None = None,
     ) -> verification.ClientVerifier:
         # RFC 5280 style CA checks; end-entity usage is checked separately
         # because signing certificates rarely carry WebPKI client EKUs
@@ -179,7 +184,7 @@ class SignatureVerifier(object):
         builder = (
             verification.PolicyBuilder()
             .store(verification.Store(trustedcerts or []))
-            .time(datetime.datetime.now(tz=datetime.timezone.utc))
+            .time(validation_time or datetime.datetime.now(tz=datetime.timezone.utc))
             .extension_policies(
                 ca_policy=ca_policy,
                 ee_policy=verification.ExtensionPolicy.permit_all(),
@@ -228,11 +233,13 @@ class SignatureVerifier(object):
         othercerts: list[x509.Certificate] | None = None,
         key_usage: list[str] | set[str] | None = None,
         extended_key_usage: list[str] | set[str] | None = None,
+        validation_time: datetime.datetime | None = None,
     ) -> list[cx509.Certificate]:
         """Build and validate the certificate path, raising on failure."""
         leaf = self._to_cryptography(cert)
         intermediates = [self._to_cryptography(c) for c in othercerts or []]
-        chain = self._validator(self.trusted_certs).verify(leaf, intermediates).chain
+        validator = self._validator(self.trusted_certs, validation_time)
+        chain = validator.verify(leaf, intermediates).chain
         self._check_usage(leaf, key_usage, extended_key_usage)
         return chain
 
@@ -243,14 +250,20 @@ class SignatureVerifier(object):
         key_usage: list[str] | None = None,
         extended_key_usage: list[str] | None = None,
         allow_fetching=False,
+        validation_time: datetime.datetime | None = None,
     ):
         """Validate certificate path against trusted roots.
 
         Revocation is not checked here (``allow_fetching`` is accepted for
         backward compatibility and ignored); see :meth:`verify_ocsp_data`.
+
+        Args:
+            validation_time: Moment the path must be valid at; default now.
         """
         try:
-            self._verify_certificate(cert, othercerts, key_usage, extended_key_usage)
+            self._verify_certificate(
+                cert, othercerts, key_usage, extended_key_usage, validation_time
+            )
             return True
         except verification.VerificationError as exc:
             logger.debug("Path validation error: %s", exc)
@@ -697,9 +710,19 @@ class SignatureVerifier(object):
                 f"TSP certificate validation error: {exc}"
             ) from exc
 
+        tst = result.tsp_data["encap_content_info"]["content"].parsed
+        gen_time = tst["gen_time"].native
+        tsa_cert = self._to_cryptography(sub.cert)
+        if not tsa_cert.not_valid_before_utc <= gen_time <= tsa_cert.not_valid_after_utc:
+            # the signer's certificate is validated at this time, which the
+            # TSA can only vouch for while its own certificate is valid
+            result.tsp_result(
+                False, None, "TSP time is outside the TSA certificate validity"
+            )
+            return
+
         # verify the message imprint against the signature, or against the
         # document itself for a document timestamp without signed data
-        tst = result.tsp_data["encap_content_info"]["content"].parsed
         if result.signed_data is not None:
             timestamped = result.signed_data["signer_infos"][0]["signature"].native
         elif datau is not None:
@@ -708,9 +731,25 @@ class SignatureVerifier(object):
             result.tsp_result(False, None, "no timestamped data to check against")
             return
         if self._tst_imprint_matches(tst, timestamped):
-            result.tsp_result(True, tst["gen_time"].native, "valid")
+            result.tsp_result(True, gen_time, "valid")
         else:
             result.tsp_result(False, None, "Invalid hash value")
+
+    def verify_certificate_data(self, result: Result) -> None:
+        """Validate the signer's certificate path, once TSP data is verified.
+
+        A valid timestamp proves the signature existed at its time, so the
+        path is validated for that time: a certificate which expired since
+        still verifies. Without a valid timestamp it is validated for now.
+        Revocation is reported separately, by :meth:`verify_ocsp_data`.
+        """
+        if result.tspok is True:
+            result.certtime = result.tspdata
+        else:
+            result.certtime = datetime.datetime.now(datetime.UTC)
+        result.certok = self.validate_certificate(
+            result.cert, result.othercerts, validation_time=result.certtime
+        )
 
     def verify_data(self, datas: bytes, datau: bytes) -> Result:
         """Verify a signed payload against its original content.
@@ -723,9 +762,9 @@ class SignatureVerifier(object):
             Verification result object.
         """
         result = self.decompose_signed_data(datas, datau)
-        result.certok = self.validate_certificate(result.cert, result.othercerts)
-        self.verify_ocsp_data(result)
         self.verify_tsp_data(result)
+        self.verify_certificate_data(result)
+        self.verify_ocsp_data(result)
 
         return result
 

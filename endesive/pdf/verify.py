@@ -125,9 +125,9 @@ class PDFVerifier(verifier.SignatureVerifier):
             result.signatureok = None
             self.verify_tsp_data(result, datau)
         else:
-            result.certok = self.validate_certificate(result.cert, result.othercerts)
-            self.verify_ocsp_data(result)
             self.verify_tsp_data(result)
+            self.verify_certificate_data(result)
+            self.verify_ocsp_data(result)
 
         return result
 

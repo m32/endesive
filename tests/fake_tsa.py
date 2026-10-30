@@ -29,6 +29,7 @@ class FakeTSA:
             one with the requested imprint, as a forger would.
         content_type: Content-Type header of the HTTP responses.
         wrong_nonce: Answer with a nonce which does not match the request.
+        gen_time: Time put into the tokens; default the time of the request.
     """
 
     def __init__(
@@ -38,16 +39,19 @@ class FakeTSA:
         swap_tst_info: bool = False,
         content_type: str = "application/timestamp-reply",
         wrong_nonce: bool = False,
+        gen_time: datetime.datetime | None = None,
     ):
         self.status = status
         self.tamper_imprint = tamper_imprint
         self.swap_tst_info = swap_tst_info
         self.content_type = content_type
         self.wrong_nonce = wrong_nonce
+        self.gen_time = gen_time
         self.requests: list[tsp.TimeStampReq] = []
 
         now = datetime.datetime.now(datetime.UTC)
-        validity = (now - datetime.timedelta(days=1), now + datetime.timedelta(days=30))
+        # valid for a year back, so tokens can be dated in the past
+        validity = (now - datetime.timedelta(days=365), now + datetime.timedelta(days=30))
 
         root_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         self.root_cert = (
@@ -115,7 +119,7 @@ class FakeTSA:
         wrong_imprint = tsp.MessageImprint(
             {"hash_algorithm": imprint["hash_algorithm"], "hashed_message": bytes(hashed)}
         )
-        gen_time = datetime.datetime.now(datetime.UTC)
+        gen_time = self.gen_time or datetime.datetime.now(datetime.UTC)
 
         def make_tst_info(message_imprint):
             return tsp.TSTInfo(

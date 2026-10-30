@@ -567,16 +567,20 @@ class SecurityVerifierTests(unittest.TestCase):
         verifier = generic_verifier.SignatureVerifier()
         result = mock.Mock()
 
+        steps = mock.Mock()
+
         with mock.patch.object(verifier, "decompose_signed_data", return_value=result), \
-             mock.patch.object(verifier, "validate_certificate", return_value=True) as validate_mock, \
-             mock.patch.object(verifier, "verify_ocsp_data") as ocsp_mock, \
-             mock.patch.object(verifier, "verify_tsp_data") as tsp_mock:
+             mock.patch.object(verifier, "verify_certificate_data", steps.cert), \
+             mock.patch.object(verifier, "verify_ocsp_data", steps.ocsp), \
+             mock.patch.object(verifier, "verify_tsp_data", steps.tsp):
             returned = verifier.verify_data(b"cms", b"payload")
 
         self.assertIs(returned, result)
-        validate_mock.assert_called_once_with(result.cert, result.othercerts)
-        ocsp_mock.assert_called_once_with(result)
-        tsp_mock.assert_called_once_with(result)
+        # the certificate is validated at the time of a verified timestamp
+        self.assertEqual(
+            steps.mock_calls,
+            [mock.call.tsp(result), mock.call.cert(result), mock.call.ocsp(result)],
+        )
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import datetime
 import io
 import unittest
 from types import SimpleNamespace
@@ -5,6 +6,10 @@ from unittest import mock
 
 import pypdf
 import requests
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 from fake_tsa import FakeTSA
 from test_cert import CA, ca_root_cert, cert1_p12, fixture
 
@@ -148,6 +153,99 @@ class TSPTests(unittest.TestCase):
         self.assertIs(kwargs["verify"], False)
         self.assertEqual(kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
         self.assertEqual(cred, {"username": "user", "password": "pass", "verify": False})
+
+    @staticmethod
+    def _expired_signer(not_before, not_after):
+        """A CA valid now and a signing certificate valid only in the past."""
+        now = datetime.datetime.now(datetime.UTC)
+        ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Validity CA")])
+        ca_cert = (
+            x509.CertificateBuilder()
+            .subject_name(ca_name)
+            .issuer_name(ca_name)
+            .public_key(ca_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now - datetime.timedelta(days=365))
+            .not_valid_after(now + datetime.timedelta(days=365))
+            .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+            .sign(ca_key, hashes.SHA256())
+        )
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Expired")]))
+            .issuer_name(ca_name)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(not_before)
+            .not_valid_after(not_after)
+            .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+            .sign(ca_key, hashes.SHA256())
+        )
+        return key, cert, ca_cert.public_bytes(serialization.Encoding.PEM)
+
+    def test_expired_certificate_is_validated_at_timestamp_time(self):
+        now = datetime.datetime.now(datetime.UTC)
+        days = datetime.timedelta(days=1)
+        key, cert, ca_pem = self._expired_signer(now - 30 * days, now - 10 * days)
+        datau = b"signed while the certificate was valid"
+
+        def sign_and_verify(tsa):
+            with mock.patch("requests.post", side_effect=tsa.post):
+                datas = signer.sign(
+                    datau, key, cert, [], "sha256", tspurl=None if tsa is None else TSPURL
+                )
+            trusted = [ca_pem] + ([] if tsa is None else [tsa.root_pem])
+            return verifier.verify(datas, datau, trusted)
+
+        before = datetime.datetime.now(datetime.UTC)
+        cases = {
+            "timestamp while valid": (FakeTSA(gen_time=now - 20 * days), True),
+            "timestamp after expiry": (FakeTSA(gen_time=now - 5 * days), False),
+            "timestamp before validity": (FakeTSA(gen_time=now - 40 * days), False),
+        }
+        for label, (tsa, certok) in cases.items():
+            with self.subTest(label):
+                result = sign_and_verify(tsa)
+                self.assertIs(result.tspok, True, result.tspmsg)
+                self.assertEqual(result.certtime, tsa.gen_time)
+                self.assertIs(result.certok, certok)
+
+        with self.subTest("no timestamp"), mock.patch("requests.post") as post:
+            datas = signer.sign(datau, key, cert, [], "sha256")
+            result = verifier.verify(datas, datau, [ca_pem])
+            post.assert_not_called()
+            self.assertIsNone(result.tspok)
+            self.assertGreaterEqual(result.certtime, before)
+            self.assertIs(result.certok, False)
+
+        with self.subTest("invalid timestamp"):
+            tsa = FakeTSA(gen_time=now - 20 * days, tamper_imprint=True)
+            with mock.patch("endesive.signer.check_tsp_reply"):
+                result = sign_and_verify(tsa)
+            self.assertIs(result.tspok, False)
+            self.assertGreaterEqual(result.certtime, before)
+            self.assertIs(result.certok, False)
+
+        with self.subTest("pdf"):
+            tsa = FakeTSA(gen_time=now - 20 * days)
+            with mock.patch("requests.post", side_effect=tsa.post):
+                datas = pdf.cms.sign(
+                    self._pdf(), {"signingdate": "D:20260101000000+00'00'"},
+                    key, cert, [], "sha256", tspurl=TSPURL,
+                )
+            result, _ = pdf.verify(self._pdf() + datas, [ca_pem, tsa.root_pem])
+            self.assertIs(result.tspok, True, result.tspmsg)
+            self.assertEqual(result.certtime, tsa.gen_time)
+            self.assertIs(result.certok, True)
+
+    def test_timestamp_outside_tsa_certificate_validity_is_rejected(self):
+        gen_time = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=400)
+        result = self._sign_and_verify(FakeTSA(gen_time=gen_time), "sha256")
+        self.assertIs(result.tspok, False)
+        self.assertEqual(result.tspmsg, "TSP time is outside the TSA certificate validity")
+        self.assertIs(result.certok, True)
 
     def _pdf(self):
         with open(fixture("pdf.pdf"), "rb") as fh:
