@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-import types
 from base64 import b64encode
 from collections.abc import Callable
 from datetime import datetime
@@ -478,7 +477,7 @@ class SignerBase:
                 # ),
                 signing_certificate2,
             ]
-        elif isinstance(self.attrs, types.FunctionType):
+        elif callable(self.attrs):
             signer["signed_attrs"] = self.attrs(self.signed_value)
 
         config = {

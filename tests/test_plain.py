@@ -1,6 +1,8 @@
+import functools
 import unittest
 from subprocess import PIPE, Popen
 
+from asn1crypto import cms
 from test_cert import (
     CA,
     ca_root_cert,
@@ -11,7 +13,7 @@ from test_cert import (
     fixture,
 )
 
-from endesive import plain
+from endesive import plain, signer
 from endesive.exceptions import HashAlgorithmError
 
 
@@ -143,6 +145,35 @@ class PLAINTests(unittest.TestCase):
 
         result = plain.verify(datas, datau, trusted_cert_pems)
         assert result.signatureok and result.hashok and result.certok
+
+    def test_plain_signed_attr_any_callable(self):
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        with open(fixture('plain-unsigned.txt'), 'rb') as fh:
+            datau = fh.read()
+        with open(ca_root_cert, 'rb') as fp:
+            trusted_cert_pems = [fp.read()]
+
+        def make_attrs(signed_value, content_type='data'):
+            return [
+                cms.CMSAttribute({'type': 'content_type', 'values': (content_type,)}),
+                cms.CMSAttribute({'type': 'message_digest', 'values': (signed_value,)}),
+            ]
+
+        class AttrsFactory:
+            def __call__(self, signed_value):
+                return make_attrs(signed_value)
+
+        for label, attrs in (
+            ('function', make_attrs),
+            ('partial', functools.partial(make_attrs, content_type='data')),
+            ('callable object', AttrsFactory()),
+        ):
+            with self.subTest(label):
+                datas = signer.sign(datau, p12[0], p12[1], p12[2], 'sha256', attrs=attrs)
+                signer_info = cms.ContentInfo.load(datas)['content']['signer_infos'][0]
+                self.assertEqual(len(signer_info['signed_attrs']), 2)
+                result = plain.verify(datas, datau, trusted_cert_pems)
+                assert result.signatureok and result.hashok and result.certok
 
     def test_plain_verify_detects_tampered_payload(self):
         p12 = CA().pk12_load(cert1_p12, '1234')
