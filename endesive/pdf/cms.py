@@ -768,7 +768,7 @@ class SignedData(PdfWriter):
                 if response is None:
                     raise TimestampError("No response from timestamp server")
                 tspresp = tsp.TimeStampResp.load(response)
-                if tspresp["status"]["status"].native != "granted":
+                if not signer.tsp_granted(tspresp):
                     raise TimestampError("Timestamp request was not granted")
                 contents = tspresp["time_stamp_token"].dump()
             else:
@@ -860,7 +860,7 @@ class SignedData(PdfWriter):
             if response is None:
                 raise TimestampError("No response from timestamp server")
             tspresp = tsp.TimeStampResp.load(response)
-            if tspresp["status"]["status"].native != "granted":
+            if not signer.tsp_granted(tspresp):
                 raise TimestampError("Timestamp request was not granted")
             contents = tspresp["time_stamp_token"].dump()
         else:

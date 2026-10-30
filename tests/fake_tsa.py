@@ -99,7 +99,9 @@ class FakeTSA:
         req = tsp.TimeStampReq.load(request)
         self.requests.append(req)
         if self.status not in ("granted", "granted_with_mods"):
-            return tsp.TimeStampResp({"status": {"status": self.status}}).dump()
+            # asn1crypto does not mark timeStampToken as OPTIONAL, encode by hand
+            status = tsp.PKIStatusInfo({"status": self.status}).dump()
+            return b"\x30" + bytes([len(status)]) + status
 
         imprint = req["message_imprint"]
         hashed = bytearray(imprint["hashed_message"].native)

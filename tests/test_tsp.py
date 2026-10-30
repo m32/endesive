@@ -5,7 +5,9 @@ from fake_tsa import FakeTSA
 from test_cert import CA, ca_root_cert, cert1_p12, fixture
 
 from endesive import pdf, signer, verifier
+from endesive.exceptions import TimestampError
 from endesive.pdf.verify import PDFVerifier
+from endesive.xades import BES
 
 TSPURL = "http://tsa.example/tsp"
 
@@ -87,6 +89,39 @@ class TSPTests(unittest.TestCase):
         result = verifier_.verify_signature(0)
         verifier_.verify_tsp_data(result)
         self.assertIs(result.tspok, False)
+
+    def test_granted_with_mods_is_accepted(self):
+        with self.subTest("cms signature"):
+            tsa = FakeTSA(status="granted_with_mods")
+            result = self._sign_and_verify(tsa, "sha256")
+            self.assertIs(result.tspok, True, result.tspmsg)
+
+        with self.subTest("pdf document timestamp"):
+            tsa = FakeTSA(status="granted_with_mods")
+            result, _ = pdf.verify(self._timestamp_pdf(tsa), [tsa.root_pem])
+            self.assertIs(result.tspok, True, result.tspmsg)
+
+        with self.subTest("xades"):
+            tsa = FakeTSA(status="granted_with_mods")
+            with mock.patch("requests.post", side_effect=tsa.post):
+                props = BES()._unsignedproperties("c2lnbmF0dXJl", TSPURL, None)
+            self.assertEqual(len(tsa.requests), 1)
+            self.assertEqual(len(props.findall(".//{*}EncapsulatedTimeStamp")), 1)
+
+    def test_rejected_timestamp_request(self):
+        with self.subTest("cms signature"):
+            result = self._sign_and_verify(FakeTSA(status="rejection"), "sha256")
+            self.assertIsNone(result.tspok)
+
+        with self.subTest("pdf document timestamp"):
+            with self.assertRaises(TimestampError):
+                self._timestamp_pdf(FakeTSA(status="rejection"))
+
+        with self.subTest("xades"):
+            tsa = FakeTSA(status="rejection")
+            with mock.patch("requests.post", side_effect=tsa.post):
+                with self.assertRaises(ValueError):
+                    BES()._unsignedproperties("c2lnbmF0dXJl", TSPURL, None)
 
 
 if __name__ == "__main__":

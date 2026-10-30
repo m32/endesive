@@ -19,6 +19,25 @@ from endesive.exceptions import HashAlgorithmError, SignerError, TimestampError
 
 DEFAULT_HTTP_TIMEOUT = 10
 
+# RFC 3161 section 2.4.2: both statuses carry a time-stamp token
+TSP_GRANTED_STATUSES = frozenset(("granted", "granted_with_mods"))
+
+
+def tsp_granted(response: tsp.TimeStampResp) -> bool:
+    """Tell whether a TSA granted the time-stamp request.
+
+    Args:
+        response: Parsed time-stamp response.
+
+    Returns:
+        True for ``granted`` and ``granted_with_mods``; otherwise False.
+    """
+    try:
+        return response["status"]["status"].native in TSP_GRANTED_STATUSES
+    except ValueError:
+        # a refusal carries no timeStampToken, which asn1crypto requires
+        return False
+
 
 def cert2asn(
     cert: x509.Certificate | cryptography_x509.Certificate | bytes,
@@ -527,10 +546,7 @@ class SignerBase:
 
         unsigned_attrs = []
         tspresponse = self.get_tsp_response(signed_value_signature)
-        if (
-            tspresponse is not None
-            and tspresponse["status"]["status"].native == "granted"
-        ):
+        if tspresponse is not None and tsp_granted(tspresponse):
             unsigned_attrs.append(
                 cms.CMSAttribute(
                     {

@@ -17,6 +17,8 @@ from asn1crypto import algos, tsp
 from cryptography.x509.oid import NameOID
 from lxml import builder, etree
 
+from endesive.signer import tsp_granted
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_HTTP_TIMEOUT = 10
@@ -219,7 +221,7 @@ class BES:
             ):
                 tspresp = tsp.TimeStampResp.load(tspresp.content)
 
-                if tspresp["status"]["status"].native == "granted":
+                if tsp_granted(tspresp):
                     attr = self._base64(tspresp["time_stamp_token"].dump())
                 else:
                     raise ValueError("TimeStampResponse status is not granted")
