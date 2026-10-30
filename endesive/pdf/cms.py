@@ -182,13 +182,10 @@ class SignedData(PdfWriter):
     def _extend(self, obj):
         stream = getattr(obj, "stream", None)
         if stream is not None:
-            # stream = stream.encode("utf-16be")
+            # stream data is already encoded as its /Filter says
             d = {"__streamdata__": stream, "/Length": len(stream)}
             d.update(obj)
             dct = po.StreamObject.initialize_from_dictionary(d)
-            if "/Filter" in obj and obj["/Filter"] == "/FlatDecode":
-                del dct["/Filter"]
-                dct = dct.flate_encode()
         else:
             dct = po.DictionaryObject()
         for k, v in obj.items():

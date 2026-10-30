@@ -1,7 +1,13 @@
 import datetime
+import io
 import unittest
+import warnings
+import zlib
 from types import SimpleNamespace
 from unittest import mock
+
+import PIL.Image
+import pypdf
 
 from test_cert import (
     CA,
@@ -248,6 +254,66 @@ class PDFTests(unittest.TestCase):
             data, trusted_cert_pems
         )
         assert result.signatureok and result.hashok and result.certok
+
+    def test_pdf_signature_appearance_streams_are_compressed_once(self):
+        # embedded fonts and images are zlib compressed before reaching
+        # SignedData._extend, which must not compress them again
+        png = io.BytesIO()
+        PIL.Image.new("RGBA", (8, 4), (255, 0, 0, 128)).save(png, "PNG")
+        dct = {
+            "aligned": 0,
+            "sigflags": 3,
+            "sigpage": 0,
+            "sigfield": "Signature1",
+            "auto_sigfield": True,
+            "signaturebox": (40, 110, 260, 190),
+            "signature_manual": [
+                ["image", "Logo", 0, 0, 40, 40],
+                ["text_box", "zażółcić gęślą jaźń", "DejaVu", 50, 0, 170, 40, 10],
+            ],
+            "manual_images": {"Logo": PIL.Image.open(io.BytesIO(png.getvalue()))},
+            "manual_fonts": {
+                "DejaVu": "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf",
+            },
+            "signingdate": "D:20260101000000+00'00'",
+        }
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        with open(fixture('pdf.pdf'), 'rb') as fh:
+            datau = fh.read()
+        with warnings.catch_warnings():
+            # PyPDF2_annotate still uses Image.getdata, deprecated in Pillow 12
+            warnings.filterwarnings("ignore", "Image.Image.getdata", DeprecationWarning)
+            datas = pdf.cms.sign(datau, dct, p12[0], p12[1], p12[2], 'sha256')
+
+        reader = pypdf.PdfReader(io.BytesIO(datau + datas))
+        objects = [
+            reader.get_object(pypdf.generic.IndirectObject(idnum, generation, reader))
+            for generation, ids in reader.xref.items()
+            for idnum in ids
+        ]
+        flate_streams = [
+            obj for obj in objects
+            if isinstance(obj, pypdf.generic.StreamObject)
+            and obj.get("/Filter") == "/FlateDecode"
+        ]
+        for obj in flate_streams:
+            with self.assertRaises(zlib.error):
+                zlib.decompress(obj.get_data())
+
+        images = [obj for obj in flate_streams if obj.get("/Subtype") == "/Image"]
+        self.assertEqual(len(images), 2)  # the image and its alpha mask
+        for obj in images:
+            channels = 1 if obj["/ColorSpace"] == "/DeviceGray" else 3
+            self.assertEqual(len(obj.get_data()), obj["/Width"] * obj["/Height"] * channels)
+
+        font_files = [
+            obj["/FontFile2"].get_object().get_data()
+            for obj in objects
+            if isinstance(obj, pypdf.generic.DictionaryObject) and "/FontFile2" in obj
+        ]
+        self.assertTrue(font_files)
+        for data in font_files:
+            self.assertEqual(data[:4], b"\x00\x01\x00\x00")
 
     def test_pdf_signature_manual(self):
         date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=12)
