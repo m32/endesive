@@ -152,7 +152,7 @@ class SignedData(PdfWriter):
             def pack(offset):
                 return struct.pack(">q", offset)
 
-            dataindex = ["0 1"]
+            dataindex = [0, 1]
             dataxref = [b"\x00" + pack(0)]
             keys = sorted(positions.keys())
             i = 0
@@ -163,14 +163,14 @@ class SignedData(PdfWriter):
                     while i < len(keys) and positions[keys[i]] != 0:
                         dataxref.append(b"\x01" + pack(positions[keys[i]]))
                         i += 1
-                    dataindex.append("%d %d" % (keys[start], i - start))
+                    dataindex.append(keys[start])
+                    dataindex.append(i - start)
                 else:
                     i += 1
-            dataindex = " ".join(dataindex)
             dataxref = b"".join(dataxref)
             trailer[po.NameObject("/Type")] = po.NameObject("/XRef")
-            trailer[po.NameObject("/W")] = po.NameObject("[1 8 0]")
-            trailer[po.NameObject("/Index")] = po.NameObject("[%s]" % dataindex)
+            trailer[po.NameObject("/W")] = po.ArrayObject(po.NumberObject(x) for x in [1, 8, 0])
+            trailer[po.NameObject("/Index")] = po.ArrayObject(po.NumberObject(x) for x in dataindex)
             trailer._data = dataxref
             retval = trailer.flate_encode()
             trailer.update(retval)
