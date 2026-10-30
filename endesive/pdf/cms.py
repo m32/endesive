@@ -795,7 +795,10 @@ class SignedData(PdfWriter):
             zeros += b"00" * aligned
 
         params = {"mode": mode, "use_signingdate": use_signingdate}
-        if not tspurl:
+        if mode == "timestamp":
+            # the time comes from the token; /M only when given
+            params["use_signingdate"] = "signingdate" in udct
+        elif not tspurl:
             params["use_signingdate"] = True
 
         self._makepdf(

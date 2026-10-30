@@ -1,7 +1,9 @@
+import io
 import unittest
 from types import SimpleNamespace
 from unittest import mock
 
+import pypdf
 import requests
 from fake_tsa import FakeTSA
 from test_cert import CA, ca_root_cert, cert1_p12, fixture
@@ -109,14 +111,32 @@ class TSPTests(unittest.TestCase):
         with open(fixture("pdf.pdf"), "rb") as fh:
             return fh.read()
 
-    def _timestamp_pdf(self, tsa):
-        with open(fixture("pdf.pdf"), "rb") as fh:
-            datau = fh.read()
+    def _timestamp_pdf(self, tsa, udct=None):
+        datau = self._pdf()
+        if udct is None:
+            udct = {"signingdate": "20260101000000+00'00'"}
         with mock.patch("requests.post", side_effect=tsa.post):
-            datas = pdf.cms.timestamp(
-                datau, {"signingdate": "20260101000000+00'00'"}, "sha256", TSPURL
-            )
+            datas = pdf.cms.timestamp(datau, udct, "sha256", TSPURL)
         return datau + datas
+
+    @staticmethod
+    def _doc_timestamp_dict(data):
+        reader = pypdf.PdfReader(io.BytesIO(data))
+        field = reader.trailer["/Root"]["/AcroForm"]["/Fields"][-1].get_object()
+        sig = field["/V"].get_object()
+        assert sig["/Type"] == "/DocTimeStamp"
+        return sig
+
+    def test_pdf_document_timestamp_without_signingdate(self):
+        tsa = FakeTSA()
+        data = self._timestamp_pdf(tsa, {})
+        self.assertNotIn("/M", self._doc_timestamp_dict(data))
+        result, _ = pdf.verify(data, [tsa.root_pem])
+        self.assertIs(result.tspok, True, result.tspmsg)
+
+    def test_pdf_document_timestamp_keeps_given_signingdate(self):
+        data = self._timestamp_pdf(FakeTSA())
+        self.assertEqual(self._doc_timestamp_dict(data)["/M"], "20260101000000+00'00'")
 
     def test_pdf_document_timestamp(self):
         tsa = FakeTSA()
