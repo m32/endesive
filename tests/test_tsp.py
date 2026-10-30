@@ -1,6 +1,8 @@
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
+import requests
 from fake_tsa import FakeTSA
 from test_cert import CA, ca_root_cert, cert1_p12, fixture
 
@@ -59,6 +61,31 @@ class TSPTests(unittest.TestCase):
         self.assertIs(result.tspok, False)
         self.assertEqual(result.tspmsg, "TSP message digest is invalid")
 
+    def test_signature_fails_when_timestamp_server_does_not_answer(self):
+        responses = {
+            "connection error": mock.Mock(side_effect=requests.ConnectionError("down")),
+            "http error": mock.Mock(
+                return_value=SimpleNamespace(status_code=500, headers={}, content=b"")
+            ),
+        }
+        for label, post in responses.items():
+            with self.subTest(label), mock.patch("requests.post", post):
+                with self.assertRaisesRegex(TimestampError, "No response"):
+                    signer.sign(
+                        b"data", self.p12[0], self.p12[1], self.p12[2], "sha256",
+                        tspurl=TSPURL,
+                    )
+                with self.assertRaisesRegex(TimestampError, "No response"):
+                    pdf.cms.sign(
+                        self._pdf(), {"signingdate": "D:20260101000000+00'00'"},
+                        self.p12[0], self.p12[1], self.p12[2], "sha256",
+                        tspurl=TSPURL,
+                    )
+
+    def _pdf(self):
+        with open(fixture("pdf.pdf"), "rb") as fh:
+            return fh.read()
+
     def _timestamp_pdf(self, tsa):
         with open(fixture("pdf.pdf"), "rb") as fh:
             datau = fh.read()
@@ -110,8 +137,8 @@ class TSPTests(unittest.TestCase):
 
     def test_rejected_timestamp_request(self):
         with self.subTest("cms signature"):
-            result = self._sign_and_verify(FakeTSA(status="rejection"), "sha256")
-            self.assertIsNone(result.tspok)
+            with self.assertRaises(TimestampError):
+                self._sign_and_verify(FakeTSA(status="rejection"), "sha256")
 
         with self.subTest("pdf document timestamp"):
             with self.assertRaises(TimestampError):

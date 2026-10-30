@@ -14,6 +14,7 @@ from cryptography.x509.oid import (
     NameOID,
     ObjectIdentifier,
 )
+from fake_tsa import FakeTSA
 
 from endesive import email, plain, signer, verifier
 from endesive.exceptions import HashAlgorithmError
@@ -628,8 +629,10 @@ class SecuritySignerTests(unittest.TestCase):
             .sign(issuer_key, hashes.SHA256())
         )
 
-        with mock.patch("endesive.signer.fetch_ocsp_response", return_value=None) as ocsp_mock:
-            with mock.patch("endesive.signer.fetch_tsp_response", return_value=[]) as timestamp_mock:
+        tsa = FakeTSA()
+        with mock.patch("endesive.signer.fetch_ocsp_response", return_value=None) as ocsp_mock, \
+             mock.patch("requests.post", side_effect=tsa.post), \
+             mock.patch("endesive.signer.fetch_tsp_response", wraps=signer.fetch_tsp_response) as timestamp_mock:
                 cms_bytes = signer.sign(
                     b"payload",
                     key=leaf_key,
@@ -652,6 +655,8 @@ class SecuritySignerTests(unittest.TestCase):
         self.assertIsNotNone(attrs)
         ocsp_mock.assert_called_once()
         timestamp_mock.assert_called_once()
+        unsigned_attrs = parsed["content"]["signer_infos"][0]["unsigned_attrs"]
+        self.assertEqual(unsigned_attrs[0]["type"].native, "signature_time_stamp_token")
 
     def test_sign_pss_path_uses_rsassa_pss_algorithm(self):
         issuer_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)

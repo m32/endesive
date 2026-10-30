@@ -546,7 +546,9 @@ class SignerBase:
 
         unsigned_attrs = []
         tspresponse = self.get_tsp_response(signed_value_signature)
-        if tspresponse is not None and tsp_granted(tspresponse):
+        if tspresponse is not None:
+            if not tsp_granted(tspresponse):
+                raise TimestampError("Timestamp request was not granted")
             unsigned_attrs.append(
                 cms.CMSAttribute(
                     {
@@ -621,16 +623,17 @@ class Signer(SignerBase):
         return None
 
     def get_tsp_response(self, signed_value_signature):
-        if self.tspurl:
-            response = fetch_tsp_response(
-                signed_value_signature,
-                self.hashalgo,
-                self.tspurl,
-                self.tspoptions,
-            )
-            if response:
-                return tsp.TimeStampResp.load(response)
-        return None
+        if not self.tspurl:
+            return None
+        response = fetch_tsp_response(
+            signed_value_signature,
+            self.hashalgo,
+            self.tspurl,
+            self.tspoptions,
+        )
+        if response is None:
+            raise TimestampError("No response from timestamp server")
+        return tsp.TimeStampResp.load(response)
 
     def sign(self, tosign):
         if self.hsm is not None:
