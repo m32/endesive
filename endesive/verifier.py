@@ -652,7 +652,14 @@ class SignatureVerifier(object):
         digest.update(data)
         return digest.finalize() == imprint["hashed_message"].native
 
-    def verify_tsp_data(self, result: Result):
+    def verify_tsp_data(self, result: Result, datau: bytes | None = None):
+        """Verify the timestamp token of ``result``.
+
+        Args:
+            datau: Timestamped content, needed for a document timestamp
+                (``result.signed_data`` is None), whose imprint covers the
+                content instead of a signature.
+        """
         if result.tsp_data is None:
             result.tsp_result(None, None, "no TSP data found")
             return
@@ -685,14 +692,17 @@ class SignatureVerifier(object):
                 f"TSP certificate validation error: {exc}"
             ) from exc
 
-        # verify the message imprint against the signed data hash
+        # verify the message imprint against the signature, or against the
+        # document itself for a document timestamp without signed data
         tst = result.tsp_data["encap_content_info"]["content"].parsed
-        if result.signed_data is None:
-            # timestamped document without signed data
-            result.tsp_result(True, tst["gen_time"].native, "valid")
+        if result.signed_data is not None:
+            timestamped = result.signed_data["signer_infos"][0]["signature"].native
+        elif datau is not None:
+            timestamped = datau
+        else:
+            result.tsp_result(False, None, "no timestamped data to check against")
             return
-        signature_bytes = result.signed_data["signer_infos"][0]["signature"].native
-        if self._tst_imprint_matches(tst, signature_bytes):
+        if self._tst_imprint_matches(tst, timestamped):
             result.tsp_result(True, tst["gen_time"].native, "valid")
         else:
             result.tsp_result(False, None, "Invalid hash value")
