@@ -105,6 +105,8 @@ class TSPTests(unittest.TestCase):
                         tspurl=TSPURL,
                     )
                 with self.assertRaisesRegex(TimestampError, "No response"):
+                    BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
+                with self.assertRaisesRegex(TimestampError, "No response"):
                     pdf.cms.sign(
                         self._pdf(), {"signingdate": "D:20260101000000+00'00'"},
                         self.p12[0], self.p12[1], self.p12[2], "sha256",
@@ -131,8 +133,21 @@ class TSPTests(unittest.TestCase):
         with self.assertRaisesRegex(TimestampError, "No response"):
             self._sign_and_verify(tsa, "sha256")
         with mock.patch("requests.post", side_effect=tsa.post):
-            with self.assertRaisesRegex(ValueError, "invalid content type"):
+            with self.assertRaisesRegex(TimestampError, "No response"):
                 BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
+
+    def test_xades_timestamp_request_options(self):
+        tsa = FakeTSA()
+        post = mock.Mock(side_effect=tsa.post)
+        cred = {"username": "user", "password": "pass", "verify": False}
+        with mock.patch("requests.post", post):
+            BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, cred)
+        kwargs = post.call_args.kwargs
+        self.assertEqual(kwargs["headers"]["Authorization"], "Basic dXNlcjpwYXNz")
+        self.assertEqual(kwargs["headers"]["Content-Type"], "application/timestamp-query")
+        self.assertIs(kwargs["verify"], False)
+        self.assertEqual(kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
+        self.assertEqual(cred, {"username": "user", "password": "pass", "verify": False})
 
     def _pdf(self):
         with open(fixture("pdf.pdf"), "rb") as fh:
@@ -217,7 +232,7 @@ class TSPTests(unittest.TestCase):
         with self.subTest("xades"):
             tsa = FakeTSA(status="rejection")
             with mock.patch("requests.post", side_effect=tsa.post):
-                with self.assertRaises(ValueError):
+                with self.assertRaisesRegex(TimestampError, "not granted"):
                     BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
 
 

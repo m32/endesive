@@ -8,20 +8,17 @@ import datetime
 import hashlib
 import io
 import logging
-import secrets
 import uuid
 from typing import Any
 
-import requests
-from asn1crypto import algos, tsp
+from asn1crypto import tsp
 from cryptography.x509.oid import NameOID
 from lxml import builder, etree
 
-from endesive.signer import check_tsp_reply, is_tsp_reply, tsp_granted
+from endesive.exceptions import TimestampError
+from endesive.signer import fetch_tsp_response, tsp_granted
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_HTTP_TIMEOUT = 10
 
 DS = builder.ElementMaker(
     namespace="http://www.w3.org/2000/09/xmldsig#",
@@ -183,7 +180,8 @@ class BES:
                 inclusive C14N 1.0, which a SignatureTimeStamp covers
                 (ETSI EN 319 132-1 section 5.3).
             tspurl: Timestamp server URL, or None for no timestamp.
-            tspcred: Optional dict with ``username`` and ``password``.
+            tspcred: Optional dict with ``username`` and ``password``; other
+                keys are passed to ``requests.post``, as for ``tspoptions``.
             hashalgo: Message imprint hash algorithm.
         """
         if tspurl is None:
@@ -191,52 +189,13 @@ class BES:
                 Id=f"UnsignedProperties_{self.guid}_02"
             )
         else:
-            request = tsp.TimeStampReq(
-                {
-                    "version": 1,
-                    "message_imprint": tsp.MessageImprint(
-                        {
-                            "hash_algorithm": algos.DigestAlgorithm(
-                                {"algorithm": hashalgo}
-                            ),
-                            "hashed_message": hashlib.new(
-                                hashalgo, timestamped
-                            ).digest(),
-                        }
-                    ),
-                    #'req_policy', ObjectIdentifier, {'optional': True}),
-                    "nonce": secrets.randbits(64),
-                    "cert_req": True,
-                    #'extensions': tsp.Extensions()
-                }
-            )
-            tspreq = request.dump()
-
-            tspheaders = {"Content-Type": "application/timestamp-query"}
-            if tspcred is not None:
-                username = tspcred.get("username", None)
-                password = tspcred.get("password", None)
-                if username and password:
-                    auth_header_value = base64.b64encode(
-                        bytes(f"{username}:{password}", "utf-8")
-                    ).decode("ascii")
-                    tspheaders["Authorization"] = f"Basic {auth_header_value}"
-            tspresp = requests.post(
-                tspurl,
-                data=tspreq,
-                headers=tspheaders,
-                timeout=DEFAULT_HTTP_TIMEOUT,
-            )
-            if is_tsp_reply(tspresp.headers.get("Content-Type")):
-                tspresp = tsp.TimeStampResp.load(tspresp.content)
-
-                if tsp_granted(tspresp):
-                    check_tsp_reply(tspresp, request)
-                    attr = self._base64(tspresp["time_stamp_token"].dump())
-                else:
-                    raise ValueError("TimeStampResponse status is not granted")
-            else:
-                raise ValueError("TimeStampResponse has invalid content type")
+            response = fetch_tsp_response(timestamped, hashalgo, tspurl, tspcred)
+            if response is None:
+                raise TimestampError("No response from timestamp server")
+            tspresp = tsp.TimeStampResp.load(response)
+            if not tsp_granted(tspresp):
+                raise TimestampError("Timestamp request was not granted")
+            attr = self._base64(tspresp["time_stamp_token"].dump())
 
             unsignedproperties = UnsignedProperties(
                 UnsignedSignatureProperties(
