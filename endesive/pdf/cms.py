@@ -3,9 +3,8 @@ from __future__ import annotations
 import codecs
 import hashlib
 import io
-import random
+import secrets
 import struct
-import time
 from typing import Any
 
 from asn1crypto import tsp
@@ -808,11 +807,14 @@ class SignedData(PdfWriter):
         # ID[0] is used in password protection, must be unchanged
         ID = prev.trailer.get("/ID", None)
         if ID is None:
-            ID = udct.get("id") or hashlib.md5(repr(time.time()).encode()).digest()
+            ID = udct.get("id") or secrets.token_bytes(16)
         else:
             ID = ID.get_object()[0].original_bytes
-        newID = udct.get("newid", repr(random.random()))
-        id1_entry = hashlib.md5(newID.encode()).digest()
+        newID = udct.get("newid")
+        if newID is None:
+            id1_entry = secrets.token_bytes(16)
+        else:
+            id1_entry = hashlib.md5(newID.encode()).digest()
         self._ID = po.ArrayObject(
             [
                 po.ByteStringObject(ID),

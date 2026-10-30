@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import io
 import unittest
 import zlib
@@ -254,6 +255,25 @@ class PDFTests(unittest.TestCase):
             data, trusted_cert_pems
         )
         assert result.signatureok and result.hashok and result.certok
+
+    def test_pdf_sign_trailer_ids(self):
+        p12 = CA().pk12_load(cert1_p12, '1234')
+        with open(fixture('pdf.pdf'), 'rb') as fh:
+            datau = fh.read()
+
+        def trailer_id(udct):
+            udct = {"signingdate": "D:20260101000000+00'00'", **udct}
+            datas = pdf.cms.sign(datau, udct, p12[0], p12[1], p12[2], 'sha256')
+            ids = pypdf.PdfReader(io.BytesIO(datau + datas)).trailer["/ID"]
+            return [bytes(ids[0].original_bytes), bytes(ids[1].original_bytes)]
+
+        first, second = trailer_id({}), trailer_id({})
+        self.assertEqual([len(first[0]), len(first[1])], [16, 16])
+        self.assertNotEqual(first[1], second[1])
+        self.assertEqual(
+            trailer_id({"id": b"0123456789abcdef", "newid": "revision"}),
+            [b"0123456789abcdef", hashlib.md5(b"revision").digest()],
+        )
 
     def test_pdf_image_raw_bytes_use_8_bits_per_component(self):
         pixels = {
