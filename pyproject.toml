@@ -8,7 +8,7 @@ description = "Digital signatures for PDF, S/MIME, XML (XAdES), and CMS in Pytho
 authors = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
 maintainers = [{ name = "Grzegorz Makarewicz", email = "mak@trisoft.com.pl" }]
 readme = "README.md"
-version = "3.0.3"
+version = "3.0.4"
 license = "MIT"
 license-files = ["LICENSE", "LICENSE.pdf-annotate", "LICENSE.pyfpdf"]
 requires-python = ">=3.11"
