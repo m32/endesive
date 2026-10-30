@@ -392,40 +392,6 @@ class PDFTests(unittest.TestCase):
         )
         assert result.signatureok and result.hashok and result.certok
 
-    def test_pdf_timestamp(self):
-        return
-        tspurl = "http://public-qlts.certum.pl/qts-17"
-        dct = {
-            'sigflags': 3,
-            'contact': 'mak@trisoft.com.pl',
-            'location': 'Szczecin',
-            'signingdate': '20180731082642+02\'00\'',
-            'reason': 'Dokument podpisany cyfrowo',
-        }
-        p12 = CA().pk12_load(cert1_p12, '1234')
-        fname = fixture('pdf.pdf')
-        with open(fname, 'rb') as fh:
-            datau = fh.read()
-        datas = pdf.cms.sign(datau, dct,
-            p12[0], p12[1], p12[2],
-            'sha256',
-            None,
-            tspurl,
-        )
-        fname = fname.replace('.pdf', '-signed-cms.pdf')
-        with open(fname, 'wb') as fp:
-            fp.write(datau)
-            fp.write(datas)
-
-        with open(ca_root_cert, 'rb') as fh:
-            trusted_cert_pems = (fh.read(),)
-        with open(fname, 'rb') as fh:
-            data = fh.read()
-        result, moredata = pdf.verify(
-            data, trusted_cert_pems
-        )
-        assert result.signatureok and result.hashok and result.certok
-
     def test_pdf_timestamp_requires_tspurl(self):
         dct = {
             'sigflags': 3,
