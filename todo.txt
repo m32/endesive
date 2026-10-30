@@ -23,8 +23,6 @@ Testy:
 - Testy HSM nadpisują
   examples/softhsm2/c7f2c5de-50e3-5765-ecca-01044f073ba4/token.object -
   tej zmiany nie commitować.
-- Błąd ruff istniejący przed tą pracą: I001 (kolejność importów)
-  w tests/test_pdf.py.
 
 Przyjęty sposób pracy:
 - jeden commit na jeden problem, z testem, który bez poprawki nie przechodzi
@@ -124,9 +122,6 @@ DO ZROBIENIA (od najważniejszych)
    razy: najpierw próbnie, żeby poznać rozmiar podpisu. Przy HSM to dwa
    użycia klucza (np. dwa razy PIN), przy TSA dwa żądania. Do rozważenia:
    szacowanie rozmiaru z długości klucza zamiast próbnego podpisu.
-
-10. [porządki] Kolejność importów w tests/test_pdf.py (ruff I001,
-    "ruff check --select I001 --fix tests/test_pdf.py").
 
 
 DECYZJE - NIE ZMIENIAĆ BEZ UZGODNIENIA

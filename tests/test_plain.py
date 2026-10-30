@@ -3,6 +3,8 @@ import unittest
 from subprocess import PIPE, Popen
 
 from asn1crypto import cms
+from cryptography import x509
+from cryptography.hazmat.primitives import serialization
 from test_cert import (
     CA,
     ca_root_cert,
@@ -210,9 +212,6 @@ class PLAINTests(unittest.TestCase):
         # trusted roots accepted as DER bytes
         with open(ca_root_cert, 'rb') as fp:
             trusted_pem = fp.read()
-        from cryptography import x509
-        from cryptography.hazmat.primitives import serialization
-
         trusted_der = x509.load_pem_x509_certificate(trusted_pem).public_bytes(
             serialization.Encoding.DER
         )
@@ -228,7 +227,6 @@ class PLAINTests(unittest.TestCase):
             datau = fh.read()
         datas = plain.sign(datau, p12[0], p12[1], p12[2], 'sha256', attrs=True)
 
-        from cryptography import x509
         with open(ca_root_cert, 'rb') as fp:
             trusted_obj = x509.load_pem_x509_certificate(fp.read())
 

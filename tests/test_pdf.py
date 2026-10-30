@@ -9,7 +9,6 @@ from unittest import mock
 import PIL.Image
 import pypdf
 from cryptography import x509
-
 from test_cert import (
     CA,
     ca_root_cert,
@@ -18,9 +17,8 @@ from test_cert import (
     fixture,
 )
 
-from endesive import pdf
+from endesive import exceptions, pdf
 from endesive.pdf.PyPDF2_annotate.annotations.image import Image as AnnotationImage
-from endesive import exceptions
 
 
 class PDFTests(unittest.TestCase):
