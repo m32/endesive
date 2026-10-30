@@ -7,7 +7,11 @@ from typing import TYPE_CHECKING
 from asn1crypto import algos, cms, core
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.decrepit.ciphers import modes as dmodes
+
+try:
+    from cryptography.hazmat.decrepit.ciphers import modes as dmodes
+except ImportError:
+    from cryptography.hazmat.primitives.ciphers.modes import modes as dmodes
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes as cmodes

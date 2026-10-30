@@ -228,7 +228,6 @@ Runtime dependencies (from `pyproject.toml`):
 
 - `cryptography`
 - `asn1crypto`
-- `certvalidator`
 - `lxml`
 - `pykcs11`
 - `Pillow`
