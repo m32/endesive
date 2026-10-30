@@ -17,7 +17,7 @@ from asn1crypto import algos, tsp
 from cryptography.x509.oid import NameOID
 from lxml import builder, etree
 
-from endesive.signer import is_tsp_reply, tsp_granted
+from endesive.signer import check_tsp_reply, is_tsp_reply, tsp_granted
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +191,7 @@ class BES:
                 Id=f"UnsignedProperties_{self.guid}_02"
             )
         else:
-            tspreq = tsp.TimeStampReq(
+            request = tsp.TimeStampReq(
                 {
                     "version": 1,
                     "message_imprint": tsp.MessageImprint(
@@ -210,7 +210,7 @@ class BES:
                     #'extensions': tsp.Extensions()
                 }
             )
-            tspreq = tspreq.dump()
+            tspreq = request.dump()
 
             tspheaders = {"Content-Type": "application/timestamp-query"}
             if tspcred is not None:
@@ -231,6 +231,7 @@ class BES:
                 tspresp = tsp.TimeStampResp.load(tspresp.content)
 
                 if tsp_granted(tspresp):
+                    check_tsp_reply(tspresp, request)
                     attr = self._base64(tspresp["time_stamp_token"].dump())
                 else:
                     raise ValueError("TimeStampResponse status is not granted")

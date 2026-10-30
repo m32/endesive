@@ -55,6 +55,41 @@ def is_tsp_reply(content_type: str | None) -> bool:
     return media_type == "application/timestamp-reply"
 
 
+def check_tsp_reply(response: tsp.TimeStampResp, request: tsp.TimeStampReq) -> None:
+    """Check that a granted time-stamp reply answers ``request``.
+
+    RFC 3161 section 2.4.2 requires the token to carry the message imprint
+    and nonce of the request; replies which are not granted are left to the
+    caller.
+
+    Args:
+        response: Parsed time-stamp response.
+        request: The request it answers.
+
+    Raises:
+        TimestampError: If the token is malformed or answers another request.
+    """
+    if not tsp_granted(response):
+        return
+    try:
+        token = response["time_stamp_token"]
+        tst_info = token["content"]["encap_content_info"]["content"].parsed
+        imprint = tst_info["message_imprint"]
+        algorithm = imprint["hash_algorithm"]["algorithm"].dotted
+        hashed_message = imprint["hashed_message"].native
+        nonce = tst_info["nonce"].native
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise TimestampError("Invalid time-stamp token") from exc
+    requested = request["message_imprint"]
+    if (
+        algorithm != requested["hash_algorithm"]["algorithm"].dotted
+        or hashed_message != requested["hashed_message"].native
+    ):
+        raise TimestampError("Time-stamp token is for another message imprint")
+    if request["nonce"].native is not None and nonce != request["nonce"].native:
+        raise TimestampError("Time-stamp token nonce does not match the request")
+
+
 def cert2asn(
     cert: x509.Certificate | cryptography_x509.Certificate | bytes,
 ) -> x509.Certificate:
@@ -189,12 +224,16 @@ def fetch_tsp_response(
 
     Returns:
         Raw TSP response bytes or ``None`` if the request fails.
+
+    Raises:
+        TimestampError: If the response cannot be parsed, or a granted
+            response answers another request.
     """
     if prehashed:
         hashed_value = prehashed
     else:
         hashed_value = getattr(hashlib, hashalgo)(unhashed).digest()
-    tspreq = tsp.TimeStampReq(
+    request = tsp.TimeStampReq(
         {
             "version": 1,
             "message_imprint": tsp.MessageImprint(
@@ -207,7 +246,7 @@ def fetch_tsp_response(
             "cert_req": True,
         }
     )
-    tspreq = tspreq.dump()
+    tspreq = request.dump()
     tspheaders = {"Content-Type": "application/timestamp-query"}
     reqoptions = dict(reqoptions or {}).copy()
     if reqoptions.get("username") is not None:
@@ -221,13 +260,18 @@ def fetch_tsp_response(
     reqoptions.setdefault("timeout", DEFAULT_HTTP_TIMEOUT)
     try:
         response = requests.post(url, data=tspreq, headers=tspheaders, **reqoptions)
-        if response.status_code != 200 or not is_tsp_reply(
-            response.headers.get("Content-Type")
-        ):
-            return None
-        return response.content
     except requests.RequestException:
         return None
+    if response.status_code != 200 or not is_tsp_reply(
+        response.headers.get("Content-Type")
+    ):
+        return None
+    try:
+        reply = tsp.TimeStampResp.load(response.content)
+    except ValueError as exc:
+        raise TimestampError("Invalid timestamp server response") from exc
+    check_tsp_reply(reply, request)
+    return response.content
 
 
 class SignerBase:

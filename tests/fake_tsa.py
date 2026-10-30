@@ -28,6 +28,7 @@ class FakeTSA:
         swap_tst_info: Sign a TSTInfo with a wrong imprint, but encapsulate
             one with the requested imprint, as a forger would.
         content_type: Content-Type header of the HTTP responses.
+        wrong_nonce: Answer with a nonce which does not match the request.
     """
 
     def __init__(
@@ -36,11 +37,13 @@ class FakeTSA:
         tamper_imprint: bool = False,
         swap_tst_info: bool = False,
         content_type: str = "application/timestamp-reply",
+        wrong_nonce: bool = False,
     ):
         self.status = status
         self.tamper_imprint = tamper_imprint
         self.swap_tst_info = swap_tst_info
         self.content_type = content_type
+        self.wrong_nonce = wrong_nonce
         self.requests: list[tsp.TimeStampReq] = []
 
         now = datetime.datetime.now(datetime.UTC)
@@ -122,7 +125,7 @@ class FakeTSA:
                     "message_imprint": message_imprint,
                     "serial_number": len(self.requests),
                     "gen_time": gen_time,
-                    "nonce": req["nonce"],
+                    "nonce": req["nonce"].native + 1 if self.wrong_nonce else req["nonce"],
                 }
             )
 

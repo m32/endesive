@@ -313,8 +313,9 @@ class SecuritySignerTests(unittest.TestCase):
         ocsp_options = {"issuer": issuer_cert, "verify": False}
         tsp_options = {"verify": False, "username": "user", "password": "pass"}
 
-        with mock.patch("endesive.signer.requests.post", return_value=SimpleNamespace(status_code=200, content=b"ok", headers={"Content-Type": "application/timestamp-reply"})):
+        with mock.patch("endesive.signer.requests.post", return_value=SimpleNamespace(status_code=200, content=b"ok", headers={"Content-Type": "application/ocsp-response"})):
             signer.fetch_ocsp_response(leaf_cert, "https://ocsp.example", ocsp_options)
+        with mock.patch("endesive.signer.requests.post", side_effect=FakeTSA().post):
             signer.fetch_tsp_response(b"payload", "sha256", "https://tsa.example", tsp_options)
 
         self.assertIn("issuer", ocsp_options)
@@ -323,13 +324,8 @@ class SecuritySignerTests(unittest.TestCase):
 
     def test_fetch_tsp_response_sets_timeout_auth_and_rejects_invalid_http_status(self):
         payload = b"payload"
-        ok_response = SimpleNamespace(
-            status_code=200,
-            headers={"Content-Type": "application/timestamp-reply"},
-            content=b"timestamp-bytes",
-        )
 
-        with mock.patch("endesive.signer.requests.post", return_value=ok_response) as post_mock:
+        with mock.patch("endesive.signer.requests.post", side_effect=FakeTSA().post) as post_mock:
             result = signer.fetch_tsp_response(
                 payload,
                 "sha256",
@@ -337,7 +333,7 @@ class SecuritySignerTests(unittest.TestCase):
                 {"verify": False, "username": "user", "password": "pass"},
             )
 
-        self.assertEqual(result, b"timestamp-bytes")
+        self.assertTrue(signer.tsp_granted(signer.tsp.TimeStampResp.load(result)))
         self.assertEqual(post_mock.call_args.kwargs["timeout"], signer.DEFAULT_HTTP_TIMEOUT)
         self.assertTrue(post_mock.call_args.kwargs["headers"]["Authorization"].startswith("Basic "))
 
@@ -461,13 +457,9 @@ class SecuritySignerTests(unittest.TestCase):
         self.assertTrue(callable(signer_obj.attrs))
 
     def test_fetch_tsp_response_handles_empty_credentials_and_prehashed_data(self):
-        ok_response = SimpleNamespace(
-            status_code=200,
-            headers={"Content-Type": "application/timestamp-reply"},
-            content=b"ts-response",
-        )
+        tsa = FakeTSA()
 
-        with mock.patch("endesive.signer.requests.post", return_value=ok_response) as post_mock:
+        with mock.patch("endesive.signer.requests.post", side_effect=tsa.post) as post_mock:
             result = signer.fetch_tsp_response(
                 b"payload",
                 "sha256",
@@ -476,7 +468,8 @@ class SecuritySignerTests(unittest.TestCase):
                 prehashed=b"x" * 32,
             )
 
-        self.assertEqual(result, b"ts-response")
+        self.assertTrue(signer.tsp_granted(signer.tsp.TimeStampResp.load(result)))
+        self.assertEqual(tsa.requests[0]["message_imprint"]["hashed_message"].native, b"x" * 32)
         self.assertNotIn("Authorization", post_mock.call_args.kwargs["headers"])
 
     def test_cert2asn_accepts_pem_der_and_asn1_input(self):

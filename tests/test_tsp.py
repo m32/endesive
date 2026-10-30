@@ -48,9 +48,36 @@ class TSPTests(unittest.TestCase):
                 self.assertIsNotNone(result.tspdata)
 
     def test_signature_timestamp_with_wrong_imprint_is_rejected(self):
-        result = self._sign_and_verify(FakeTSA(tamper_imprint=True), "sha512")
+        # as for a signature made without checking the reply
+        with mock.patch("endesive.signer.check_tsp_reply"):
+            result = self._sign_and_verify(FakeTSA(tamper_imprint=True), "sha512")
         self.assertIs(result.tspok, False)
         self.assertEqual(result.tspmsg, "Invalid hash value")
+
+    def test_reply_for_another_request_is_rejected(self):
+        cases = {
+            "imprint": (FakeTSA(tamper_imprint=True), "another message imprint"),
+            "nonce": (FakeTSA(wrong_nonce=True), "nonce does not match"),
+        }
+        for label, (tsa, message) in cases.items():
+            with self.subTest(label):
+                with self.assertRaisesRegex(TimestampError, message):
+                    self._sign_and_verify(tsa, "sha256")
+                with self.assertRaisesRegex(TimestampError, message):
+                    self._timestamp_pdf(tsa)
+                with mock.patch("requests.post", side_effect=tsa.post):
+                    with self.assertRaisesRegex(TimestampError, message):
+                        BES()._unsignedproperties(b"<SignatureValue/>", TSPURL, None)
+
+    def test_unparsable_reply_is_rejected(self):
+        reply = SimpleNamespace(
+            status_code=200,
+            headers={"Content-Type": "application/timestamp-reply"},
+            content=b"not a time-stamp response",
+        )
+        with mock.patch("requests.post", return_value=reply):
+            with self.assertRaisesRegex(TimestampError, "Invalid timestamp server response"):
+                signer.fetch_tsp_response(b"data", "sha256", TSPURL, None)
 
     def test_signature_timestamp_with_swapped_tst_info_is_rejected(self):
         result = self._sign_and_verify(FakeTSA(swap_tst_info=True), "sha256")
