@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import hashlib
 import logging
 import warnings
 
@@ -639,6 +638,20 @@ class SignatureVerifier(object):
             return
         result.ocsp_result(True, (produced_at, next_update), "valid")
 
+    def _tst_imprint_matches(self, tst: tsp.TSTInfo, data: bytes) -> bool:
+        """Check the TSTInfo message imprint, using the hash algorithm it names."""
+        imprint = tst["message_imprint"]
+        hash_name = imprint["hash_algorithm"]["algorithm"].native
+        try:
+            hash_cls = self._resolve_hash_cls(hash_name)
+        except HashAlgorithmError as exc:
+            raise TSPVerificationError(
+                f"Unsupported TSP message imprint hash algorithm: {hash_name}"
+            ) from exc
+        digest = hashes.Hash(hash_cls())
+        digest.update(data)
+        return digest.finalize() == imprint["hashed_message"].native
+
     def verify_tsp_data(self, result: Result):
         if result.tsp_data is None:
             result.tsp_result(None, None, "no TSP data found")
@@ -679,8 +692,7 @@ class SignatureVerifier(object):
             result.tsp_result(True, tst["gen_time"].native, "valid")
             return
         signature_bytes = result.signed_data["signer_infos"][0]["signature"].native
-        md = hashlib.sha256(signature_bytes).digest()
-        if md == tst["message_imprint"]["hashed_message"].native:
+        if self._tst_imprint_matches(tst, signature_bytes):
             result.tsp_result(True, tst["gen_time"].native, "valid")
         else:
             result.tsp_result(False, None, "Invalid hash value")
