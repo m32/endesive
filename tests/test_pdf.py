@@ -1,7 +1,6 @@
 import datetime
 import io
 import unittest
-import warnings
 import zlib
 from types import SimpleNamespace
 from unittest import mock
@@ -18,6 +17,7 @@ from test_cert import (
 )
 
 from endesive import pdf
+from endesive.pdf.PyPDF2_annotate.annotations.image import Image as AnnotationImage
 from endesive import exceptions
 
 
@@ -255,6 +255,27 @@ class PDFTests(unittest.TestCase):
         )
         assert result.signatureok and result.hashok and result.certok
 
+    def test_pdf_image_raw_bytes_use_8_bits_per_component(self):
+        pixels = {
+            "L": [0, 17, 128, 255, 3, 99],
+            "1": [0, 255, 255, 0, 0, 255],
+            "RGB": [(255, 0, 0), (0, 255, 0), (0, 0, 255), (1, 2, 3), (4, 5, 6), (7, 8, 9)],
+        }
+        for mode, values in pixels.items():
+            with self.subTest(mode):
+                image = PIL.Image.new(mode, (3, 2))
+                for i, value in enumerate(values):
+                    image.putpixel((i % 3, i // 3), value)
+                png = io.BytesIO()
+                image.save(png, "PNG")
+                image = PIL.Image.open(io.BytesIO(png.getvalue()))
+                expected = bytes(
+                    component
+                    for value in values
+                    for component in (value if isinstance(value, tuple) else (value,))
+                )
+                self.assertEqual(AnnotationImage.get_raw_image_bytes(image), expected)
+
     def test_pdf_signature_appearance_streams_are_compressed_once(self):
         # embedded fonts and images are zlib compressed before reaching
         # SignedData._extend, which must not compress them again
@@ -280,10 +301,7 @@ class PDFTests(unittest.TestCase):
         p12 = CA().pk12_load(cert1_p12, '1234')
         with open(fixture('pdf.pdf'), 'rb') as fh:
             datau = fh.read()
-        with warnings.catch_warnings():
-            # PyPDF2_annotate still uses Image.getdata, deprecated in Pillow 12
-            warnings.filterwarnings("ignore", "Image.Image.getdata", DeprecationWarning)
-            datas = pdf.cms.sign(datau, dct, p12[0], p12[1], p12[2], 'sha256')
+        datas = pdf.cms.sign(datau, dct, p12[0], p12[1], p12[2], 'sha256')
 
         reader = pypdf.PdfReader(io.BytesIO(datau + datas))
         objects = [

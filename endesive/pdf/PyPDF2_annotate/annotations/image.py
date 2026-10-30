@@ -204,18 +204,12 @@ class Image(RectAnnotation):
 
     @staticmethod
     def get_raw_image_bytes(image):
-        if image.mode in (GRAYSCALE_MODE, SINGLE_CHANNEL_MODE):
-            # If this is grayscale or single-channel, we can avoid dealing with
-            # the nested tuples in multi-channel images. This bytes/bytearray
-            # wrapped approach is the only way that works in both py2 and py3.
-            return bytes(bytearray(image.getdata()))
-
-        elif image.mode == RGB_MODE:
-            raw_image_data = list(image.getdata())
-            array = bytearray()
-            for rgb in raw_image_data:
-                array.extend(rgb)
-            return bytes(array)
+        if image.mode == SINGLE_CHANNEL_MODE:
+            # tobytes() packs bilevel pixels into bits, but the image XObject
+            # declares 8 bits per component: expand them to 0 or 255
+            image = image.convert(GRAYSCALE_MODE)
+        if image.mode in (GRAYSCALE_MODE, RGB_MODE):
+            return image.tobytes()
 
         raise ValueError("Image color space not yet supported")
 
